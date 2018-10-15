@@ -1,0 +1,369 @@
+import java.lang.StringBuffer;
+import java.util.stream.IntStream;
+
+aspect PrettyPrinter {
+    public interface IASTNode {
+        public void accept(ASTConcreteNodeVisitor visitor);
+
+    }
+    Declaration implements IASTNode;
+    Instruction implements IASTNode; // TODO: Change to instruction
+
+    public abstract void Instruction.accept(ASTConcreteNodeVisitor visitor);
+
+    public interface ASTConcreteNodeVisitor {
+        public void visit(Module mod);
+        public void visit(Function func);
+        public void visit(Table tab);
+        public void visit(Global global);
+        public void visit(ElementSegment element_segment);
+        public void visit(Memory mem);
+        public void visit(DataSegment data_seg);
+        public void visit(Export exp);
+        public void visit(TableExportDesc exp);
+        public void visit(FunctionExportDesc exp);
+        public void visit(DataExportDesc exp);
+        public void visit(MemoryExportDesc exp);
+        public void visit(GlobalExportDesc exp);
+
+        public void visit(Import imp);
+        public void visit(Start imp);
+        public void visit(ConstantExpression const_exp);
+        public void visit(Type type);
+        public void visit(TypeUse type);
+        public void visit(ValueType type);
+        public void visit(ConstLiteral inst);
+        public void visit(GetLocal inst);
+        public void visit(SetLocal inst);
+        public void visit(TeeLocal inst);
+        public void visit(Clz inst);
+        public void visit(Ctz inst);
+        public void visit(Popcnt inst);
+        public void visit(Add inst);
+        public void visit(Sub inst);
+        public void visit(Mul inst);
+        public void visit(Div inst);
+        public void visit(Rem inst);
+        public void visit(And inst);
+        public void visit(Or inst);
+        public void visit(Xor inst);
+        public void visit(Shr inst);
+        public void visit(Shl inst);
+        public void visit(Rotl inst);
+        public void visit(Rotr inst);
+        public void visit(Eqz inst);
+        public void visit(Eq inst);
+        public void visit(Ne inst);
+        public void visit(Le inst);
+        public void visit(Lt inst);
+        public void visit(Gt inst);
+        public void visit(Ge inst);
+
+        // Float numeric
+        public void visit(Abs inst);
+        public void visit(Neg inst);
+        public void visit(Sqrt inst);
+        public void visit(Ceil inst);
+        public void visit(Floor inst);
+        public void visit(Trunc inst);
+        public void visit(Nearest inst);
+        public void visit(Max inst);
+        public void visit(Min inst);
+        public void visit(CopySign inst);
+        public void visit(CvTrunc inst);
+        public void visit(Demote inst);
+        public void visit(Promote inst);
+        public void visit(Extend inst);
+        public void visit(Reinterpret inst);
+        public void visit(Convert inst);
+        public void visit(Wrap inst);
+
+        //Control instructions
+        public void visit(BrTable inst);
+        public void visit(Select inst);
+        public void visit(Drop inst);
+        public void visit(Load inst);
+        public void visit(Store inst);
+        public void visit(SetGlobal inst);
+        public void visit(GetGlobal inst);
+        public void visit(Nop inst);
+        public void visit(Br inst);
+        public void visit(MemGrow inst);
+        public void visit(MemSize inst);
+        public void visit(BrIf inst);
+        public void visit(Call inst);
+        public void visit(CallIndirect inst);
+        public void visit(Return inst);
+        public void visit(Unreachable inst);
+        public void visit(If inst);
+        public void visit(Block inst);
+        public void visit(Loop inst);
+        public void visit(ImportedWat inst);
+
+        //
+
+    }
+    public abstract void ExportDesc.accept(ASTConcreteNodeVisitor visitor);
+
+    public interface ASTNodeVisitor extends ASTConcreteNodeVisitor {
+            // Abstract nodes for validation
+            public void visit(CvtOp inst);
+            public void visit(UnOp inst);
+            public void visit(BinOp inst);
+            public void visit(TestOp inst);
+            public void visit(RelOp inst);
+    }
+    TypeUse implements IASTNode;
+    public void ConstantExpression.accept(ASTConcreteNodeVisitor visitor){
+        visitor.visit(this);
+    }
+
+    public void Start.accept(ASTConcreteNodeVisitor visitor){
+        visitor.visit(this);
+    }
+    public void Global.accept(ASTConcreteNodeVisitor visitor){
+        visitor.visit(this);
+    }
+    public void Module.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void Function.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void Table.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void ElementSegment.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void TypeUse.accept(ASTConcreteNodeVisitor visitor) {
+            visitor.visit(this);
+    }
+    public void Memory.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void DataSegment.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void Export.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void Import.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+    public void Type.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    public void GetLocal.accept(ASTConcreteNodeVisitor visitor) {
+            visitor.visit(this);
+    }
+    public void SetLocal.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void TeeLocal.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Clz.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Ctz.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Popcnt.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Add.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Sub.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Mul.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Div.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Rem.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void And.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Or.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Xor.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Shl.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Shr.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Rotr.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Rotl.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Eqz.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Eq.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Ne.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Le.accept(ASTConcreteNodeVisitor visitor) {
+                visitor.visit(this);
+    }
+    public void Lt.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Gt.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Ge.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Abs.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Neg.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Sqrt.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void Ceil.accept(ASTConcreteNodeVisitor visitor) {
+                        visitor.visit(this);
+    }
+    public void Floor.accept(ASTConcreteNodeVisitor visitor) {
+                            visitor.visit(this);
+    }
+    public void Trunc.accept(ASTConcreteNodeVisitor visitor) {
+                            visitor.visit(this);
+    }
+    public void Nearest.accept(ASTConcreteNodeVisitor visitor) {
+                            visitor.visit(this);
+    }
+    public void Max.accept(ASTConcreteNodeVisitor visitor) {
+                            visitor.visit(this);
+    }
+    public void Min.accept(ASTConcreteNodeVisitor visitor) {
+                            visitor.visit(this);
+    }
+    public void CopySign.accept(ASTConcreteNodeVisitor visitor) {
+                                visitor.visit(this);
+    }
+    public void Wrap.accept(ASTConcreteNodeVisitor visitor) {
+                                visitor.visit(this);
+    }
+    public void Extend.accept(ASTConcreteNodeVisitor visitor) {
+                                    visitor.visit(this);
+    }
+    public void CvTrunc.accept(ASTConcreteNodeVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    public void Convert.accept(ASTConcreteNodeVisitor visitor) {
+                                    visitor.visit(this);
+    }
+    public void Demote.accept(ASTConcreteNodeVisitor visitor) {
+                                    visitor.visit(this);
+    }
+    public void Promote.accept(ASTConcreteNodeVisitor visitor) {
+                                    visitor.visit(this);
+    }
+    public void Reinterpret.accept(ASTConcreteNodeVisitor visitor) {
+                                    visitor.visit(this);
+    }
+    public void ImportedWat.accept(ASTConcreteNodeVisitor visitor) {
+
+    }
+
+    // Instructions
+    public void BrTable.accept(ASTConcreteNodeVisitor visitor) {
+            visitor.visit(this);
+    }
+    public void Select.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void Drop.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void Load.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void Store.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void SetGlobal.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void GetGlobal.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void Nop.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void Br.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void MemGrow.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void MemSize.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void ValueType.accept(ASTConcreteNodeVisitor visitor) {
+                    visitor.visit(this);
+    }
+    public void BrIf.accept(ASTConcreteNodeVisitor visitor) {
+                                        visitor.visit(this);
+    }
+    public void Call.accept(ASTConcreteNodeVisitor visitor) {
+                                            visitor.visit(this);
+    }
+     public void CallIndirect.accept(ASTConcreteNodeVisitor visitor) {
+                                            visitor.visit(this);
+    }
+     public void Return.accept(ASTConcreteNodeVisitor visitor) {
+                                            visitor.visit(this);
+    }
+    public void Unreachable.accept(ASTConcreteNodeVisitor visitor) {
+                                            visitor.visit(this);
+    }
+    public void If.accept(ASTConcreteNodeVisitor visitor) {
+                                                visitor.visit(this);
+    }
+    public void Block.accept(ASTConcreteNodeVisitor visitor) {
+                                                    visitor.visit(this);
+    }
+    public void Loop.accept(ASTConcreteNodeVisitor visitor) {
+                                                    visitor.visit(this);
+    }
+    public void ConstLiteral.accept(ASTConcreteNodeVisitor visitor){
+                visitor.visit(this);
+    }
+    public void GlobalExportDesc.accept(ASTConcreteNodeVisitor visitor){
+                    visitor.visit(this);
+    }
+    public void MemoryExportDesc.accept(ASTConcreteNodeVisitor visitor){
+        visitor.visit(this);
+    }
+    public void TableExportDesc.accept(ASTConcreteNodeVisitor visitor){
+                    visitor.visit(this);
+    }
+    public void FunctionExportDesc.accept(ASTConcreteNodeVisitor visitor){
+                    visitor.visit(this);
+    }
+    public void DataExportDesc.accept(ASTConcreteNodeVisitor visitor){
+                    visitor.visit(this);
+    }
+
+}

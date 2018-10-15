@@ -1,0 +1,64 @@
+group 'mclab'
+apply plugin: 'java'
+apply plugin: 'jastadd'
+apply plugin: 'application'
+
+//sourceSets.main.java.srcDirs = ['src']
+mainClassName = "matwably.Main"
+
+sourceCompatibility = 1.8
+repositories {
+    mavenCentral()
+}
+buildscript {
+    repositories.mavenCentral()
+    dependencies {
+        classpath 'org.jastadd:jastaddgradle:1.13.0'
+    }
+}
+
+//TODO Deal automatically with downloading the mclab-core dependency
+repositories {
+    flatDir {
+        dirs 'libs/mclab-core/languages/Natlab'
+        dirs 'libs/matjuice'
+    }
+}
+jastadd {
+    configureModuleBuild()
+    modules "jastadd_modules"
+
+    module = "matwably"
+
+    astPackage = "matwably.ast"
+//    scanner.genDir = "src/gen/AST"
+//    parser.name = "StateMachineParser"
+//    parser.genDir = "src/gen"
+}
+dependencies {
+    // https://mvnrepository.com/artifact/org.jastadd/jastaddgradle
+    compile group: 'org.jastadd', name: 'jastaddgradle', version: '1.13.0'
+
+    // https://mvnrepository.com/artifact/com.beust/jcommander
+    compile group: 'com.beust', name: 'jcommander', version: '1.7'
+    compile name: 'McLabCore'
+    compile name: 'matjuice', ext:'jar'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+task copyToLib(type: Copy) {
+    into "$buildDir/lib"
+    from configurations.runtime
+}
+task myRun(type: JavaExec) {
+    classpath sourceSets.main.runtimeClasspath
+    main = "matwably.Main"
+    if (project.hasProperty('myargs')) {
+        args(myargs.split(','))
+    }
+//    args "./src/test/matlab_files/bubble/drv_bubble.m" "-o" "./drv_bubble.js" "-a" "'[\"DOUBLE&1*1&REAL\"]'"
+}
+
+tasks.withType(Jar) {
+    destinationDir = file("$buildDir/lib")
+}
+task make_jar dependsOn(build, copyToLib)

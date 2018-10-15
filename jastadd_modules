@@ -1,0 +1,13 @@
+module("matwably") {
+    java {
+        basedir "src/main/java/"
+        include "**/*.java"
+        include "**/*.java"
+    }
+
+    jastadd {
+        include "src/main/resources/*.ast"
+        include "src/main/resources/*.jadd"
+        include "src/main/resources/*.jrag"
+    }
+}

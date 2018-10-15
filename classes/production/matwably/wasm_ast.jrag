@@ -1,0 +1,13 @@
+
+aspect AST {
+    //syn List<ValueType> Expression.getReturnType();
+    //eq Expression.getReturnType() {
+    //    return new List();
+   // }
+    //syn List<ValueType> ConstantExpression.getReturnType();
+
+    //eq ConstantExpression.getReturnType() {
+    //    return new List();
+    //}
+
+}

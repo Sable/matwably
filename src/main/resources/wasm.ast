@@ -1,0 +1,165 @@
+// Module
+Module ::= [Identifier] Functions: Function* [Start] ImportedWat* Type:Type* Global*  Table* ElementSegment* Memory* DataSegment* Export* Import*;
+abstract Declaration;
+//  Declarations
+Global: Declaration ::= [Identifier] GlobalType Init:ConstantExpression;
+Table: Declaration ::= [Identifier] <TableType:TableType>; // (table $name? limit: max?, min? elemtype:["anyfunc"]
+Memory: Declaration::=  [Identifier] Limits:Limit;
+DataSegment: Declaration ::= MemoryIndex:Idx Offset:ConstantExpression <Init:String>;
+ElementSegment: Declaration ::= TableIndex:Idx Offset:ConstantExpression <Init:java.util.List<Integer>>;
+Start: Declaration ::= FunctionIndex: Idx;
+Export: Declaration ::= <Name> <Desc:ExportDesc>;
+Import: Declaration ::= <ModuleName> <Name> Desc;
+Function: Declaration ::= [Identifier] Type Locals:TypeUse* Body:Expression;
+Type: Declaration ::= [Identifier] <Parameters: List<TypeUse>> [ReturnType];
+ImportedWat: Declaration::= <Decl: String>;
+
+TypeUse ::= [Identifier] <Type:ValueType>;
+Desc::= [Identifier] DescType;
+// Types
+abstract DescType;
+MemoryType: DescType::= <Limits:Limit>;
+GlobalType: DescType ::= <Mut: boolean> <Type: ValueType> ;
+TableType: DescType::= <Limits:Limit><ElemType:AnyFunc> ; //
+FuncType: DescType ::= Type: Type;
+
+abstract ExportDesc ::= Idx;
+TableExportDesc: ExportDesc;
+GlobalExportDesc: ExportDesc;
+MemoryExportDesc: ExportDesc;
+DataExportDesc: ExportDesc;
+FunctionExportDesc: ExportDesc;
+
+// Expressions
+Expression ::= Instructions: Instruction*;
+ConstantExpression ::= Instructions: ConstLiteral*;
+
+// Function
+Local ::= <Name:String><Type: ValueType>;
+
+// Instructions
+abstract Instruction;
+abstract NumericInstruction: Instruction;
+abstract BinOp: NumericInstruction ::= <Type:ValueType>;
+abstract IBinOp: BinOp;
+abstract FBinOp: BinOp;
+
+abstract UnOp: NumericInstruction ::= <Type:ValueType>;
+abstract IUnOp: UnOp;
+abstract FUnOp: UnOp;
+
+abstract RelOp: NumericInstruction  ::= <Type:ValueType>;
+abstract IRelOp: RelOp;
+abstract FRelOp: RelOp;
+
+abstract TestOp: NumericInstruction  ::= <Type:ValueType>;
+abstract ITestOp: TestOp;
+
+abstract ParametricInstruction: Instruction;
+abstract VariableInstruction: NumericInstruction;
+abstract MemoryInstruction: Instruction;
+abstract ConstantInstruction: NumericInstruction ::= <Type:ValueType>;
+abstract ControlInstruction: Instruction;
+abstract CvtOp: NumericInstruction ::= <Type:ValueType>  <FromType:ValueType>;
+
+ConstLiteral:ConstantInstruction ::= <Value:Number>;
+
+GetLocal: VariableInstruction ::= Idx;
+SetLocal: VariableInstruction ::= Idx;
+TeeLocal: VariableInstruction ::= Idx;
+GetGlobal: VariableInstruction ::= Idx;
+SetGlobal: VariableInstruction ::= Idx;
+
+// Numeric Integer Instructions
+// IUnOp
+Clz: IUnOp;
+Ctz: IUnOp;
+Popcnt: IUnOp;
+// IBinOp
+Add: BinOp;
+Sub: BinOp;
+Mul: BinOp;
+Div: BinOp ::= <Signed: boolean>;
+Rem: IBinOp ::= <Signed: boolean>;
+And: IBinOp;
+Or: IBinOp;
+Xor: IBinOp;
+Shl: IBinOp;
+Shr: IBinOp::= <Signed: boolean>;
+Rotl: IBinOp;
+Rotr: IBinOp;
+// ITestOp
+Eqz: ITestOp;
+// IRelOp
+Eq: RelOp;
+Ne: RelOp;
+Le: RelOp ::=  <Signed: boolean>;
+Ge: RelOp ::=  <Signed: boolean>;
+Gt: RelOp ::=  <Signed: boolean>;
+Lt: RelOp ::=  <Signed: boolean>;
+
+// Numeric Float Insructions
+//FUnOp
+Abs: FBinOp;
+Neg: FBinOp;
+Sqrt: FBinOp;
+Ceil: FBinOp;
+Floor: FBinOp;
+Trunc: FBinOp;
+Nearest: FBinOp;
+//FBinOp;
+Max: FBinOp;
+Min: FBinOp;
+CopySign: FBinOp;
+
+// CvtOp instructions;
+Wrap: CvtOp;
+Extend: CvtOp ::= <Signed:boolean>;
+CvTrunc: CvtOp ::= <Signed:boolean>;
+Convert: CvtOp ::= <Signed:boolean>;
+Demote: CvtOp;
+Promote: CvtOp;
+Reinterpret: CvtOp;
+
+//Parametric
+Drop: ParametricInstruction;
+Select: ParametricInstruction;
+
+// Memory Instructions
+MemArg ::= <Offset:short> <Align:short>;
+BitWidth ::= <Width: short>;
+Load: MemoryInstruction ::= <Type:ValueType> [MemArg] [Signed] [BitWidth];
+Store:MemoryInstruction ::= <Type:ValueType> [MemArg] [BitWidth];
+MemGrow: MemoryInstruction;
+MemSize: MemoryInstruction;
+
+// Control instructions
+Nop: Instruction;
+Unreachable: Instruction;
+Block:ControlInstruction::= [Label: Idx] [ReturnType] Instruction*;
+Loop:ControlInstruction::= [Label: Idx] [ReturnType] Instruction*;
+If: ControlInstruction::= [ReturnType] InstructionsIf:Instruction* InstructionsElse:Instruction*;
+Br: ControlInstruction ::= Label:Idx;
+BrIf: ControlInstruction::=  Label:Idx;
+BrTable: ControlInstruction ::= Labels:Idx*Br;
+Return: ControlInstruction;
+Call: ControlInstruction::= Label: Idx;
+CallIndirect: ControlInstruction ::= TypeIdx:Idx;
+
+// Attributes
+AnyFunc;
+Idx ::= [Identifier] <Index:int>;
+Limit ::= <Min:int> [Max:MaxLim];
+MaxLim::= <Value:int>;
+Identifier ::= <Name>;
+Signed ::= <Value: boolean>;
+ReturnType::= <Types: List<ValueType>>;
+
+abstract ValueType;
+abstract IntValueType: ValueType;
+abstract FloatValueType: ValueType;
+I32: IntValueType;
+I64: IntValueType;
+F32: FloatValueType;
+F64: FloatValueType;
+

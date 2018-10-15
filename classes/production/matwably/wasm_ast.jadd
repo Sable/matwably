@@ -1,0 +1,144 @@
+import java.security.InvalidParameterException;
+aspect AST {
+     public Idx.Idx(String name){
+        setChild(new Opt<>(new Identifier(name)),0);
+        setIndex(0);
+     }
+     public TypeUse.TypeUse(String p0, ValueType p1){
+        setChild(new Opt<>(new Identifier(p0)), 0);
+        setType(p1);
+     }
+     public abstract String ValueType.getTypeString();
+
+     public  String I32.getTypeString(){
+         return "i32";
+      }
+      public  String I64.getTypeString(){
+         return "i64";
+      }
+      public  String F32.getTypeString(){
+         return "i32";
+     }
+     public String F64.getTypeString(){
+         return "f64";
+     }
+      public abstract int ValueType.getTypeValue();
+
+     public  int I32.getTypeValue(){
+        return 0;
+     }
+     public  int I64.getTypeValue(){
+        return 1;
+     }
+     public  int F32.getTypeValue(){
+            return 2;
+        }
+        public int F64.getTypeValue(){
+            return 3;
+        }
+
+
+    public interface IReturnType {
+        public ValueType getReturnType();
+    }
+    ConstantExpression implements IReturnType;
+    Expression implements IReturnType;
+    public ValueType Expression.getReturnType() {
+        return null;
+    }
+    public ValueType ConstantExpression.getReturnType() {
+        return null;
+    }
+
+    public List<T> List.addAll(T... initialChildren) {
+        for (int i = 0; i < initialChildren.length; ++i) {
+          addChild(initialChildren[i]);
+        }
+        return this;
+    }
+
+    public ConstLiteral.ConstLiteral(I32 type, int value)
+    {
+        setType(type);
+        setValue(value);
+    }
+
+    public ConstLiteral.ConstLiteral(I64 type, long value)
+    {
+
+        setType(type);
+        setValue(value);
+    }
+
+    public ConstLiteral.ConstLiteral(F32 type, float value)
+    {
+
+        setType(type);
+        setValue(value);
+    }
+    public ConstLiteral.ConstLiteral(F64 type, double value)
+    {
+
+        setType(type);
+        setValue(value);
+    }
+    public abstract class Index {
+        public abstract <T> T match(java.util.function.Function<Identifier, T> funcid, java.util.function.Function<Numeric, T> funcnum );
+        public static final class Identifier extends Index {
+            public String value;
+
+            public Identifier(String str) {
+                this.value = str;
+            }
+            public <T> T match(java.util.function.Function<Identifier, T> funcid, java.util.function.Function<Numeric, T> funcnum) {
+                return funcid.apply(this);
+            }
+        }
+        public static final class Numeric extends Index {
+            public int value;
+
+            public Numeric(int val) {
+                if(val < 0) throw new InvalidParameterException("Numeric index must be positive");
+                this.value = val;
+            }
+            public <T> T match(java.util.function.Function<Identifier, T> funcid, java.util.function.Function<Numeric, T> funcnum ){
+                return funcnum.apply(this);
+            }
+        }
+    }
+    //Expression implements ReturnType;
+    //ConstantExpression implements ReturnType;
+
+   // interface ReturnType {
+   //     List<ValueType> return_type = new List<>();
+   //     List<ValueType> getReturnType();
+
+   // }
+
+   // Add abstract methods to DescType
+  // TODO: All comparison operators for DescTypes
+
+    public abstract <T> T DescType.match(java.util.function.Function<GlobalType, T> glob, java.util.function.Function<MemoryType, T> mem, java.util.function.Function<FuncType,T> func, java.util.function.Function<TableType, T> tab);
+    public <T> T GlobalType.match(java.util.function.Function<GlobalType, T> glob, java.util.function.Function<MemoryType, T> mem, java.util.function.Function<FuncType,T> func, java.util.function.Function<TableType, T> tab) {
+        return glob.apply(this);
+    }
+    public <T> T FuncType.match(java.util.function.Function<GlobalType, T> glob, java.util.function.Function<MemoryType, T> mem, java.util.function.Function<FuncType,T> func, java.util.function.Function<TableType, T> tab) {
+        return func.apply(this);
+    }
+    public <T> T MemoryType.match(java.util.function.Function<GlobalType, T> glob, java.util.function.Function<MemoryType, T> mem, java.util.function.Function<FuncType,T> func, java.util.function.Function<TableType, T> tab) {
+        return mem.apply(this);
+    }
+    public <T> T TableType.match(java.util.function.Function<GlobalType, T> glob, java.util.function.Function<MemoryType, T> mem, java.util.function.Function<FuncType,T> func, java.util.function.Function<TableType, T> tab) {
+        return tab.apply(this);
+    }
+
+    public abstract <T> T ValueType.match_number_type(java.util.function.Function<IntValueType, T> intval, java.util.function.Function<FloatValueType, T> floatval);
+
+    public <T> T IntValueType.match_number_type(java.util.function.Function<IntValueType, T> intval, java.util.function.Function<FloatValueType, T> floatval){
+        return intval.apply(this);
+    }
+    public  <T> T FloatValueType.match_number_type(java.util.function.Function<IntValueType, T> intval, java.util.function.Function<FloatValueType, T> floatval){
+        return floatval.apply(this);
+    }
+
+}
