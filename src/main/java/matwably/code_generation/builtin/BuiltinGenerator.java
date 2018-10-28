@@ -77,6 +77,7 @@ public class BuiltinGenerator {
         SIMPLIFIABLE.put("uminus", OperatorGenerator.getInstance());
         SIMPLIFIABLE.put("true", TrueGenerator.getInstance());
         SIMPLIFIABLE.put("false", FalseGenerator.getInstance());
+//        SIMPLIFIABLE.put("colon", ColonGenerator)
 
     }
     private static String[] SPECIALIZED = {

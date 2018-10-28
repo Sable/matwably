@@ -40,6 +40,7 @@ dependencies {
     compile group: 'org.jastadd', name: 'jastaddgradle', version: '1.13.0'
 
     // https://mvnrepository.com/artifact/com.beust/jcommander
+//    compile group: 'com.beust', name: 'jcommander', version '1.71'
     compile group: 'com.beust', name: 'jcommander', version: '1.7'
     compile name: 'McLabCore'
     compile name: 'matjuice', ext:'jar'

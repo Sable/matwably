@@ -9437,14 +9437,11 @@
 						set_local $q_f64
 						br $loop_mc_t291
 					end
-
 				end
-
 				i32.const 0
 				set_local $mc_t290_i32
 				br 0
 			end
-
 		end
 
 		f64.const 1.0

@@ -11,7 +11,6 @@ function z_hat = babai(R,y)
   z_hat(n)=round(y(n)./R(n,n));
   for k=n-1:-1:1
     par=R(k,k+1:n)*z_hat(k+1:n);
-    %y(k)-par
     ck=(y(k)-par)./R(k,k);
     z_hat(k)=round(ck);
   end

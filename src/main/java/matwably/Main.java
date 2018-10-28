@@ -17,9 +17,12 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
-import matwably.ast.*;
+import matwably.ast.Function;
+import matwably.ast.ImportedWat;
+import matwably.ast.Module;
 import matwably.code_generation.FunctionGenerator;
 import matwably.code_generation.wasm.FunctionExport;
+import matwably.optimization.peephole.PeepholeOptimizer;
 import matwably.pretty.PrettyPrinter;
 import natlab.tame.BasicTamerTool;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
@@ -91,8 +94,15 @@ public class Main {
                 System.out.println(funcAnalysis.getTree().getPrettyPrinted());
                 System.out.println("Generated: " + func_wasm.getIdentifier().getName());
             }
-
         }
+
+        // Call Peephole optimizer
+        if(opts.peephole){
+            PeepholeOptimizer peep = new PeepholeOptimizer(module);
+            peep.optimize();
+            System.out.println(peep.getFrequenciesAsCsvString());
+        }
+
         FileWriter out;
         try{
             out = new FileWriter(opts.basename_output_file+".wat");
@@ -139,10 +149,13 @@ public class Main {
 
 @Parameters(separators = " ")
 final class CommandLineOptions {
-    @Parameter
+    @Parameter(description = "The list of files to process")
     public ArrayList<String> input_files = new ArrayList<String>();
     @Parameter(names = {"-h","--help"}, hidden = true)
     public boolean help = false;
+
+    @Parameter(names = {"-p","--peephole"}, description = "Option to turn on peephole optimizer, default is on")
+    public boolean peephole = false;
 
     @Parameter(names = {"-o","--output-file"},description = "Outfile to place code")
     public String output_file;

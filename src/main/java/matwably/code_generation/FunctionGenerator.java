@@ -4,6 +4,7 @@ import ast.*;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.transformer.CopyInsertion;
 import matjuice.transformer.MJCopyStmt;
+import matwably.analysis.ConstantLoadElimination;
 import matwably.analysis.Locals;
 import matwably.ast.*;
 import matwably.ast.Function;
@@ -14,6 +15,7 @@ import matwably.code_generation.builtin.ResultWasmGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.code_generation.wasm.SwitchStatement;
 import matwably.util.Ast;
+import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.Util;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
@@ -66,7 +68,7 @@ public class FunctionGenerator {
 //    List<>
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
-
+    private  InterproceduralFunctionQuery interproceduralFunctionQuery;
 
     public FunctionGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int i) {
         this.programAnalysis = analysis;
@@ -74,9 +76,17 @@ public class FunctionGenerator {
         this.locals = new List<>();
         this.parameters = new List<>();
         this.output_parameters = new List<>();
+        this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(programAnalysis);
         this.function = genFunction(this.analysisFunction.getTree());
     }
     private Function genFunction( TIRFunction tirFunction ){
+
+        // Run Literal elimination analysis
+
+        ConstantLoadElimination.apply(this.analysisFunction.getTree(),interproceduralFunctionQuery);
+
+
+
         // Perform copy insertion
         performCopyInsertion();
 
@@ -518,7 +528,7 @@ public class FunctionGenerator {
                     }
                 }
             }
-        return LoopDirection.Unknown;
+        return (tirStmt.hasIncr())? LoopDirection.Unknown: LoopDirection.Ascending;
     }
 
     private List<Instruction> genSetArrayStmt(TIRArraySetStmt tirStmt){
@@ -586,6 +596,7 @@ public class FunctionGenerator {
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
                     tirStmt.getTargets(),"get",programAnalysis,
                     analysisFunction);
+
             ResultWasmGenerator result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getArrayName().getID()))));
             // Generate inputs

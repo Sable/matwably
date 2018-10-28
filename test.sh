@@ -19,6 +19,6 @@ for file in `ls ./src/test/features/**/*.m`; do
         COUNTER=$[$COUNTER +1]
     fi
 #    a=$(eval $mat)
-    b=$(echo "$a" | tail -n +10 | tr -d '\n' | sed -e "s/ /,/g" -e "s/,[,]*/,/g" -e "s/^,//")
-    echo "$b"
+#    b=$(echo "$a" | tail -n +10 | tr -d '\n' | sed -e "s/ /,/g" -e "s/,[,]*/,/g" -e "s/^,//")
+#    echo "$b"
 done

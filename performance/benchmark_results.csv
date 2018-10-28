@@ -1,0 +1,3 @@
+benchmark,language,type,mean(ns)
+./scalar_mod.js,wasm,jit,256
+./scalar_mod.js,js,jit,314

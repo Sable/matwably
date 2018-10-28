@@ -2806,8 +2806,12 @@
     (func $eye_S (result f64)
         f64.const 1
     )
-    (export "eye_M" (func $eye_M))
+    (export "eye_M" (func $eye))
     (func $eye_M (param $dim_ptr i32) (result i32)
+        get_local $dim_ptr
+        call $eye
+    )
+    (func $eye (param $dim_ptr i32) (result i32)
         (local $i i32)(local $n i32)(local $m i32)
         (local $out_ptr i32)(local $dim_len i32)
         get_local $dim_ptr

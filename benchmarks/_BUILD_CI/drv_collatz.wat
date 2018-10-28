@@ -4593,7 +4593,6 @@
 							call $dynamic_loop_two
 							br_table 0 1 2 
 						end
-
 						block $block_mc_t19
 							get_local $mc_t2_f64
 							set_local $i_f64
@@ -4620,7 +4619,6 @@
 
 						br 2
 					end
-
 					loop $loop_mc_t21
 						get_local $mc_t20_i32
 						if 
@@ -4668,7 +4666,6 @@
 					set_local $mc_t20_i32
 					br 1
 				end
-
 				loop $loop_mc_t24
 					get_local $mc_t23_i32
 					if 
@@ -4676,6 +4673,7 @@
 						f64.const 1.0
 						f64.add
 						set_local $i_f64
+
 					else
 						i32.const 1
 						set_local $mc_t23_i32
@@ -4694,13 +4692,7 @@
 						get_local $length_f64
 						get_local $max_length_f64
 						f64.gt
-						f64.convert_u/i32
-						set_local $mc_t1_f64
-						get_local $mc_t1_f64
-						f64.const 0.0
-						f64.eq
-						i32.eqz
-						if 
+						if
 							get_local $length_f64
 							set_local $max_length_f64
 							get_local $i_f64
@@ -4722,6 +4714,8 @@
 		call $toc
 		set_local $t_f64
 		get_local $t_f64
+		call $disp_S
+		get_local $max_num_f64
 		call $disp_S
 	)
 	(export "collatz_S" (func $collatz_S ) )
