@@ -4556,7 +4556,7 @@
 		call $f3_
 	)
 	(func $f3_ 
-		(local $a_f64 f64)(local $mc_t2_f64 f64)(local $mc_t4_f64 f64)(local $mc_t5_f64 f64)(local $mc_t9_i32 i32)(local $mc_t10_i32 i32)
+		(local $a_f64 f64)(local $mc_t2_f64 f64)(local $mc_t4_f64 f64)(local $mc_t5_f64 f64)(local $mc_t10_i32 i32)(local $mc_t9_i32 i32)
 		i32.const 2
 		i32.const 0
 		i32.const 0
@@ -4564,7 +4564,8 @@
 		i32.const 0
 		i32.const 0
 		call $create_mxvector
-		tee_local $mc_t9_i32
+		set_local $mc_t9_i32
+		get_local $mc_t9_i32
 		i32.const 0
 		f64.const 1.0
 		call $set_array_index_f64_no_check
@@ -4574,7 +4575,8 @@
 		call $set_array_index_f64_no_check
 		get_local $mc_t9_i32
 		call $rand
-		tee_local $mc_t10_i32
+		set_local $mc_t10_i32
+		get_local $mc_t10_i32
 		i32.const 0
 		call $get_array_index_f64_no_check
 		set_local $mc_t2_f64
@@ -4584,7 +4586,8 @@
 		get_local $mc_t5_f64
 		f64.lt
 		f64.convert_u/i32
-		tee_local $mc_t4_f64
+		set_local $mc_t4_f64
+		get_local $mc_t4_f64
 		f64.const 0.0
 		f64.eq
 		i32.eqz

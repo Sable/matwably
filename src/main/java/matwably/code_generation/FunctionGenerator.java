@@ -3,8 +3,8 @@ package matwably.code_generation;
 import ast.*;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.transformer.CopyInsertion;
-import matjuice.transformer.MJCopyStmt;
-import matwably.analysis.ConstantLoadElimination;
+import matwably.CommandLineOptions;
+import matwably.analysis.IntermediateVariableElimination;
 import matwably.analysis.Locals;
 import matwably.ast.*;
 import matwably.ast.Function;
@@ -31,8 +31,6 @@ import java.util.HashMap;
 import java.util.Stack;
 
 public class FunctionGenerator {
-
-
     /**
      * Empty,                Nothing in the loop executes, e.g. for i=[]:1:10. In this case i remains undefined
      * NonMoving,            Bounds are equal so that the statements in the loop only run ones. In this case we can
@@ -47,7 +45,7 @@ public class FunctionGenerator {
         Descending,
         Unknown
     };
-
+    private CommandLineOptions opts;
     private List<TypeUse> output_parameters;
     private List<TypeUse> locals;
     private List<TypeUse> parameters;
@@ -65,12 +63,21 @@ public class FunctionGenerator {
     }
 
     Function function;
-//    List<>
+
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     private  InterproceduralFunctionQuery interproceduralFunctionQuery;
 
-    public FunctionGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int i) {
+    /**
+     * Function Generator constructor, takes the whole value inter-
+     * procedural analysis, the index of the function i from the
+     * analysis and the compilation options.
+     * @param analysis
+     * @param i
+     * @param opts
+     */
+    public FunctionGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int i, CommandLineOptions opts) {
+        this.opts = opts;
         this.programAnalysis = analysis;
         this.analysisFunction = analysis.getNodeList().get(i).getAnalysis();
         this.locals = new List<>();
@@ -78,14 +85,25 @@ public class FunctionGenerator {
         this.output_parameters = new List<>();
         this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(programAnalysis);
         this.function = genFunction(this.analysisFunction.getTree());
+
     }
+
+    /**
+     * Function generator method, takes a tamer function as input
+     * and generates a
+     * @param tirFunction
+     * @return
+     */
     private Function genFunction( TIRFunction tirFunction ){
 
         // Run Literal elimination analysis
+        if(opts.variable_elimination){
+            IntermediateVariableElimination inter = new IntermediateVariableElimination(
+                    this.analysisFunction.getTree(),
+                    interproceduralFunctionQuery);
+                    inter.apply();
 
-        ConstantLoadElimination.apply(this.analysisFunction.getTree(),interproceduralFunctionQuery);
-
-
+        }
 
         // Perform copy insertion
         performCopyInsertion();
@@ -174,10 +192,16 @@ public class FunctionGenerator {
     private List<Instruction> genInstructionList(TIRStatementList stmtList) {
         List<Instruction> instructionList = new List<>();
         for(ast.Stmt stmt: stmtList){
-            instructionList.addAll(genStmt(stmt));
+            if(shouldGenerateStmt(stmt)) instructionList.addAll(genStmt(stmt));
         }
         return instructionList;
     }
+
+    private boolean shouldGenerateStmt(Stmt stmt) {
+
+        return true;
+    }
+
 
     private List<Instruction> genStmt(Stmt tirStmt) {
 
@@ -185,10 +209,10 @@ public class FunctionGenerator {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         } else if (tirStmt instanceof TIRCallStmt) {
 //            BuiltinGenerator generator =
-            ResultWasmGenerator inputHandler = BuiltinGenerator.
+            ResultWasmGenerator callGenerator = BuiltinGenerator.
                     generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction);
-            locals.addAll(inputHandler.getLocals());
-            return inputHandler.getInstructions();
+            locals.addAll(callGenerator.getLocals());
+            return callGenerator.getInstructions();
         }else if (tirStmt instanceof TIRCopyStmt) {
             return genCopyStmt((TIRCopyStmt) tirStmt);
         } else if(tirStmt instanceof TIRArrayGetStmt){
@@ -692,18 +716,19 @@ public class FunctionGenerator {
         String nodeTargetName = Util.getTypedName(target, valTarget);
         int index = findLocalsIndex(nodeName);
         int indexTarget = findLocalsIndex(nodeTargetName);
-        if(tirStmt instanceof MJCopyStmt){
-            insts.add(new GetLocal( new Idx(new Opt<>(new Identifier(nodeName)), index)));
-            if(val.getShape().isScalar()){
-                insts.add(new SetLocal( new Idx(new Opt<>(new Identifier(nodeTargetName)), index)));
-            }else{
-                insts.add(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
-                insts.add(new SetLocal(new Idx(new Opt<>(new Identifier(nodeTargetName)),indexTarget)));
-            }
-        }else{
-            insts.add(new GetLocal( new Idx(new Opt<>(new Identifier(nodeName)), index)));
+        insts.add(new GetLocal( new Idx(new Opt<>(new Identifier(nodeName)), index)));
+        if(val.getShape().isScalar()){
             insts.add(new SetLocal( new Idx(new Opt<>(new Identifier(nodeTargetName)), index)));
+        }else{
+            insts.add(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
+            insts.add(new SetLocal(new Idx(new Opt<>(new Identifier(nodeTargetName)),indexTarget)));
         }
+//        if(tirStmt instanceof MJCopyStmt){
+//
+//        }else{
+//            insts.add(new GetLocal( new Idx(new Opt<>(new Identifier(nodeName)), index)));
+//            insts.add(new SetLocal( new Idx(new Opt<>(new Identifier(nodeTargetName)), index)));
+//        }
         return insts;
     }
     private boolean isSlicingOperation(TIRStmt tirStmt, TIRCommaSeparatedList indices) {

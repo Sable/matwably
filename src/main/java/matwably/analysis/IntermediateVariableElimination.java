@@ -7,7 +7,6 @@ import natlab.tame.builtin.Builtin;
 import natlab.tame.tir.TIRAssignLiteralStmt;
 import natlab.tame.tir.TIRCallStmt;
 import natlab.tame.tir.TIRNode;
-import natlab.tame.tir.TIRStmt;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralBackwardAnalysis;
 import natlab.toolkits.analysis.core.Def;
@@ -17,32 +16,68 @@ import natlab.toolkits.analysis.core.UseDefDefUseChain;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class ConstantLoadElimination {
-
-    public static void apply(Function function, InterproceduralFunctionQuery interproceduralFunctionQuery) {
+public class IntermediateVariableElimination {
+    private final Function function;
+    private final InterproceduralFunctionQuery programInstanceQuery;
+    public HashMap<Name, Expr> use_expr_map = new HashMap<>(); // Expr here can be either LiteralExpr or Parametrized expr
+    public Set<Stmt> redundant_stmts = new HashSet<>();
+    public IntermediateVariableElimination(Function function,
+                                           InterproceduralFunctionQuery
+                                                   interproceduralFunctionQuery)
+    {
+        this.function = function;
+        this.programInstanceQuery = interproceduralFunctionQuery;
+    }
+    public void apply() {
         ReachingDefs reachDef = new ReachingDefs(function);
         reachDef.analyze();
-        LiteralElimination litElem = new LiteralElimination(function, reachDef);
-        System.out.println(interproceduralFunctionQuery);
-//        TreeExpressionBuild treeExpr = new TreeExpressionBuild(function, interproceduralFunctionQuery);
-//        treeExpr.analyze();
+        TreeExpressionForwardAnalysis treeExpr =
+                new TreeExpressionForwardAnalysis(reachDef.getUseDefDefUseChain(),
+                        programInstanceQuery);
+        function.analyze(treeExpr);
+        use_expr_map = treeExpr.use_expr_map;
+        redundant_stmts = treeExpr.redundant_stmts;
+
+        System.out.println("REDUNDANT STATEMENTS");
+        treeExpr.redundant_stmts.stream().map(Stmt::getPrettyPrinted).forEach(System.out::println);
+        System.out.println("USES & CORRESPONDING EXPRESSIONS");
+        treeExpr.use_expr_map.forEach((Name name, Expr expr)->System.out.println("Name: "+name.getID()+
+        ", Corresponding Expr: " + expr.getPrettyPrinted()));
     }
     private static class TreeExpressionForwardAnalysis extends TIRAbstractNodeCaseHandler {
         UseDefDefUseChain chain;
         InterproceduralFunctionQuery interproceduralFunctionQuery;
-        HashMap<NameExpr, TIRStmt> use_expr_map = new HashMap<>(); // Expr here can be either LiteralExpr or Parametrized expr
-        Set<TIRStmt> redundant_stmts = new HashSet<>();
+        HashMap<Name, Expr> use_expr_map = new HashMap<>(); // Expr here can be either LiteralExpr or Parametrized expr
+        Set<Stmt> redundant_stmts = new HashSet<>();
 
         public TreeExpressionForwardAnalysis( UseDefDefUseChain chain,
                 InterproceduralFunctionQuery interproceduralFunctionQuery) {
             this.chain = chain;
             this.interproceduralFunctionQuery = interproceduralFunctionQuery;
         }
-
+        private void mapUsesToExpression(Set<Name> uses, Expr rhs){
+            uses.forEach((Name name)->use_expr_map.put(name, rhs));
+        }
+        private void addRedundantStmt(Stmt stmt){
+            redundant_stmts.add(stmt);
+        }
         @Override
-        public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt tirAssignLiteralStmt) {
-            // 
+        public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt stmt) {
+            // Check if its
+            Expr rhs = stmt.getRHS();
+            if(rhs instanceof IntLiteralExpr || rhs instanceof FPLiteralExpr ){
+                Set<Name> usesDef = this.chain.getUsesOf(stmt.getTargetName().getID(), stmt);
+                Set<Name> uniqueUses =  this.chain.getDefinedNames((Def)stmt)
+                        .stream().map((Name name)-> this.chain.getUsesOf(name.getID(), stmt))
+                        .flatMap((Set<Name> uses)-> uses.stream().filter((Name name)->{
+                            Set<Def> defs = this.chain.getDefs(name);
+                            return defs.size() == 1;
+                        })).collect(Collectors.toSet());
+                mapUsesToExpression(uniqueUses, rhs);
+                if(uniqueUses.size() == usesDef.size()) addRedundantStmt(stmt);
+            }
         }
 
         @Override
