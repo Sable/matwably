@@ -51,8 +51,12 @@ public class Locals {
         public void caseTIRArrayGetStmt(TIRArrayGetStmt tirArrayGetStmt) {
             addTargets(tirArrayGetStmt.getTargets(), tirArrayGetStmt);
         }
+        @Override
+        public void caseTIRArraySetStmt(TIRArraySetStmt tirArraySetStmt){
+            String name = tirArraySetStmt.getArrayName().getID();
+            addDeclaration(tirArraySetStmt, name);
 
-
+        }
         @Override
         public void caseTIRCopyStmt(TIRCopyStmt tirCopyStmt) {
             String name = tirCopyStmt.getLHS().getVarName();

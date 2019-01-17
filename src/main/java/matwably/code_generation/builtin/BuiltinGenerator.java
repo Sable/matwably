@@ -4,6 +4,7 @@ import ast.Expr;
 import ast.Name;
 import ast.NameExpr;
 import matwably.ast.*;
+import matwably.code_generation.NameExpressionGenerator;
 import matwably.code_generation.OperatorGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.Util;
@@ -31,10 +32,12 @@ public class BuiltinGenerator {
     private String generatedCallName;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
+    private NameExpressionGenerator name_expr_generator;
 
     public BuiltinGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
                             ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
-                            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction) {
+                            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
+                            NameExpressionGenerator name_expr_generator) {
         this.node = node;
         this.arguments = arguments;
         this.targets = targs;
@@ -43,6 +46,7 @@ public class BuiltinGenerator {
         this.analysis = analysisFunction;
         this.programAnalysis =programAnalysis;
         this.result = new ResultWasmGenerator();
+        this.name_expr_generator = name_expr_generator;
     }
 
     public ResultWasmGenerator getResult() {
@@ -94,7 +98,6 @@ public class BuiltinGenerator {
     };
 
     private static String[] RETURNS_SCALAR_VECTOR = {
-
     };
     private static String[] DOES_NOT_HAVE_RETURN = {
         "disp"
@@ -119,7 +122,7 @@ public class BuiltinGenerator {
         Arrays.sort(DOES_NOT_HAVE_RETURN, String::compareTo);
     }
 
-    public boolean getSimplification(){
+    public BuiltinSimplifier getSimplification(){
         if(SIMPLIFIABLE.containsKey(callName)){
             BuiltinSimplifier simplifier = SIMPLIFIABLE.get(callName);
             simplifier.analysis = analysis;
@@ -127,28 +130,28 @@ public class BuiltinGenerator {
             simplifier.node = node;
             simplifier.callName = callName;
             simplifier.targets = targets;
-            if(simplifier.isSimplifiable()){
-                result.addInstructions(simplifier.simplify());
-                return true;
-            }
+            simplifier.nameExpressionGenerator = name_expr_generator;
+            return simplifier;
         }
-        return false;
+        return null;
+    }
+    public void generateExpression(){
+        BuiltinSimplifier simplifier = getSimplification();
+        if(simplifier != null){
+            result.addInstructions(simplifier.simplify());
+        }else{
+            this.generateInputs();
+            this.generateCall();
+        }
     }
     public static ResultWasmGenerator generate(TIRCallStmt tirFunction, ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
-                                               IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis){
+                                               IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
+                                               NameExpressionGenerator name_expr_generator){
         BuiltinGenerator generator = new BuiltinGenerator(tirFunction,tirFunction.getArguments(),
                 tirFunction.getTargets(),tirFunction.getFunctionName().getID(),programAnalysis,
-                analysis);
-        if(generator.getSimplification()){
-            return generator.result;
-        }
-
-        // Analyze inputs
-        generator.generateInputs();
-
-        // Make call
-        generator.generateCall();
-
+                analysis, name_expr_generator);
+        // Generate RHS Expression
+        generator.generateExpression();
         // Set to targets
         generator.generateSetToTarget();
         // Need to drop result
@@ -173,20 +176,19 @@ public class BuiltinGenerator {
     }
     public void generateCall(){
         // Call Function
-        generatedCallName  = callName;
-
+        StringBuilder callNameBuilder = new StringBuilder(callName);
         if(Builtin.getInstance(callName) == null || isSpecialized(callName)){
-            StringBuilder suffix = new StringBuilder();
+            callNameBuilder.append("_");
             for (ast.Expr argExpr :arguments) {
                 ast.NameExpr nameExpr = (ast.NameExpr) argExpr;
                 BasicMatrixValue bmv = getBasicMatrixValue(analysis, node, nameExpr.getName().getID());
                 if (bmv.hasShape() && bmv.getShape().isScalar())
-                    suffix.append("S");
+                    callNameBuilder.append("S");
                 else
-                    suffix.append("M");
+                    callNameBuilder.append("M");
             }
-            generatedCallName+="_"+suffix;
         }
+        generatedCallName = callNameBuilder.toString();
         if(hasAlias(generatedCallName))
             generatedCallName = ALIAS_WASM.get(generatedCallName);
         result.addInstruction(new Call(
@@ -268,7 +270,7 @@ public class BuiltinGenerator {
     }
     private boolean isScalarOutput(){
         // Implemented functions that return scalars
-        if(Arrays.binarySearch(SCALAR_OUTPUT, generatedCallName, Comparator.naturalOrder()) >=0 ) return true;
+        if(Arrays.binarySearch( SCALAR_OUTPUT, generatedCallName, Comparator.naturalOrder()) >=0 ) return true;
 
         // Specialized functions are SS
         if(isSpecialized(callName)){
@@ -300,6 +302,7 @@ public class BuiltinGenerator {
         }
         return false;
     }
+
     private  boolean returnsScalarVector(){
         if(Builtin.getInstance(callName)!=null
                 &&Arrays.binarySearch(RETURNS_SCALAR_VECTOR, callName,

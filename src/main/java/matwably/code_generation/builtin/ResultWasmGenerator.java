@@ -11,7 +11,7 @@ public class ResultWasmGenerator {
     HashSet<TypeUse> locals = new HashSet<>();
     List<Instruction> stmts = new List<>();
 
-    ResultWasmGenerator() { }
+    public ResultWasmGenerator() { }
 
     public ResultWasmGenerator(HashSet<TypeUse> locals, List<Instruction> stmts) {
         this.locals = locals;

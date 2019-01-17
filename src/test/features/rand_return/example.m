@@ -1,4 +1,4 @@
-function example()
+function example(a)
     % MxArray of doubles
     a = [2,2]; 
     %  In memory is an MxArray: [TypeAttr,numel,data_ptr, ndims, 

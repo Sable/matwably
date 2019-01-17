@@ -2,6 +2,7 @@ package matwably.code_generation.builtin;
 
 import matwably.ast.Instruction;
 import matwably.ast.List;
+import matwably.code_generation.NameExpressionGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.tir.TIRNode;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
@@ -14,6 +15,7 @@ public abstract class BuiltinSimplifier {
     public TIRCommaSeparatedList arguments;
     public TIRCommaSeparatedList targets;
     public IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
+    public NameExpressionGenerator nameExpressionGenerator;
     public abstract boolean isSimplifiable();
     public abstract List<Instruction> simplify();
     public TIRCommaSeparatedList getArguments() {

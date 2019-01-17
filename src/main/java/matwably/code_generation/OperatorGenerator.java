@@ -42,7 +42,8 @@ public class OperatorGenerator extends BuiltinSimplifier {
         String funcName = callName;
         if (binaryOps.containsKey(funcName) || unaryOps.containsKey(funcName)) {
             for (ast.Expr arg : arguments) {
-                String argVar = ((ast.NameExpr) arg).getName().getID();
+                String argVar = ((ast.NameExpr) arg)
+                        .getName().getID();
                 BasicMatrixValue bmv = Util.getBasicMatrixValue(analysis, node, argVar);
                 if (bmv == null || bmv.getShape() == null || !bmv.getShape().isScalar()) {
                     return false;
@@ -51,7 +52,6 @@ public class OperatorGenerator extends BuiltinSimplifier {
             return true;
         }
         return false;
-
     }
 
     @Override
@@ -62,19 +62,19 @@ public class OperatorGenerator extends BuiltinSimplifier {
             result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments
                     .getChild(0)).getName().getID()))));
             result.add(unaryOps.get(funcName));
-            if(returnsI32(funcName)){
-                result.add(new Convert(new F64(), new I32(), false));
-            }
         }else if(binaryOps.containsKey(funcName)){
-            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(0)).getName().getID()))));
-            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(1)).getName().getID()))));
+            System.out.println(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(0),this.node));
+            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(0),this.node));
+            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(1),this.node));
+//            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(0)).getName().getID()))));
+//            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(1)).getName().getID()))));
             result.add(binaryOps.get(funcName));
-            if(returnsI32(funcName)){
-                result.add(new Convert(new F64(), new I32(), false));
-            }
+
         }
-        String typedTarget = Util.getTypedLocalF64(targets.getChild(0).getVarName());
-        result.add(new SetLocal(new Idx(typedTarget)));
+        if(returnsI32(funcName)) result.add(new Convert(new F64(), new I32(), false));
+
+//        String typedTarget = Util.getTypedLocalF64(targets.getChild(0).getVarName());
+//        result.add(new SetLocal(new Idx(typedTarget)));
         return result;
     }
 

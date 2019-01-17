@@ -13,6 +13,19 @@ aspect AST {
      public  String I32.getTypeString(){
          return "i32";
       }
+      public boolean ValueType.isF64(){
+        return this instanceof F64;
+      }
+    public boolean ValueType.isI64(){
+        return this instanceof I64;
+    }
+    public boolean ValueType.isF32(){
+        return this instanceof F32;
+    }
+    public boolean ValueType.isI32(){
+        return this instanceof I32;
+    }
+
       public  String I64.getTypeString(){
          return "i64";
       }

@@ -60,7 +60,6 @@ function f()
         a = 5
     end
 end
-
 ```
 
 A more complicated example:
@@ -102,13 +101,13 @@ How about when the expression tree involves parameters?
 
 ```matlab
 function f(e)
-    
     a = 3/e
     disp(c)
 end
 
 ```
-Here, we do not track `e` further and leave it as it is.
+Here, we do not track `e` further and leave it as it is. Unless there
+is a re-definition of `e`
 
 How about when an expression is part of a while loop?
 ```matlab
@@ -250,7 +249,35 @@ The rest the handling is as follows:
                  as the call, we add them to `M_{use,expr}`. Finally if all the uses
                  are bound to only that definition, we kill the definition.
 -  `TIRAssignLiteralStmt`: Similar to above, depending on the literal we treat it as complex or simple.
--   `TIRCopyStmt`: We use the simple definition.          
+-   `TIRCopyStmt`: We ignore this case, as there are complications, if the 
+                    two variables not scalars, we must keep track of ANY change made to them. Since
+                    that makes the analysis complicated, we restrict ourselves in
+                    optimizing copy statements to eliminate variables.
+                   ```matlab
+                   function ex1()
+                    a = 3;
+                    b = a;
+                    c = b + c;
+                   end
+                   %becomes:
+                  function ex1()
+                    a = 3;
+                    c = a + c;
+                  end
+                  %But:
+                  function ex1()
+                      a = 3; 
+                      b = a;
+                      a = 5;
+                      c = b + c;
+                  end
+                  % Stays the same.
+                  ```
+- `TIRGlobalStmt`: Ignore any statements of this kind, this is ignored by
+the MatWably back-end compiler. Handling this would require an interprocedural
+analysis.
+
+                  
  Example of simple calls:
  ```
     ones(), eye(), zeros(), PI(), E() etc
@@ -263,11 +290,36 @@ The rest the handling is as follows:
                 effect, so either pure functions that are non-trivial to run. 
                 or impure functions, such as rand()
 ```
+## Laurie's Six Steps
+
+1. State the problem precisely
+- What is the set of variable definitions that can be easily deleted?
+2. Define the domain (e.g. for liveness analysis, sets of strings representing variable names)
+- `IntermediateVariableElimination`, set of variable statements definitions
+ that can be safely eliminated, and a set of expression mapping these variables 
+ to their definitions.
+3. Is this a forward or backward analysis?
+- Forward analysis.
+4. Write down flow equations for different language constructs.
+Let `var_defs` be a map between declarations an their rhs.
+- For variable declarations of type `a = exp`
+```
+var_defs = var_def U {a, exp}
+
+
+```
+5. What’s the merge operation?
+6. What’s the initial dataflow fact?
         
         
       
+### Questions
 
-
+- What do we do about return parameters in terms of aliases?
+    - For now we can simply ignore any alias that matches a return variable
+    - Later on... the analysis would have to produce a mapping between return
+        value and replacing expression, or set of expressions.
+    - 
 
 
 

@@ -4,7 +4,7 @@ import ast.*;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.transformer.CopyInsertion;
 import matwably.CommandLineOptions;
-import matwably.analysis.IntermediateVariableElimination;
+import matwably.analysis.IntermediateVariableAnalysis;
 import matwably.analysis.Locals;
 import matwably.ast.*;
 import matwably.ast.Function;
@@ -27,9 +27,13 @@ import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.tame.valueanalysis.value.Args;
 import natlab.toolkits.rewrite.TempFactory;
 
-import java.util.HashMap;
-import java.util.Stack;
+import java.util.*;
 
+/**
+ * Class generates TIRFunctions given the ValueAnalysis, the index of the function inside the analysis to be generated
+ * and the command line options for the generation. i.e. what optimizations to apply
+ * TODO: Globals are not supported
+ */
 public class FunctionGenerator {
     /**
      * Empty,                Nothing in the loop executes, e.g. for i=[]:1:10. In this case i remains undefined
@@ -66,15 +70,16 @@ public class FunctionGenerator {
 
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
-    private  InterproceduralFunctionQuery interproceduralFunctionQuery;
+    private InterproceduralFunctionQuery interproceduralFunctionQuery;
+    private NameExpressionGenerator name_expr_generator;
 
     /**
      * Function Generator constructor, takes the whole value inter-
      * procedural analysis, the index of the function i from the
      * analysis and the compilation options.
-     * @param analysis
-     * @param i
-     * @param opts
+     * @param analysis ValueAnalysis with shape information
+     * @param i Function to analyze from the Value Analysis
+     * @param opts Command-line options to apply optimizations
      */
     public FunctionGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int i, CommandLineOptions opts) {
         this.opts = opts;
@@ -82,26 +87,30 @@ public class FunctionGenerator {
         this.analysisFunction = analysis.getNodeList().get(i).getAnalysis();
         this.locals = new List<>();
         this.parameters = new List<>();
+
         this.output_parameters = new List<>();
         this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(programAnalysis);
+        this.name_expr_generator = new NameExpressionGenerator(this.analysisFunction);
+
         this.function = genFunction(this.analysisFunction.getTree());
 
     }
 
     /**
      * Function generator method, takes a tamer function as input
-     * and generates a
-     * @param tirFunction
-     * @return
+     * and generates a WebAssembly function
+     * @param tirFunction TameIR function node
+     * @return Returns Corresponding generated WebAssembly node.
      */
     private Function genFunction( TIRFunction tirFunction ){
 
         // Run Literal elimination analysis
         if(opts.variable_elimination){
-            IntermediateVariableElimination inter = new IntermediateVariableElimination(
-                    this.analysisFunction.getTree(),
-                    interproceduralFunctionQuery);
-                    inter.apply();
+            IntermediateVariableAnalysis inter = new IntermediateVariableAnalysis(
+                this.analysisFunction.getTree(),
+                interproceduralFunctionQuery );
+            inter.apply();
+            name_expr_generator.setNameExpressionTreeMap(inter.use_expr_map);
 
         }
 
@@ -117,31 +126,38 @@ public class FunctionGenerator {
         locals.addAll(local_map.values());
 
         // Setting instructions
-        List<Instruction> instructions = genInstructionList(tirFunction.getStmtList());
+        List<Instruction> instructions = genStatementList(tirFunction.getStmtList());
         Expression exp = new Expression(instructions);
         // Setting return function, automatically adds return statements for variables
         instructions.addAll(addReturn());
         return new Function(new Opt<>(new Identifier(this.function_name)),funcType, locals, exp );
     }
-
+    /**
+     * Generates the return instructions for the Matlab function
+     * @return Returns Corresponding generated WebAssembly node.
+     * @apiNote Does not support Globals.
+     */
     private List<Instruction> addReturn() {
         List<Instruction> instructions = new List<>();
 //        analysis.getResult()
         int size = this.output_parameters.getNumChild();
         if(size == 1){
+            // If its only one, suffices to
             TypeUse typeUse = this.output_parameters.getChild(0);
-            // TODO(dherre3) Fix for globals.
+            // TODO(dherre3) Fix for globals, this assumes the variable is a local
             if(typeUse.hasIdentifier()){
                 instructions.add(new GetLocal(new Idx(new Opt<>(typeUse.getIdentifier()),0 )));
             }else{
-                throw new Error("Identifier must be defined");
+                throw new Error("TypeUse must have a defined identifier");
             }
         }else if(size > 1){
-            // TODO: This is wrong
-
+            // Check
             int i = 0;
             String nameInputVec;
+            // Determines if all the values to be returned are f64 scalars, in this case, it returns an array of doubles
+            // with all the appropriate return variables
             if(returnsScalarVector()){
+
                 instructions.addAll(MatWablyArray.createF64Vector(
                         this.output_parameters.getNumChild()));
                 nameInputVec = Util.genTypedLocalI32();
@@ -157,12 +173,13 @@ public class FunctionGenerator {
                     i++;
                 }
             }else{
+                // Otherwise, it boxes scalar values, inefficient, but that is as good as we can to do statically.
                 instructions.addAll(MatWablyArray.createCellVector(
                         this.output_parameters.getNumChild()));
 
                 nameInputVec = Util.genTypedLocalI32();
                 locals.add(new TypeUse(nameInputVec, new I32()));
-                // Add statement name
+                // Add statement to set the vector
                 instructions.add(new SetLocal(new Idx(nameInputVec)));
                 for (ValueSet<?> arg :  analysisFunction.getResult()) {
 
@@ -170,7 +187,7 @@ public class FunctionGenerator {
                     TypeUse argTypeUse = this.output_parameters.getChild(i);
                     instructions.add(new ConstLiteral(new I32(), i));
                     instructions.add(new GetLocal(new Idx(argTypeUse.getIdentifier().getName())));
-                    if(argTypeUse.getType().getTypeValue() == 3){
+                    if(argTypeUse.getType().isF64()){// If its scalar
                         instructions.add(new Call(new Idx(new Opt<>(new Identifier("convert_scalar_to_mxarray")),1)));
                     }
                     instructions.add(new Call(new Idx(new Opt<>(new Identifier("set_array_index_i32_no_check")),0)));
@@ -181,36 +198,48 @@ public class FunctionGenerator {
         }
         return instructions;
     }
-    public boolean returnsScalarVector(){
+
+    /**
+     * Helper method to find out whether the function returns a scalar array
+     * @return Boolean value
+     */
+    private boolean returnsScalarVector(){
         // Check if all the return values are f64
         for(TypeUse typeUse: this.output_parameters)
-            if(typeUse.getType().getTypeValue() != 3) return false;
+            if(!typeUse.getType().isF64()) return false;
         return this.output_parameters.getNumChild() > 1;
     }
 
-
-    private List<Instruction> genInstructionList(TIRStatementList stmtList) {
+    /**
+     * Generates Matlab TameIR statement list
+     * @param stmtList TIR statement list
+     * @return Returns generated wasm instructions for the statement list
+     */
+    private List<Instruction> genStatementList(TIRStatementList stmtList) {
         List<Instruction> instructionList = new List<>();
         for(ast.Stmt stmt: stmtList){
             if(shouldGenerateStmt(stmt)) instructionList.addAll(genStmt(stmt));
         }
         return instructionList;
     }
-
+    // TODO(dherre3) Add logic for expression elimination
     private boolean shouldGenerateStmt(Stmt stmt) {
 
         return true;
     }
 
-
+    /**
+     * Generates the particular statement
+     * @param tirStmt TIR statement node
+     * @return Returns list of instructions for the particular node
+     */
     private List<Instruction> genStmt(Stmt tirStmt) {
 
         if (tirStmt instanceof TIRAssignLiteralStmt) {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         } else if (tirStmt instanceof TIRCallStmt) {
-//            BuiltinGenerator generator =
             ResultWasmGenerator callGenerator = BuiltinGenerator.
-                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction);
+                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,name_expr_generator);
             locals.addAll(callGenerator.getLocals());
             return callGenerator.getInstructions();
         }else if (tirStmt instanceof TIRCopyStmt) {
@@ -227,19 +256,31 @@ public class FunctionGenerator {
             return genWhileStmt((TIRWhileStmt) tirStmt);
         }else if(tirStmt instanceof TIRBreakStmt){
             return genBreakStmt((TIRBreakStmt) tirStmt);
-        }else if(tirStmt instanceof TIRIfStmt){
-            return genIfStmt((TIRIfStmt)tirStmt);
-        }else if(tirStmt instanceof TIRCommentStmt|| tirStmt instanceof TIRReturnStmt){
+        }else if(tirStmt instanceof TIRIfStmt) {
+            return genIfStmt((TIRIfStmt) tirStmt);
+        }else if(tirStmt instanceof TIRReturnStmt){
+            // Setting return function, automatically adds return statements for variables
+            List<Instruction> res = addReturn();
+            res.add(new Return());
+            return res;
+        }else if(tirStmt instanceof TIRCommentStmt){
+            /**
+             * TODO(dherre3): This is wrong, when we encounter a return stmt, we should load all output parameters and return
+             */
             return new List<>();
         }
         throw new UnsupportedOperationException(
-                String.format("Expr node not supported. %d:%d: [%s] [%s]",
+                String.format("Stmt node not supported. %d:%d: [%s] [%s]",
                         tirStmt.getStartLine(), tirStmt.getStartColumn(),
                         tirStmt.getPrettyPrinted(), tirStmt.getClass().getName())
         );
     }
 
-
+    /**
+     * Generates TIRIfStmt node
+     * @param tirStmt TIRIfstmt node
+     * @return Returns list of instructions for if statement.
+     */
     private List<Instruction> genIfStmt(TIRIfStmt tirStmt) {
         List<Instruction> res = new List<>();
         String condVar = tirStmt.getConditionVarName().getID();
@@ -256,9 +297,9 @@ public class FunctionGenerator {
                 res.add(new Call(new Idx("all_nonzero_reduction")));
             }
             res.add(new Eqz(new I32()));
-            ifStmt.setInstructionsIfList(genInstructionList(tirStmt.getIfStatements()));
+            ifStmt.setInstructionsIfList(genStatementList(tirStmt.getIfStatements()));
             if(tirStmt.hasElseBlock()){
-                ifStmt.setInstructionsElseList(genInstructionList(tirStmt.getElseStatements()));
+                ifStmt.setInstructionsElseList(genStatementList(tirStmt.getElseStatements()));
             }
         }else{
             throw new Error("Must have type information for if condition: "+tirStmt.getPrettyPrinted());
@@ -273,7 +314,7 @@ public class FunctionGenerator {
     private List<Instruction> genBreakStmt(TIRBreakStmt tirStmt) {
         return new List<>(new Br(endLoop.peek()));
     }
-
+    // TODO( Tree_expr opt)
     private List<Instruction> genWhileStmt(TIRWhileStmt tirStmt) {
         List<Instruction> res = new List<>();
         NameExpr expr = tirStmt.getCondition();
@@ -303,7 +344,7 @@ public class FunctionGenerator {
 //            block.addInstruction(new Eqz(new I32()));
             block.addInstruction(new BrIf(endLabel));
             // Gen Stmts
-            block.getInstructionList().addAll(genInstructionList(tirStmt.getStatements()));
+            block.getInstructionList().addAll(genStatementList(tirStmt.getStatements()));
             // Add break to loop beginning
             block.addInstruction(new Br(startLabel));
         }else{
@@ -448,7 +489,7 @@ public class FunctionGenerator {
         // Set the initial value of variable, Add instructions with no loop
         res.add(new GetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getLowerName().getID()))));
         res.add(new SetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getLoopVarName().getID()))));
-        res.addAll(genInstructionList(tirStmt.getStatements()));
+        res.addAll(genStatementList(tirStmt.getStatements()));
         block.setInstructionList(res);
         endLoop.pop();
         startLoop.pop();
@@ -510,7 +551,7 @@ public class FunctionGenerator {
         block.addInstruction(brIfCondition);
         block.addInstruction(new BrIf(endLabel));
         // Gen Stmts
-        block.getInstructionList().addAll(genInstructionList(tirStmt.getStatements()));
+        block.getInstructionList().addAll(genStatementList(tirStmt.getStatements()));
         // Add break to loop beginning
         block.addInstruction(new Br(startLabel));
         loop.addInstruction(block);
@@ -565,7 +606,7 @@ public class FunctionGenerator {
         if(isSlicingOperation(tirStmt, tirStmt.getIndices())){
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
                     null,"set",programAnalysis,
-                    analysisFunction);
+                    analysisFunction,name_expr_generator);
             ResultWasmGenerator result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(typedArr)));
             // Generate inputs
@@ -619,7 +660,7 @@ public class FunctionGenerator {
         if(isSlicingOperation(tirStmt,tirStmt.getIndices())){
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
                     tirStmt.getTargets(),"get",programAnalysis,
-                    analysisFunction);
+                    analysisFunction, name_expr_generator);
 
             ResultWasmGenerator result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getArrayName().getID()))));
@@ -649,6 +690,7 @@ public class FunctionGenerator {
         }
         return res;
     }
+    // TODO: Tree_expr opt
     private List<Instruction> computeIndexWasm(TIRNode node, String arrayName, TIRCommaSeparatedList indices){
         List<Instruction> res = new List<>();
         String typedArrayName = Util.getTypedLocalI32(arrayName);
@@ -705,7 +747,7 @@ public class FunctionGenerator {
 
         return stride;
     }
-
+    // TODO: Tree_expr opt
     private List<Instruction> genCopyStmt(TIRCopyStmt tirStmt) {
         List<Instruction> insts = new List<>();
         String name = tirStmt.getSourceName().getID();
@@ -731,6 +773,7 @@ public class FunctionGenerator {
 //        }
         return insts;
     }
+    // TODO: Tree_expr opt
     private boolean isSlicingOperation(TIRStmt tirStmt, TIRCommaSeparatedList indices) {
         for (ast.Expr index : indices) {
             if (index instanceof ast.ColonExpr)
@@ -787,6 +830,7 @@ public class FunctionGenerator {
         }
         return -1;
     }
+    // TODO: Tree_expr opt
     private List<Instruction> genNameExpr(NameExpr expr, TIRStmt stmt) {
         // TODO(dherre3): Change this for globals
         String name = expr.getName().getID();
@@ -805,8 +849,6 @@ public class FunctionGenerator {
     private List<Instruction> genIntLiteralExpr(IntLiteralExpr expr) {
         return new List<>(new ConstLiteral(new F64(), Integer.parseInt(expr.getValue().getText())));
     }
-
-
 
     private Type genSignature(TIRFunction func){
         Args<AggrValue<BasicMatrixValue>> args =  analysisFunction.getArgs();
@@ -840,6 +882,8 @@ public class FunctionGenerator {
         for(Name name: func.getOutputParamList()){
             BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, func, name.getID());
             if(val == null){
+                // TODO(dherre3) Fix this, this is an error only if we query the function for the non-defined return parameter.
+                // TODO(dherre3) If we return i.e. [a,b,c] = ret1() and ret1() does not defined b, its an error, instead if [a] = ret1(), this is not an error.
                 throw new Error("Return variable: \""+ name.getID()+"\" is never defined in function context: "
                 + function_name);
             }
