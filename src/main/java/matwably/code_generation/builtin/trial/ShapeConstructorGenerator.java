@@ -44,53 +44,53 @@ public abstract class ShapeConstructorGenerator extends DefaultBuiltinGenerator 
 
     public abstract void generateScalarExpression();
 
-    public abstract void generate2DMatrixExpression();
-
-    public abstract void generateGeneralExpression();
-
-
-    @Override
-    void generateInputs() {
+    public void generateExpression() {
         TIRCommaSeparatedList args = arguments;
         int sizeArgs = arguments.size();
         String input_arg = Util.genTypedLocalI32();
-//        result.setTargetName(input_arg);
         TypeUse input_argType = new TypeUse(new Opt<>(new Identifier(input_arg)),new I32());
         result.addLocal(input_argType);
         if(sizeArgs == 0){
-            result.addInstructions(MatWablyArray.createF64Vector(2));
-            result.addInstruction(new SetLocal(new Idx(input_arg)));
-            result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 0, new ConstLiteral(new F64(), 1)));
-            result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, new ConstLiteral(new F64(), 1)));
+            generateScalarExpression();
         }else if(sizeArgs == 1){
             NameExpr nameExpr = (NameExpr)arguments.getChild(0);
             BasicMatrixValue bmv = Util.getBasicMatrixValue(functionAnalysis,node,
                     nameExpr.getName().getID());
-            if(bmv.hasShape() && bmv.getShape().isScalar()){
+            if(!bmv.hasShape()){
+                throw new Error("Shape information must be known in order to generate");
+            }
+            if(bmv.getShape().isScalar()){
                 result.addInstructions(MatWablyArray.createF64Vector(2));
                 result.addInstruction(new SetLocal(new Idx(input_arg)));
-                String expr1 = Util.getTypedLocalF64(((NameExpr)args.getChild(0)).getName().getID());
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 0, new GetLocal(new Idx(expr1))));
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, new GetLocal(new Idx(expr1))));
-            }else if(bmv.hasShape()&&!bmv.getShape().isRowVector()) {
+                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 0,nameExpressionGenerator.genNameExpr(nameExpr,node)));
+                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, nameExpressionGenerator.genNameExpr(nameExpr,node)));
+            }else if(bmv.getShape().isRowVector()) {
+                result.addInstructions( nameExpressionGenerator.genNameExpr(nameExpr,node));
+            }else{
                 throw new Error("Size vector should be a row vector with real elements.");
             }
+            result.addInstruction(new GetLocal(new Idx(input_arg)));
+            this.generateCall();
         }else{
             result.addInstructions(MatWablyArray.createF64Vector(sizeArgs));
             result.addInstruction(new SetLocal(new Idx(input_arg)));
             // There are more than two arguments
             int i = 0;
             for(ast.Expr argExpr: arguments){
-                String nameExpr = ((ast.NameExpr) argExpr).getName().getID();
-                BasicMatrixValue matVal = Util.getBasicMatrixValue(functionAnalysis,node, nameExpr);
+                NameExpr nameExpr = ((ast.NameExpr) argExpr);
+                BasicMatrixValue matVal = Util.getBasicMatrixValue(functionAnalysis,node, nameExpr.getName().getID());
                 if(!matVal.hasShape() || !matVal.getShape().isScalar()){
                     throw new Error("Size inputs must be scalar.");
                 }
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, i,
-                        new GetLocal(new Idx(Util.getTypedLocalF64(nameExpr)))));
+                result.addInstruction(new GetLocal(new Idx(input_arg)));
+                result.addInstruction(new ConstLiteral(new I32(), i));
+                result.addInstructions(nameExpressionGenerator.genNameExpr(nameExpr,node));
+                result.addInstruction(new Call(new Idx("set_array_index_f64_no_check")));
                 i++;
             }
+            result.addInstruction(new GetLocal(new Idx(input_arg)));
+            this.generateCall();
         }
-        result.addInstruction(new GetLocal(new Idx(input_arg)));
+
     }
 }

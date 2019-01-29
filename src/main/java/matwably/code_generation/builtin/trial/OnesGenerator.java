@@ -1,5 +1,7 @@
 package matwably.code_generation.builtin.trial;
 
+import matwably.ast.ConstLiteral;
+import matwably.ast.I32;
 import matwably.code_generation.NameExpressionGenerator;
 import matwably.util.InterproceduralFunctionQuery;
 import natlab.tame.tir.TIRCommaSeparatedList;
@@ -21,5 +23,11 @@ public class OnesGenerator extends ShapeConstructorGenerator {
     public OnesGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis, InterproceduralFunctionQuery functionQuery, NameExpressionGenerator nameExpressionGenerator) {
         super(node, arguments, targs, callName, analysis, functionQuery, nameExpressionGenerator);
     }
+
+    @Override
+    public void generateScalarExpression() {
+        result.addInstruction(new ConstLiteral(new I32(), 1));
+    }
+
 }
 

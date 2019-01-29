@@ -19,9 +19,9 @@ public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGen
 
     String generatedCallName;
     NameExpressionGenerator nameExpressionGenerator;
-
+    InterproceduralFunctionQuery functionQuery;
     // booleans for the type of call
-    boolean isSpecialized = false;
+    private boolean isSpecialized = false;
 
     public boolean hasAlias(){
         return false;
@@ -37,14 +37,13 @@ public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGen
     }
 
     /**
-     *
-     * @param node
-     * @param arguments
-     * @param targs
-     * @param callName
-     * @param analysis
-     * @param functionQuery
-     * @param nameExpressionGenerator
+     * @param node TIRNode for the call
+     * @param arguments Arguments for the call
+     * @param targs Target names for the call
+     * @param callName Actual function name
+     * @param analysis IntraproceduralValueAnalysis
+     * @param functionQuery InterproceduralFunctionQuery
+     * @param nameExpressionGenerator NameExpressionGenerator
      */
     public DefaultBuiltinGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
                                    IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
@@ -54,12 +53,10 @@ public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGen
         this.result = new ResultWasmGenerator();
         this.nameExpressionGenerator = nameExpressionGenerator;
         this.generatedCallName = this.callName;
-
-
     }
 
     @Override
-    void generateInputs() {
+    public void generateInputs() {
         arguments.forEach((ast.Expr arg)->
                 result.addInstructions(this.nameExpressionGenerator.genNameExpr(((NameExpr) arg),this.node)));
     }
@@ -95,7 +92,7 @@ public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGen
                 new Idx(new Opt<>(new Identifier(generatedCallName)),0)));
     }
     public String  getAlias() {
-        return generatedCallName;
+        return callName;
     }
     @Override
     void generateSetToTarget() {

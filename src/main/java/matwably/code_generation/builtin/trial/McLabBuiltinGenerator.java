@@ -5,7 +5,6 @@ import natlab.tame.builtin.Builtin;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.tir.TIRNode;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
@@ -13,7 +12,6 @@ public abstract class  McLabBuiltinGenerator<Res> {
     TIRNode node;
     TIRCommaSeparatedList arguments;
     IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> functionAnalysis;
-    ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     InterproceduralFunctionQuery functionQuery;
     TIRCommaSeparatedList targets;
     String callName;
@@ -46,8 +44,11 @@ public abstract class  McLabBuiltinGenerator<Res> {
     public boolean returnsVoid() {
         return targets.size() == 0;
     }
+    public boolean returnsOneTarget() {
+        return targets.size() == 1;
+    }
     public boolean isMatlabBuiltin() {
-        return Builtin.getInstance(this.callName)!=null;
+        return Builtin.getInstance(this.callName)!=null && functionQuery.isUserDefinedFunction(this.callName);
     }
     public abstract boolean isScalarOutput();
     public abstract boolean returnsBoxedScalar();
