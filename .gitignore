@@ -1,5 +1,6 @@
 # Gradle
 # ------
+performance_backup/
 gradle
 .gradle
 /build
