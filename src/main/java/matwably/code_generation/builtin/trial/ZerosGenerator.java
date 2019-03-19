@@ -1,7 +1,5 @@
 package matwably.code_generation.builtin.trial;
 
-import matwably.ast.ConstLiteral;
-import matwably.ast.F64;
 import matwably.code_generation.NameExpressionGenerator;
 import matwably.util.InterproceduralFunctionQuery;
 import natlab.tame.tir.TIRCommaSeparatedList;
@@ -22,12 +20,23 @@ public class ZerosGenerator extends ShapeConstructorGenerator {
      * @param functionQuery
      * @param nameExpressionGenerator
      */
-    public ZerosGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis, InterproceduralFunctionQuery functionQuery, NameExpressionGenerator nameExpressionGenerator) {
-        super(node, arguments, targs, callName, programAnalysis, analysis, functionQuery, nameExpressionGenerator);
-    }
-    @Override
-    public void simplify() {
-        result.addInstruction(new ConstLiteral(new F64(), 0));
+    public ZerosGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
+                          ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis, InterproceduralFunctionQuery functionQuery, NameExpressionGenerator nameExpressionGenerator) {
+        super(node, arguments, targs, callName, analysis, functionQuery, nameExpressionGenerator);
     }
 
+    @Override
+    public void generateScalarExpression() {
+
+    }
+
+    @Override
+    public void generate2DMatrixExpression() {
+
+    }
+
+    @Override
+    public void generateGeneralExpression() {
+
+    }
 }

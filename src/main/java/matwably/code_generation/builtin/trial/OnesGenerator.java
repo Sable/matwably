@@ -21,5 +21,20 @@ public class OnesGenerator extends ShapeConstructorGenerator {
     public OnesGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis, InterproceduralFunctionQuery functionQuery, NameExpressionGenerator nameExpressionGenerator) {
         super(node, arguments, targs, callName, analysis, functionQuery, nameExpressionGenerator);
     }
+
+    @Override
+    public void generateScalarExpression() {
+
+    }
+
+    @Override
+    public void generate2DMatrixExpression() {
+
+    }
+
+    @Override
+    public void generateGeneralExpression() {
+
+    }
 }
 
