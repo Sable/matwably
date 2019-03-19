@@ -1,3 +1,3 @@
-function [a, b, c] = return1_helper(e)
+function [a, b, c] = return2_helper(e)
     a = 3;
 end

@@ -79,15 +79,16 @@ public class Main {
         }
 
         for (int i = 0; i < numFunctions; ++i) {
+            System.out.println(numFunctions);
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis =
                         analysis.getNodeList().get(i).getAnalysis();
-            String functionName = funcAnalysis.getTree().getName().getID();
-            if (!generated.contains(functionName)) {
-                FunctionGenerator gen = new FunctionGenerator(analysis, i, opts);
+            FunctionGenerator gen = new FunctionGenerator(analysis, i, opts);
+            String gen_function_name = gen.genFunctionName();
+            if (!generated.contains(gen_function_name)) {
                 Function func_wasm = gen.getAst();
                 module.addFunctions(func_wasm);
                 module.addExport(FunctionExport.generate(func_wasm));
-                generated.add(functionName);
+                generated.add(gen_function_name);
                 System.out.println(funcAnalysis.getTree().getPrettyPrinted());
                 System.out.println("Generated: " + func_wasm.getIdentifier().getName());
             }

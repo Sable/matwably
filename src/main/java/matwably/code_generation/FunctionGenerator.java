@@ -11,6 +11,7 @@ import matwably.ast.Function;
 import matwably.ast.List;
 import matwably.ast.Opt;
 import matwably.code_generation.builtin.BuiltinGenerator;
+import matwably.code_generation.builtin.OperatorGenerator;
 import matwably.code_generation.builtin.ResultWasmGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.code_generation.wasm.SwitchStatement;
@@ -27,7 +28,9 @@ import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.tame.valueanalysis.value.Args;
 import natlab.toolkits.rewrite.TempFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Stack;
 
 /**
  * Class generates TIRFunctions given the ValueAnalysis, the index of the function inside the analysis to be generated
@@ -57,7 +60,7 @@ public class FunctionGenerator {
     private Stack<Idx> startLoop = new Stack<>();
     private Stack<Idx> endLoop = new Stack<>();
     private String function_name;
-
+    private Set<Stmt> redundant_stmts;
     /**
      * Returns the ast of the generated function
      * @return
@@ -91,7 +94,7 @@ public class FunctionGenerator {
         this.output_parameters = new List<>();
         this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(programAnalysis);
         this.name_expr_generator = new NameExpressionGenerator(this.analysisFunction);
-
+//        this.redundant_stmts
         this.function = genFunction(this.analysisFunction.getTree());
 
     }
@@ -110,6 +113,7 @@ public class FunctionGenerator {
                 this.analysisFunction.getTree(),
                 interproceduralFunctionQuery );
             inter.apply();
+            this.redundant_stmts = inter.redundant_stmts;
             name_expr_generator.setNameExpressionTreeMap(inter.use_expr_map);
 
         }
@@ -118,8 +122,8 @@ public class FunctionGenerator {
         performCopyInsertion();
 
         // Setting function name and signature setting output_parameters
-        Type funcType = genSignature(tirFunction);
-
+        Type funcType = genSignature();
+        this.function_name = genFunctionName();
         // Setting locals
         Locals localsAnalysis = new Locals();
         local_map = localsAnalysis.apply(tirFunction, analysisFunction);
@@ -224,7 +228,7 @@ public class FunctionGenerator {
     }
     // TODO(dherre3) Add logic for expression elimination
     private boolean shouldGenerateStmt(Stmt stmt) {
-
+//        return !(this.opts.variable_elimination && this.redundant_stmts != null && this.redundant_stmts.contains(stmt));
         return true;
     }
 
@@ -238,6 +242,11 @@ public class FunctionGenerator {
         if (tirStmt instanceof TIRAssignLiteralStmt) {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         } else if (tirStmt instanceof TIRCallStmt) {
+//            TIRCallStmt callStmt = (TIRCallStmt)tirStmt;
+//            ResultWasmGenerator callGenerator =
+//                    MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),callStmt.getTargets(),
+//                            callStmt.getFunctionName().getID(), interproceduralFunctionQuery, analysisFunction, name_expr_generator)
+//                        .generate();
             ResultWasmGenerator callGenerator = BuiltinGenerator.
                     generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,name_expr_generator);
             locals.addAll(callGenerator.getLocals());
@@ -314,7 +323,6 @@ public class FunctionGenerator {
     private List<Instruction> genBreakStmt(TIRBreakStmt tirStmt) {
         return new List<>(new Br(endLoop.peek()));
     }
-    // TODO( Tree_expr opt)
     private List<Instruction> genWhileStmt(TIRWhileStmt tirStmt) {
         List<Instruction> res = new List<>();
         NameExpr expr = tirStmt.getCondition();
@@ -849,12 +857,27 @@ public class FunctionGenerator {
     private List<Instruction> genIntLiteralExpr(IntLiteralExpr expr) {
         return new List<>(new ConstLiteral(new F64(), Integer.parseInt(expr.getValue().getText())));
     }
+    public String genFunctionName() {
+        TIRFunction func = analysisFunction.getTree();
+        Args<AggrValue<BasicMatrixValue>> args =  analysisFunction.getArgs();
+        StringBuilder suffix = new StringBuilder(func.getName().getID()+"_");
+        for (Object arg : args) {
+            BasicMatrixValue bmv = (BasicMatrixValue) arg;
+            if (bmv.hasShape() && bmv.getShape().isScalar())
+            {
+                suffix.append("S");
+            }else{
+                suffix.append("M");
+            }
+        }
+        return suffix.toString();
+    }
 
-    private Type genSignature(TIRFunction func){
+    private Type genSignature(){
+        TIRFunction func = this.analysisFunction.getTree();
         Args<AggrValue<BasicMatrixValue>> args =  analysisFunction.getArgs();
         List<TypeUse> result = new List<>();
         ast.List<Name> params = func.getInputParams();
-        StringBuilder suffix = new StringBuilder();
         int paramIndex = 0;
         for (Object arg : args) {
             Name param = params.getChild(paramIndex);
@@ -863,11 +886,9 @@ public class FunctionGenerator {
             BasicMatrixValue bmv = (BasicMatrixValue) arg;
             if (bmv.hasShape() && bmv.getShape().isScalar())
             {
-                suffix.append("S");
                 type = new F64();
                 paramName = param.getID()+"_f64";
             }else{
-                suffix.append("M");
                 type = new I32();
                 paramName = param.getID()+"_i32";
             }
@@ -878,14 +899,13 @@ public class FunctionGenerator {
         List<ValueType> returnVals = new List<>();
         List<TypeUse> returnIds = new List<>();
 
-        this.function_name = func.getName().getID()+"_"+suffix.toString();
         for(Name name: func.getOutputParamList()){
             BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, func, name.getID());
             if(val == null){
                 // TODO(dherre3) Fix this, this is an error only if we query the function for the non-defined return parameter.
                 // TODO(dherre3) If we return i.e. [a,b,c] = ret1() and ret1() does not defined b, its an error, instead if [a] = ret1(), this is not an error.
                 throw new Error("Return variable: \""+ name.getID()+"\" is never defined in function context: "
-                + function_name);
+                + func.getName().getID());
             }
             TypeUse typeUse = Ast.genTypeUse(Util.getTypedName(name.getID(),val), val);
             ValueType valueType = typeUse.getType();

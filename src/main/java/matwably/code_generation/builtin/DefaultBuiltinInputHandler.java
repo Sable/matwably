@@ -38,6 +38,10 @@ public class DefaultBuiltinInputHandler extends BuiltinInputHandler {
         for (ast.Expr arg : arguments) {
             String name = ((NameExpr) arg).getName().getID();
             BasicMatrixValue val = Util.getBasicMatrixValue(valueAnalysis, stmt, name);
+
+            System.out.println(val);
+            System.out.println(val.hasShape());
+            System.out.println(val.getShape().isRowVector());
             name = Util.getTypedName(name, val);
             result.addInstruction(new GetLocal(new Idx(name)));
         }

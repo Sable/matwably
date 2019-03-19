@@ -1,6 +1,6 @@
 const fs = require("fs");
 const shelljs = require("shelljs");
-const file = fs.readFileSync("./drv_collatz.wasm");
+const file = fs.readFileSync(__dirname+"/drv_collatz-opt.wasm");
 const time_mod = require("../../timing");
 
 let memory =  new WebAssembly.Memory({initial:32767});
@@ -144,7 +144,6 @@ module.exports.runJitted = ()=>{
     });
 };
 loader().then((mod)=> {
-	console.log("what");
 		console.log(mod.exports.drv_collatz_S(1000000));
 
 });

@@ -5,7 +5,6 @@ import ast.Name;
 import ast.NameExpr;
 import matwably.ast.*;
 import matwably.code_generation.NameExpressionGenerator;
-import matwably.code_generation.OperatorGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.Util;
 import natlab.tame.builtin.Builtin;
@@ -30,6 +29,7 @@ public class BuiltinGenerator {
     private TIRCommaSeparatedList targets;
     private String callName;
     private String generatedCallName;
+    private BuiltinSimplifier simplifier;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     private NameExpressionGenerator name_expr_generator;
@@ -47,6 +47,8 @@ public class BuiltinGenerator {
         this.programAnalysis =programAnalysis;
         this.result = new ResultWasmGenerator();
         this.name_expr_generator = name_expr_generator;
+        this.simplifier = getSimplification();
+
     }
 
     public ResultWasmGenerator getResult() {
@@ -137,8 +139,9 @@ public class BuiltinGenerator {
     }
     public void generateExpression(){
         BuiltinSimplifier simplifier = getSimplification();
-        if(simplifier != null){
+        if(simplifier != null && simplifier.isSimplifiable()){
             result.addInstructions(simplifier.simplify());
+            System.out.println("I AM SIMPLIFIABLE"+simplifier.callName);
         }else{
             this.generateInputs();
             this.generateCall();
@@ -150,8 +153,13 @@ public class BuiltinGenerator {
         BuiltinGenerator generator = new BuiltinGenerator(tirFunction,tirFunction.getArguments(),
                 tirFunction.getTargets(),tirFunction.getFunctionName().getID(),programAnalysis,
                 analysis, name_expr_generator);
-        // Generate RHS Expression
-        generator.generateExpression();
+        BuiltinSimplifier simplifier = generator.getSimplification();
+        if(simplifier != null && simplifier.isSimplifiable()){
+            generator.result.addInstructions(simplifier.simplify());
+        }else{
+            generator.generateInputs();
+            generator.generateCall();
+        }
         // Set to targets
         generator.generateSetToTarget();
         // Need to drop result
@@ -222,8 +230,7 @@ public class BuiltinGenerator {
                 result.addLocal(new TypeUse(new Opt<>(new Identifier(temp)),new I32()));
                 result.addInstruction(new SetLocal(new Idx(temp)));
                 result.addInstructions(MatWablyArray.getArrayIndexF64(temp, 0));
-                String typedTarget = Util.getTypedLocalF64(target);
-                result.addInstruction(new SetLocal(new Idx(new Opt<>(new Identifier(typedTarget)),0)));
+                result.addInstruction(new SetLocal(new Idx( Util.getTypedLocalF64(target))));
             }else{
                 result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalI32(target))));
             }
@@ -269,6 +276,7 @@ public class BuiltinGenerator {
         return Arrays.binarySearch(SPECIALIZED, name, Comparator.naturalOrder()) >=0;
     }
     private boolean isScalarOutput(){
+        if(simplifier!=null && simplifier.returnsScalar()) return true;
         // Implemented functions that return scalars
         if(Arrays.binarySearch( SCALAR_OUTPUT, generatedCallName, Comparator.naturalOrder()) >=0 ) return true;
 

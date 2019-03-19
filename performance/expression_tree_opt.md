@@ -26,10 +26,9 @@ function f()
     c = plus(3,4)
     e = 3 < 4
     while e
-        e = 5 < b
+        e = 5 < 4
     end
 end
-
 ```
 How about when we switch the statements around:
 ```matlab
@@ -43,7 +42,6 @@ function f()
         a = 5
     end
 end
-
 ```
 If a use gives me two definitions ignore the variable in the expression. And for 
 every other use of that variable, if the use respects that rule,
@@ -71,7 +69,6 @@ function f()
 end
 ```
 After transformation:
-
 ```matlab
 function f()
     c = times(ones(3,3),3)
@@ -88,7 +85,7 @@ than one use, for each use, check if that is the only definition, and if it is, 
  
 How about when is not convenient?
 ```matlab
-function f()
+function f(d)
     c = 4+ 53*4+40/4
     a = c + d
     disp(c)

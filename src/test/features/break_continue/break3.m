@@ -1,5 +1,5 @@
 function [a] = break3(b)
-
+c = ones(3,3)
 % FOR LOOP 2 Decreasing
 for v = 8:-2:0
   for j = 1:10

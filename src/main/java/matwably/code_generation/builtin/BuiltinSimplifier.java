@@ -14,10 +14,12 @@ public abstract class BuiltinSimplifier {
     public String callName;
     public TIRCommaSeparatedList arguments;
     public TIRCommaSeparatedList targets;
+    public boolean isSimplifiable = false;
     public IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     public NameExpressionGenerator nameExpressionGenerator;
     public abstract boolean isSimplifiable();
     public abstract List<Instruction> simplify();
+    public abstract boolean returnsScalar();
     public TIRCommaSeparatedList getArguments() {
         return arguments;
     }

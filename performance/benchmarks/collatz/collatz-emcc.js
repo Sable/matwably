@@ -2072,8 +2072,7 @@ run();
 
 // {{POST_RUN_ADDITIONS}}
 
-
-
+Module['onRuntimeInitialized'] = ()=>{ Module["_drv_collatz"](1000000);};
 
 
 // {{MODULE_ADDITIONS}}

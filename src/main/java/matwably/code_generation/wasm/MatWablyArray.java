@@ -3,7 +3,15 @@ package matwably.code_generation.wasm;
 import matwably.ast.*;
 
 public class MatWablyArray{
-
+    public static List<Instruction> setArrayIndexF64(String arr_name,int index,  List<Instruction> value) {
+        List<Instruction> ret = new List<>();
+        ret.add(new GetLocal(new Idx(arr_name)));
+        ret.add(new ConstLiteral(new I32(), index));
+        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for: "+arr_name);
+        ret.addAll(value);
+        ret.add(new Call(new Idx("set_array_index_f64_no_check")));
+        return ret;
+    }
     public static List<Instruction> setArrayIndexF64(String arr_name,int index,  NumericInstruction value) {
         List<Instruction> ret = new List<>();
         ret.add(new GetLocal(new Idx(arr_name)));

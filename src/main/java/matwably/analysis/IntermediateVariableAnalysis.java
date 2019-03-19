@@ -173,19 +173,19 @@ public class IntermediateVariableAnalysis {
          * </pre>
          * @param stmt
          */
-        public void caseTIRCopyStmt(TIRCopyStmt stmt){
-            Name rhs = stmt.getSourceName();
-            Name lhs = stmt.getTargetName();
-            if(    isNotOutputParameter(lhs.getID())
-                && isVariableDefinitionNonAmbiguous(rhs.getID(),stmt)
-                && isVariableUntouchedBeforeAnyUse(lhs.getID(),stmt)
-                && isAliasReplacementNonAmbiguous(lhs.getID(),rhs.getID(), stmt)
-                && isAliasReplacementUntouchedBeforeAnyUse(lhs.getID(),rhs.getID(), stmt))
-            {
-                mapUsesToExpression(this.chain.getUsesOf(lhs.getID(), stmt), stmt.getRHS());
-                addRedundantStmt(stmt);
-            }
-        }
+//        public void caseTIRCopyStmt(TIRCopyStmt stmt){
+//            Name rhs = stmt.getSourceName();
+//            Name lhs = stmt.getTargetName();
+//            if(    isNotOutputParameter(lhs.getID())
+//                && isVariableDefinitionNonAmbiguous(rhs.getID(),stmt)
+//                && isVariableUntouchedBeforeAnyUse(lhs.getID(),stmt)
+//                && isAliasReplacementNonAmbiguous(lhs.getID(),rhs.getID(), stmt)
+//                && isAliasReplacementUntouchedBeforeAnyUse(lhs.getID(),rhs.getID(), stmt))
+//            {
+//                mapUsesToExpression(this.chain.getUsesOf(lhs.getID(), stmt), stmt.getRHS());
+//                addRedundantStmt(stmt);
+//            }
+//        }
 
         /**
          *

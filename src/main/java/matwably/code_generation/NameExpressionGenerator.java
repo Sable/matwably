@@ -70,19 +70,24 @@ public class NameExpressionGenerator {
     public List<Instruction> genNameExpr(NameExpr nameExpr, TIRNode stmt){
         Name name = nameExpr.getName();
         if(this.build_expression_tree && variable_expression_map.containsKey(name)){
-            ast.Expr expr = variable_expression_map.get(name);
-            if(expr instanceof LiteralExpr){
-                return genLiteralExpr(expr);
-            }else if(expr instanceof NameExpr){// Copy Statement
-                return genNameExpr((NameExpr)expr, stmt);
-            }
-            return null;// TODO(dherre3): Remove this .
+//            ast.Expr expr = variable_expression_map.get(name);
+//            if(expr instanceof LiteralExpr){
+//                return genLiteralExpr(expr);
+//            }
+//            else if(expr instanceof NameExpr){// Copy Statement
+//                return genNameExpr((NameExpr)expr, stmt);
+//            }
+            String id = name.getID();
+            BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, stmt, id);
+            String typedName= (val.hasShape()&& val.getShape().isScalar())?Util.getTypedLocalF64(id):Util.getTypedLocalI32(id);
+            return new List<>(new GetLocal(new Idx(typedName)));
         }else{
             String id = name.getID();
             BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, stmt, id);
             String typedName= (val.hasShape()&& val.getShape().isScalar())?Util.getTypedLocalF64(id):Util.getTypedLocalI32(id);
             return new List<>(new GetLocal(new Idx(typedName)));
         }
+
     }
 
 
