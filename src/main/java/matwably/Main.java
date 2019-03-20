@@ -15,9 +15,7 @@
 package matwably;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import matwably.ast.Function;
-import matwably.ast.ImportedWat;
-import matwably.ast.Module;
+import matwably.ast.*;
 import matwably.code_generation.FunctionGenerator;
 import matwably.code_generation.wasm.FunctionExport;
 import matwably.optimization.peephole.PeepholeOptimizer;
@@ -29,7 +27,6 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
-
 import java.io.*;
 import java.util.HashSet;
 import java.util.Set;
