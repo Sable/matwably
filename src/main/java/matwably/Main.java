@@ -36,12 +36,10 @@ import java.util.Set;
 
 public class Main {
 
-    private static void log(Object str){
-        System.out.println(str);
-    }
+
     public static void main(String[] argv)
     {
-
+        // Parse command line options
         CommandLineOptions opts = new CommandLineOptions();
         JCommander optParse = null;
         try{
@@ -53,33 +51,38 @@ public class Main {
         }
         optParse.setProgramName("MatWably");
 
-
+        // Print usage if asked for help
         if( opts.help )
         {
             optParse.usage();
             System.exit(0);
         }
-
+        // get args to entry function
         String[] args_entry_function = opts.getEntryFunctionArgs(optParse);
+
+        // Generate McLab File and perform value analysis to optain call graph.
         GenericFile gfile = opts.getGenericFile();
         FileEnvironment fenv = new FileEnvironment(gfile);
         ValueAnalysis<AggrValue<BasicMatrixValue>> analysis = BasicTamerTool.analyze(args_entry_function, fenv);
-
         Set<String> generated = new HashSet<String>();
         String entryPointName = analysis.getMainNode().getFunction().getName();
 
+        // Iterate and
         int numFunctions = analysis.getNodeList().size();
         Module module = new Module();
         PrettyPrinter prettyPrinter = new PrettyPrinter(module);
         try{
-            String builtInDeclations =  readStreamIntoString(Main.class.getResourceAsStream("/builtins.wat"));//readStreamIntoString("builtins.wat");
+            String builtInDeclations =
+                    readStreamIntoString(Main.class.
+                            getResourceAsStream("/matmachjs/matmachjs.wat"));
             module.addImportedWat(new ImportedWat(builtInDeclations));
         }catch(IOException ex){
-            throw new Error(ex);
+            throw new Error("MatMachJS library .wat file is missing from resources"+
+                    ((opts.verbose)?ex.getMessage():""));
         }
 
+        // Running analysis on functions.
         for (int i = 0; i < numFunctions; ++i) {
-            System.out.println(numFunctions);
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis =
                         analysis.getNodeList().get(i).getAnalysis();
             FunctionGenerator gen = new FunctionGenerator(analysis, i, opts);
@@ -89,8 +92,10 @@ public class Main {
                 module.addFunctions(func_wasm);
                 module.addExport(FunctionExport.generate(func_wasm));
                 generated.add(gen_function_name);
-                System.out.println(funcAnalysis.getTree().getPrettyPrinted());
-                System.out.println("Generated: " + func_wasm.getIdentifier().getName());
+                if(opts.verbose){
+                    log(funcAnalysis.getTree().getPrettyPrinted());
+                    log("Generated: " + func_wasm.getIdentifier().getName());
+                }
             }
         }
 
@@ -98,7 +103,9 @@ public class Main {
         if(opts.peephole){
             PeepholeOptimizer peep = new PeepholeOptimizer(module);
             peep.optimize();
-            System.out.println(peep.getFrequenciesAsCsvString());
+            if(opts.verbose){
+                log(peep.getFrequenciesAsCsvString());
+            }
         }
 
         FileWriter out;
@@ -109,28 +116,77 @@ public class Main {
         }catch(Exception e){
             throw new Error("Error writing to file: "+ opts.output_file+e);
         }
+
         try{
             String wasmFile = opts.basename_output_file+".wasm";
+
+            // Compile wat file to wasm.
             Process process = Runtime.getRuntime().exec(
                     "wat2wasm " +opts.basename_output_file+".wat -o "+ wasmFile);
-            System.out.println("wat2wasm " +opts.basename_output_file+".wat -o "+ wasmFile);
+            if(opts.verbose)
+                log("wat2wasm " +opts.basename_output_file+".wat -o "+ wasmFile);
             int exitFlag = process.waitFor();
             if(exitFlag == 1)
-                throw new Error("Error compiling wat file: \n"+
+                throw new Error("Error: compilation of wat file failed: \n"+
                         readStreamIntoString(process.getErrorStream()));
-            String loader = readStreamIntoString(Main.class.getResourceAsStream("/wasm_loader.js"));
-            File temp = new File(wasmFile);
+            // Do not generate wat file based on command line opt.
+            if(!opts.generate_wat_file)
+                    Runtime.getRuntime().exec("rm "+opts.basename_output_file+".wat");
 
-            loader = String.format(loader, temp.getName(),entryPointName);
+            // Decide which loader to use
+            String loader = readStreamIntoString((opts.inline_wasm)?
+                        Main.class.getResourceAsStream("/inline_wasm_module_loader.js"):
+                        Main.class.getResourceAsStream("/wasm_module_loader.js"));
+            StringBuilder outfileBuilder = new StringBuilder();
+            String js_support_lib = readStreamIntoString(Main.class.getResourceAsStream("/matmachjs/matmachjs-lib.js"));
+            if(opts.inline_wasm){
+                Runtime.getRuntime().exec("rm "+ opts.basename_output_file+".wasm");
+                // Create array with wasm module in hex bytes
+                outfileBuilder.append("let wasmModuleHexString = \"");
+                outfileBuilder.append(readStreamIntoHexString(new FileInputStream(new File(wasmFile))));
+                outfileBuilder.append("\";\n");
+            }else{
+                File temp = new File(wasmFile);
+                loader = String.format(loader, temp.getName());
+            }
+            // Append library
+            outfileBuilder.append(js_support_lib);
+            // Append loader
+            outfileBuilder.append(loader);
+
+            // Load file in
             FileWriter wasmOut= new FileWriter(opts.basename_output_file+".js");
-            wasmOut.write(loader);
+            wasmOut.write(outfileBuilder.toString());
             wasmOut.close();
         }catch ( IOException | InterruptedException ex){
             throw new Error("Error compiling to wasm: \n"+ ex.getMessage());
         }
     }
+
+    /**
+     * Static function to read a stream in a hex string, used to inline wasm module into a hex string
+     * @param inputStream InputStream to be converted
+     * @return A hex string representation of the buffer
+     * @throws IOException If it fails to read the input stream file, it throws an IOException
+     */
+    private static String readStreamIntoHexString(InputStream inputStream) throws IOException {
+        BufferedInputStream bis = new BufferedInputStream(inputStream);
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        int result = bis.read();
+        while(result != -1) {
+            buf.write((byte) result);
+            result = bis.read();
+        }
+
+        return bytesToHex(buf.toByteArray());
+    }
+    /**
+     * Static function to read a stream in a hex string, used to inline wasm module into a hex string
+     * @param inputStream InputStream to be converted
+     * @return A UTF-8 string representation of the buffer
+     * @throws IOException If it fails to read the input stream file, it throws an IOException
+     */
     private static String readStreamIntoString(InputStream inputStream) throws IOException {
-//        InputStream inputStream = Main.class.getResourceAsStream("/" + file);
         BufferedInputStream bis = new BufferedInputStream(inputStream);
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         int result = bis.read();
@@ -139,6 +195,30 @@ public class Main {
             result = bis.read();
         }
         return buf.toString("UTF-8");
+    }
+    /**
+     * Static function to convert a byte array  in a hex string, used to inline wasm module into a hex string
+     * @param bytes Byte array to be converted into hex string
+     * @return A hex string representation of the byte array
+     */
+    private static String bytesToHex(byte[] bytes) {
+        char[] hexArray = "0123456789ABCDEF".toCharArray();
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+    /**
+     * Shortening log function, in the future this could be replaced by an actual log file that may or may not
+     * print to stdout based on an option
+     * @param str input object
+     */
+    private static void log(Object str){
+        System.out.println(str);
     }
 
 

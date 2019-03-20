@@ -16,9 +16,9 @@ function printWhos(size, bytes, class_type)
     let name_class = '';
     switch(class_name)
     {
-        case 0: 
+        case 0:
             name_class = "double";
-    }   
+    }
 }
 function printInt(number)
 {
@@ -27,8 +27,8 @@ function printInt(number)
 }
 function printDouble(number)
 {
-	console.log(number);
-	return number;
+    console.log(number);
+    return number;
 }
 let libjs = {
     "js":{
@@ -72,8 +72,6 @@ function printArrayDouble(arr_ptr, length) {
     console.log(arr);
 }
 
-/////////////// ASSERT ////////////////////
-
 function assert(condition, error_number) {
     let errors = {
         "0":"Invalid Assertion: class number is incorrect in function $mxarray_core_get_mclass",
@@ -87,17 +85,15 @@ function assert(condition, error_number) {
         throw new Error(errors[error_number]);
     }
 }
-// console.log("Dynamic array growth currently not supported in set.".length);
-
 
 function randn_s() {
-	let rand = 0;
+    let rand = 0;
 
-	for (let i = 0; i < 10; i += 1) {
-		rand += Math.random();
-	}
+    for (let i = 0; i < 10; i += 1) {
+        rand += Math.random();
+    }
 
-	return rand / 10;
+    return rand / 10;
 }
 
 

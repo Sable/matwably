@@ -29,7 +29,12 @@ for file in `ls ./src/test/features/**/*.m`; do
     ans=`${res} 2>&1`
 #    echo "Error: $ans"
     if [ $? -eq 1 ]; then
-        echo "$ans" > "${gen_dir}/log/${fname}.log"
+        log_dirname="${gen_dir}/log/${fname}.log"
+        echo "Filename:${fname}\n" > "$log_dirname"
+        echo "Benchmark:\n" >> "$log_dirname"
+        cat "$file" >> "$log_dirname"
+        echo "\nCompile Output:\n" >> "$log_dirname"
+        echo "$ans" >> "$log_dirname"
         echo -e "${RED}($COUNTER/$TOTAL) $fbname${NC}"
         INCORRECT[$INCORRECT_COUNTER]=${fname}
         INCORRECT_COUNTER=$[$INCORRECT_COUNTER +1]

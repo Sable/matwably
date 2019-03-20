@@ -86,6 +86,12 @@ public class BuiltinGenerator {
 //        SIMPLIFIABLE.put("colon", ColonGenerator)
 
     }
+    private static String[] CONTAINS_OUT_PTR = {
+            "plus", "times", "power",
+            "sin", "cos", "tan", "uminus", "exp", "rdivide","ldivide", "round", "sqrt",
+            "floor", "ceil", "power", "abs", "fix", "times","mean","sum","mtimes",
+            "round"
+    };
     private static String[] SPECIALIZED = {
             "plus", "minus", "mtimes", "rem", "mod", "mrdivide","mldivide",
             "lt", "le", "gt", "ge", "eq", "ne", "length",
@@ -141,19 +147,20 @@ public class BuiltinGenerator {
         BuiltinSimplifier simplifier = getSimplification();
         if(simplifier != null && simplifier.isSimplifiable()){
             result.addInstructions(simplifier.simplify());
-            System.out.println("I AM SIMPLIFIABLE"+simplifier.callName);
         }else{
             this.generateInputs();
             this.generateCall();
         }
     }
-    public static ResultWasmGenerator generate(TIRCallStmt tirFunction, ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
+    public static ResultWasmGenerator generate( TIRCallStmt tirFunction, ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
                                                IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
-                                               NameExpressionGenerator name_expr_generator){
+                                               NameExpressionGenerator name_expr_generator ) {
         BuiltinGenerator generator = new BuiltinGenerator(tirFunction,tirFunction.getArguments(),
                 tirFunction.getTargets(),tirFunction.getFunctionName().getID(),programAnalysis,
                 analysis, name_expr_generator);
+
         BuiltinSimplifier simplifier = generator.getSimplification();
+
         if(simplifier != null && simplifier.isSimplifiable()){
             generator.result.addInstructions(simplifier.simplify());
         }else{
@@ -181,6 +188,9 @@ public class BuiltinGenerator {
         if(classGenerator.isInForm())
             classGenerator = DefaultBuiltinInputHandler.getInstance(node, arguments, analysis, result);
         classGenerator.generate();
+        if(containsOutPtr()&&!isScalarOutput()){
+            result.addInstruction(new ConstLiteral(new I32(), 0));
+        }
     }
     public void generateCall(){
         // Call Function
@@ -347,6 +357,9 @@ public class BuiltinGenerator {
             }
         }
         return !(Arrays.binarySearch(DOES_NOT_HAVE_RETURN, callName, Comparator.naturalOrder()) >=0);
+    }
+    private boolean containsOutPtr() {
+        return Arrays.stream(CONTAINS_OUT_PTR).anyMatch( (String func)->func.equals(this.callName));
     }
 }
 

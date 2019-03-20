@@ -15,9 +15,24 @@ public final class CommandLineOptions {
     @Parameter(names = {"-h","--help"}, hidden = true)
     public boolean help = false;
 
-    @Parameter(names = {"--peephole"},
+    @Parameter(names = {"--opt-peephole"},
             description = "Option to turn on peephole optimizer, default is on")
     public boolean peephole = false;
+    @Parameter(names = {"--old-builtins"},
+            description = "Option to use old built-in generation")
+    public boolean old_builtin = false;
+
+    @Parameter(names = {"--inline-wasm"},
+            description = "Option to in-line wasm code in a JavaScript UInt8Array instead of using I/O")
+    public boolean inline_wasm = false;
+
+    @Parameter(names = {"--verbose","-v"},
+            description = "Verbose information for program")
+    public boolean verbose = false;
+    @Parameter(names = {"--gen-wast"},
+            description = "Option to also generate a wat file for the resulting wasm, default is true")
+    public boolean generate_wat_file = false;
+
     @Parameter(names = {"--var-el","-e"},
             description = "Option to turn on intermediate variable elimination")
     public boolean variable_elimination = true;

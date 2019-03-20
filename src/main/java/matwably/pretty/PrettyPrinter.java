@@ -22,13 +22,14 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
     }
 
     public void visit(Module mod) {
-        sb.append("(module ");
         if( mod.hasIdentifier() ) {
+            sb.append("(module ");
             prettyIdentifier(mod.getIdentifier());
+            sb.append("\n");
+            indentation_level ++;
 
         }
-        sb.append("\n");
-        indentation_level ++;
+
         if( mod.hasImport() ) {
             mod.getImportList().forEach((Import imp)->imp.accept(this));
         }
@@ -72,8 +73,10 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
         if( mod.hasExport() ) {
             mod.getExportList().forEach((Export exp)->exp.accept(this));
         }
-        indentation_level--;
-        sb.append(")\n");
+        if( mod.hasIdentifier() ){
+            indentation_level--;
+            sb.append(")\n");
+        }
     }
     public String display() {
         this.sb = new StringBuffer();

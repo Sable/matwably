@@ -5,7 +5,7 @@ apply plugin: 'application'
 
 //sourceSets.main.java.srcDirs = ['src']
 mainClassName = "matwably.Main"
-
+//matwably_matmachjs_lib_path=""
 sourceCompatibility = 1.8
 repositories {
     mavenCentral()
@@ -62,4 +62,11 @@ task myRun(type: JavaExec) {
 tasks.withType(Jar) {
     destinationDir = file("$buildDir/lib")
 }
-task make_jar dependsOn(build, copyToLib)
+task copyMatmachjsLib(type: Copy) {
+    if(project.hasProperty("MATMACHJS_LIB")){
+        from project.MATMACHJS_LIB
+        into "src/main/resources/matmachjs"
+    }
+
+}
+task make_jar dependsOn(build, copyToLib, copyMatmachjsLib)

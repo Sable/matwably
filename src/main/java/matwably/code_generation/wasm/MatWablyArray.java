@@ -75,8 +75,6 @@ public class MatWablyArray{
         instructions.add(new ConstLiteral(new I32(), type ));
         instructions.add(new ConstLiteral(new I32(), 0));
         instructions.add(new ConstLiteral(new I32(), 0));
-        instructions.add(new ConstLiteral(new I32(), 0));
-        instructions.add(new ConstLiteral(new I32(), 0));
         instructions.add(new Call(new Idx(new Opt<>(new Identifier("create_mxvector")),0)));
         return instructions;
     }

@@ -23,7 +23,7 @@ public class DefaultBuiltinInputHandler extends BuiltinInputHandler {
     }
     public static BuiltinInputHandler getInstance(TIRNode stmt, TIRCommaSeparatedList args,
                                               IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> valueAnalysis
-    ,ResultWasmGenerator result) {
+    , ResultWasmGenerator result) {
 
             return new DefaultBuiltinInputHandler(stmt,args,valueAnalysis, result);
     }
