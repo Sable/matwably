@@ -1,7 +1,7 @@
 # Gradle
 # ------
 performance/
-gradle
+gradle/
 .gradle
 /build
 /buildSrc/build
