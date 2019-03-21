@@ -13,7 +13,7 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
 
-public abstract class ShapeConstructorGenerator extends DefaultBuiltinGenerator {
+public abstract class ShapeConstructorGenerator extends MatWablyBuiltinGenerator {
 
     /**
      * @param node TIRNode for the call
@@ -56,20 +56,21 @@ public abstract class ShapeConstructorGenerator extends DefaultBuiltinGenerator 
             NameExpr nameExpr = (NameExpr)arguments.getChild(0);
             BasicMatrixValue bmv = Util.getBasicMatrixValue(functionAnalysis,node,
                     nameExpr.getName().getID());
-            if(!bmv.hasShape()){
-                throw new Error("Shape information must be known in order to generate");
-            }
-            if(bmv.getShape().isScalar()){
-                result.addInstructions(MatWablyArray.createF64Vector(2));
-                result.addInstruction(new SetLocal(new Idx(input_arg)));
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 0,nameExpressionGenerator.genNameExpr(nameExpr,node)));
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, nameExpressionGenerator.genNameExpr(nameExpr,node)));
-            }else if(bmv.getShape().isRowVector()) {
-                result.addInstructions( nameExpressionGenerator.genNameExpr(nameExpr,node));
+            if(bmv.hasShape()){
+                if(bmv.getShape().isScalar()){
+                    result.addInstructions(MatWablyArray.createF64Vector(2));
+                    result.addInstruction(new SetLocal(new Idx(input_arg)));
+                    result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 0,nameExpressionGenerator.genNameExpr(nameExpr,node)));
+                    result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, nameExpressionGenerator.genNameExpr(nameExpr,node)));
+                }else if(bmv.getShape().isRowVector()) {
+                    result.addInstructions( nameExpressionGenerator.genNameExpr(nameExpr,node));
+                }else if(!bmv.getShape().isRowVector()){
+                    throw new Error("Size vector should be a row vector with real elements.");
+                }
+                result.addInstruction(new GetLocal(new Idx(input_arg)));
             }else{
-                throw new Error("Size vector should be a row vector with real elements.");
+                result.addInstructions( nameExpressionGenerator.genNameExpr(nameExpr,node));
             }
-            result.addInstruction(new GetLocal(new Idx(input_arg)));
             this.generateCall();
         }else{
             result.addInstructions(MatWablyArray.createF64Vector(sizeArgs));
@@ -79,12 +80,14 @@ public abstract class ShapeConstructorGenerator extends DefaultBuiltinGenerator 
             for(ast.Expr argExpr: arguments){
                 NameExpr nameExpr = ((ast.NameExpr) argExpr);
                 BasicMatrixValue matVal = Util.getBasicMatrixValue(functionAnalysis,node, nameExpr.getName().getID());
-                if(!matVal.hasShape() || !matVal.getShape().isScalar()){
-                    throw new Error("Size inputs must be scalar.");
+                if(matVal == null || !matVal.hasShape() || !matVal.getShape().isScalar()) {
+                    result.addInstructions(nameExpressionGenerator.genNameExpr(nameExpr,node));
+                    result.addInstruction(new Call(new Idx("check_boxed_scalar_value")));
+                }else{
+                    result.addInstruction(new GetLocal(new Idx(input_arg)));
+                    result.addInstruction(new ConstLiteral(new I32(), i));
+                    result.addInstructions(nameExpressionGenerator.genNameExpr(nameExpr,node));
                 }
-                result.addInstruction(new GetLocal(new Idx(input_arg)));
-                result.addInstruction(new ConstLiteral(new I32(), i));
-                result.addInstructions(nameExpressionGenerator.genNameExpr(nameExpr,node));
                 result.addInstruction(new Call(new Idx("set_array_index_f64_no_check")));
                 i++;
             }

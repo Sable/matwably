@@ -38,6 +38,7 @@ public abstract class  McLabBuiltinGenerator<Res> {
     }
 
     public abstract boolean isSpecialized();
+
     public boolean returnsList() {
         return targets.size() > 0;
     }
@@ -48,16 +49,14 @@ public abstract class  McLabBuiltinGenerator<Res> {
         return targets.size() == 1;
     }
     public boolean isMatlabBuiltin() {
-        return Builtin.getInstance(this.callName)!=null && functionQuery.isUserDefinedFunction(this.callName);
+        return Builtin.getInstance(this.callName)!=null && !functionQuery.isUserDefinedFunction(this.callName);
     }
-    public abstract boolean isScalarOutput();
-    public abstract boolean returnsBoxedScalar();
-    public abstract boolean returnsScalarVector();
-
-    public Res generate(){
+    public Res getResult(){
+        return result;
+    }
+    public void generate(){
             generateExpression();
             generateSetToTarget();
-            return result;
     }
     public void generateExpression(){
         this.generateInputs();

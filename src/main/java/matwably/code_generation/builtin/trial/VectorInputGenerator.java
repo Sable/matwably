@@ -16,7 +16,7 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
 
-public class VectorInputGenerator extends DefaultBuiltinGenerator {
+public class VectorInputGenerator extends MatWablyBuiltinGenerator {
     /**
      * @param node                    TIRNode for the call
      * @param arguments               Arguments for the call

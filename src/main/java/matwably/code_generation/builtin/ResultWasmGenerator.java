@@ -8,41 +8,50 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 public class ResultWasmGenerator {
-    HashSet<TypeUse> locals = new HashSet<>();
-    List<Instruction> stmts = new List<>();
+    private HashSet<TypeUse> locals_instructions = new HashSet<>();
+    private List<Instruction> call_instructions = new List<>();
+    private List<Instruction> free_input_vec_instructions = new List<>();
+    private List<Instruction> alloc_input_vec_instructions = new List<>();
 
     public ResultWasmGenerator() { }
 
     public ResultWasmGenerator(HashSet<TypeUse> locals, List<Instruction> stmts) {
-        this.locals = locals;
-        this.stmts = stmts;
+        this.locals_instructions = locals;
+        this.call_instructions = stmts;
+    }
+    public List<Instruction> getFree_input_vec_instructions() {
+        return free_input_vec_instructions;
+    }
+
+    public List<Instruction> getAlloc_input_vec_instructions() {
+        return alloc_input_vec_instructions;
     }
     public ResultWasmGenerator(List<Instruction> stmts) {
-        this.stmts = stmts;
+        this.call_instructions = stmts;
     }
     public HashSet<TypeUse> getLocals() {
-        return locals;
+        return locals_instructions;
     }
     public List<Instruction> getInstructions() {
-        return stmts;
+        return call_instructions;
     }
     public void addInstructions(List<Instruction> stmt){
-            stmts.addAll(stmt);
+        call_instructions.addAll(stmt);
     }
     public void addInstructions(Instruction... stmts){
         for (Instruction instruction : stmts) {
-            this.stmts.add(instruction);
+            this.call_instructions.add(instruction);
         }
     }
 
     public void addInstruction(Instruction inst)
     {
-        stmts.add(inst);
+        call_instructions.add(inst);
     }
     public void addLocal(TypeUse local){
-        locals.add(local);
+        locals_instructions.add(local);
     }
     public void addLocals(TypeUse... loc){
-        locals.addAll(Arrays.asList(loc));
+        locals_instructions.addAll(Arrays.asList(loc));
     }
 }

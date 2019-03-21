@@ -6,6 +6,7 @@ import matjuice.transformer.CopyInsertion;
 import matwably.CommandLineOptions;
 import matwably.analysis.IntermediateVariableAnalysis;
 import matwably.analysis.Locals;
+import matwably.analysis.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.ast.Function;
 import matwably.ast.List;
@@ -75,7 +76,7 @@ public class FunctionGenerator {
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     private InterproceduralFunctionQuery interproceduralFunctionQuery;
     private NameExpressionGenerator name_expr_generator;
-
+    private MatWablyFunctionInformation funcionAnalyses;
     /**
      * Function Generator constructor, takes the whole value inter-
      * procedural analysis, the index of the function i from the
@@ -117,6 +118,9 @@ public class FunctionGenerator {
             name_expr_generator.setNameExpressionTreeMap(inter.use_expr_map);
 
         }
+        // Set analyses
+        funcionAnalyses = new MatWablyFunctionInformation(analysisFunction, interproceduralFunctionQuery, name_expr_generator);
+
 
         // Perform copy insertion
         performCopyInsertion();
@@ -242,13 +246,15 @@ public class FunctionGenerator {
         if (tirStmt instanceof TIRAssignLiteralStmt) {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         } else if (tirStmt instanceof TIRCallStmt) {
+                ResultWasmGenerator callGenerator = BuiltinGenerator.
+                        generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,name_expr_generator);
+
 //            TIRCallStmt callStmt = (TIRCallStmt)tirStmt;
 //            ResultWasmGenerator callGenerator =
 //                    MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),callStmt.getTargets(),
 //                            callStmt.getFunctionName().getID(), interproceduralFunctionQuery, analysisFunction, name_expr_generator)
 //                        .generate();
-            ResultWasmGenerator callGenerator = BuiltinGenerator.
-                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,name_expr_generator);
+
             locals.addAll(callGenerator.getLocals());
             return callGenerator.getInstructions();
         }else if (tirStmt instanceof TIRCopyStmt) {

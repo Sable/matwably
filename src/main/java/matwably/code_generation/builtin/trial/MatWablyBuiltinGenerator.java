@@ -1,21 +1,21 @@
 package matwably.code_generation.builtin.trial;
 
 import ast.NameExpr;
+import matwably.analysis.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.NameExpressionGenerator;
 import matwably.code_generation.builtin.ResultWasmGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.Util;
+import natlab.tame.builtin.Builtin;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.tir.TIRNode;
-import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
 import static matwably.util.Util.getBasicMatrixValue;
 
-public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGenerator> {
+public class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGenerator> {
 
     String generatedCallName;
     NameExpressionGenerator nameExpressionGenerator;
@@ -31,27 +31,23 @@ public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGen
         return isSpecialized;
     }
 
-    @Override
     public boolean isScalarOutput() {
         return false;
     }
 
     /**
-     * @param node TIRNode for the call
-     * @param arguments Arguments for the call
-     * @param targs Target names for the call
-     * @param callName Actual function name
-     * @param analysis IntraproceduralValueAnalysis
-     * @param functionQuery InterproceduralFunctionQuery
-     * @param nameExpressionGenerator NameExpressionGenerator
+     *
+     * @param node
+     * @param arguments
+     * @param targs
+     * @param callName
+     * @param analyses
      */
-    public DefaultBuiltinGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
-                                   IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
-                                   InterproceduralFunctionQuery functionQuery,
-                                    NameExpressionGenerator nameExpressionGenerator) {
-        super(node, arguments,targs,callName, analysis, functionQuery);
+    public MatWablyBuiltinGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
+                                    MatWablyFunctionInformation analyses) {
+        super(node, arguments,targs,callName, analyses.getFunctionAnalysis(), analyses.getFunctionQuery());
         this.result = new ResultWasmGenerator();
-        this.nameExpressionGenerator = nameExpressionGenerator;
+        this.nameExpressionGenerator = analyses.getNameExpressionGenerator();
         this.generatedCallName = this.callName;
     }
 
@@ -68,12 +64,11 @@ public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGen
 
     @Override
     void generateCall() {
-        // Call Function
-        if(hasAlias())
-            generatedCallName = getAlias() ;
 
-        if(isMatlabBuiltin() || isSpecialized()){
-            StringBuilder acc = new StringBuilder(generatedCallName);
+        String generatedFunctionName =  getGeneratedFunctionName();
+
+        if((isMatlabBuiltin() && isSpecialized())||functionQuery.isUserDefinedFunction(this.callName)){
+            StringBuilder acc = new StringBuilder(generatedFunctionName);
             acc.append("_");
             arguments.stream()
                     .forEach(( ast.Expr argExpr)->{
@@ -159,5 +154,10 @@ public class DefaultBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGen
     public boolean returnsScalarVector() {
         //TODO Implement this
         return true;
+    }
+
+    public boolean isLogicalFunction() {
+        return Builtin.getInstance(this.callName).getClass().getName().contains("Logical")
+                && !functionQuery.isUserDefinedFunction(this.callName);
     }
 }
