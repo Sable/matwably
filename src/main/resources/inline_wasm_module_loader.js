@@ -18,7 +18,7 @@ async function loader() {
     return Module;
 }
 
-module.exports.matlabModule = loader();
+module.exports.matlabModule = loader;
 function hexStringByteArray(str){
     let a = [];
     for (let i = 0, len = str.length; i < len; i+=2)

@@ -1,3 +1,3 @@
 function [f] = defaultBuiltinHandler(b)
-f = ones([2])
+    f = ones([2])
 end

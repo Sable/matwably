@@ -38,12 +38,12 @@ public class VectorBuiltinInputHandler extends BuiltinInputHandler {
             if(expr instanceof NameExpr){
                 NameExpr nameExpr = (NameExpr) expr;
                 String name = nameExpr.getName().getID();
-                BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis, stmt, name);
+                BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis,(ast.ASTNode) stmt, name);
                 if( bmv.getShape().isScalar()) {
                     String typedName = Util.getTypedLocalF64 (name);
                     String typedNewName = Util.genTypedLocalI32();
                     TypeUse nameTypeUse = new TypeUse(new Opt<>(new Identifier(typedNewName)),new I32());
-                    result.locals.add(nameTypeUse);
+                    result.addLocal(nameTypeUse);
                     result.addInstruction(new GetLocal(new Idx(typedName)));
                     result.addInstruction(new Call(new Idx("convert_scalar_to_mxarray")));
                     result.addInstruction(new SetLocal(new Idx(typedNewName)));
@@ -57,7 +57,7 @@ public class VectorBuiltinInputHandler extends BuiltinInputHandler {
                 String arrayName = (stmt instanceof TIRArrayGetStmt)?
                         ((TIRArrayGetStmt) stmt).getArrayName().getID():
                         ((TIRArraySetStmt) stmt).getArrayName().getID();
-                BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis, stmt,arrayName);
+                BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis,(ast.ASTNode) stmt,arrayName);
                 if(!bmv.hasShape()){
                     throw new Error("Could not get value shape for array name: " + arrayName);
                 }
@@ -82,7 +82,7 @@ public class VectorBuiltinInputHandler extends BuiltinInputHandler {
                     }
                 }
                 String name = Util.genTypedLocalI32();
-                result.locals.add(new TypeUse(name, new I32()));
+                result.addLocal(new TypeUse(name, new I32()));
 
                 result.addInstruction( new ConstLiteral(new F64(), 1));
 

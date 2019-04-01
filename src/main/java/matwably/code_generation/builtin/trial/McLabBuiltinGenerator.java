@@ -1,21 +1,23 @@
 package matwably.code_generation.builtin.trial;
 
+import ast.ASTNode;
 import matwably.util.InterproceduralFunctionQuery;
 import natlab.tame.builtin.Builtin;
 import natlab.tame.tir.TIRCommaSeparatedList;
-import natlab.tame.tir.TIRNode;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
 public abstract class  McLabBuiltinGenerator<Res> {
-    TIRNode node;
-    TIRCommaSeparatedList arguments;
-    IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> functionAnalysis;
-    InterproceduralFunctionQuery functionQuery;
-    TIRCommaSeparatedList targets;
-    String callName;
-    Res result;
+    protected ASTNode node;
+    protected TIRCommaSeparatedList arguments;
+    protected IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> functionAnalysis;
+    protected InterproceduralFunctionQuery functionQuery;
+    protected TIRCommaSeparatedList targets;
+    protected String callName;
+    protected String generatedCallName;
+    protected Builtin tamerBuiltin;
+    protected Res result;
 
     /**
      *
@@ -26,7 +28,7 @@ public abstract class  McLabBuiltinGenerator<Res> {
      * @param analysis
      * @param functionQuery
      */
-    public McLabBuiltinGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
+    public McLabBuiltinGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
                                  IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
                                  InterproceduralFunctionQuery functionQuery){
         this.node = node;
@@ -35,6 +37,7 @@ public abstract class  McLabBuiltinGenerator<Res> {
         this.targets = targs;
         this.callName = callName;
         this.functionQuery = functionQuery;
+        this.tamerBuiltin = Builtin.getInstance(callName);
     }
 
     public abstract boolean isSpecialized();
@@ -42,33 +45,58 @@ public abstract class  McLabBuiltinGenerator<Res> {
     public boolean returnsList() {
         return targets.size() > 0;
     }
-    public boolean returnsVoid() {
-        return targets.size() == 0;
-    }
-    public boolean returnsOneTarget() {
+    public boolean returnsSingleTarget() {
         return targets.size() == 1;
     }
+    public boolean returnsZeroTargets() {
+        return targets.size() == 0;
+    }
+
+    /**
+     * Function used to query whether the builtin function returns void
+     * This is to be replaced by ValueAnalysis ShapePropagation, once we have a good way to determine when
+     * a
+     * @return boolean signifying whether the builtin call returns a value.
+     */
+    public abstract boolean expressionReturnsVoid();
+
+
     public boolean isMatlabBuiltin() {
         return Builtin.getInstance(this.callName)!=null && !functionQuery.isUserDefinedFunction(this.callName);
     }
     public Res getResult(){
         return result;
     }
+
+    /**
+     * Generator function, it only generates call if the call is not pure or there is more than one target.
+     */
     public void generate(){
-            generateExpression();
-            generateSetToTarget();
+        generateExpression();
+        generateSetToTarget();
     }
     public void generateExpression(){
         this.generateInputs();
         this.generateCall();
     }
-
-    public boolean isInputInCanonicalForm(){
+    /**
+     * Returns whether the function is a known as pure, note that if it returns false, it may still be the case that is
+     * this is for cases of user defined functions.
+     * @return Returns whether the function is a known as pure.
+     */
+    public boolean isPure() {
+        // Check if function is user defined, assume that is not pure.
+        if(functionQuery.isUserDefinedFunction(this.callName)) return false;
+        // Traverse through class hierarchy with reflection, to check for pure class
+        Class<?> classObj = Builtin.getInstance(this.callName).getClass();
+        while(classObj!= null){
+            if(classObj.getName().contains("Pure")) return true;
+            classObj = classObj.getSuperclass();
+        }
         return false;
     }
-
-    public String getGeneratedFunctionName() {
-        return this.callName;
+    public String getGeneratedBuiltinName(){
+        return  (generatedCallName != null)?generatedCallName: callName;
     }
 
     abstract void generateInputs();

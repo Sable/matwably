@@ -33,7 +33,6 @@ public class BuiltinGenerator {
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     private NameExpressionGenerator name_expr_generator;
-
     public BuiltinGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
                             ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
                             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
@@ -199,7 +198,7 @@ public class BuiltinGenerator {
             callNameBuilder.append("_");
             for (ast.Expr argExpr :arguments) {
                 ast.NameExpr nameExpr = (ast.NameExpr) argExpr;
-                BasicMatrixValue bmv = getBasicMatrixValue(analysis, node, nameExpr.getName().getID());
+                BasicMatrixValue bmv = getBasicMatrixValue(analysis,(ast.ASTNode) node, nameExpr.getName().getID());
                 if (bmv.hasShape() && bmv.getShape().isScalar())
                     callNameBuilder.append("S");
                 else
@@ -231,7 +230,7 @@ public class BuiltinGenerator {
                 return;
             }
 
-            BasicMatrixValue bmv = getBasicMatrixValue(analysis, node,
+            BasicMatrixValue bmv = getBasicMatrixValue(analysis,(ast.ASTNode) node,
                     target);
 
             if(bmv.hasShape() && bmv.getShape().isScalar() &&
@@ -265,7 +264,7 @@ public class BuiltinGenerator {
                     result.addInstruction(new GetLocal(new Idx(targetCall)));
                     result.addInstruction(new ConstLiteral(new I32(), i));
                     result.addInstruction(new Call(new Idx(new Opt<>(new Identifier("get_array_index_i32_no_check")), 0)));
-                    BasicMatrixValue bmv = getBasicMatrixValue(analysis, node,
+                    BasicMatrixValue bmv = getBasicMatrixValue(analysis, (ast.ASTNode)node,
                             exprNamed.getName().getID());
                     String arg_typed = Util.getTypedLocalI32(exprNamed.getName().getID());
                     if (bmv.hasShape() && bmv.getShape().isScalar()) {
@@ -294,7 +293,7 @@ public class BuiltinGenerator {
         if(isSpecialized(callName)){
             for(Expr exp: arguments){
                 ast.NameExpr nameExpr = (ast.NameExpr) exp;
-                BasicMatrixValue bmv = getBasicMatrixValue(analysis, node, nameExpr.getName().getID());
+                BasicMatrixValue bmv = getBasicMatrixValue(analysis,(ast.ASTNode) node, nameExpr.getName().getID());
                 if (bmv.hasShape() && !bmv.getShape().isScalar()) return false;
             }
             return true;
@@ -308,7 +307,7 @@ public class BuiltinGenerator {
                     programAnalysis.getNodeList().get(i).getAnalysis();
             ast.Function func = funcAnalysis.getTree();
             if(func.getName().getID().equals(callName)&&func.getOutputParamList().getNumChild() == 1) {
-                BasicMatrixValue val = Util.getBasicMatrixValue(funcAnalysis,(TIRNode) func,
+                BasicMatrixValue val = Util.getBasicMatrixValue(funcAnalysis, func,
                         func.getOutputParamList().getChild(0).getID());
                 if(val.hasShape())
                     return val.getShape().isScalar();
@@ -332,7 +331,7 @@ public class BuiltinGenerator {
                 ast.Function func = funcAnalysis.getTree();
                 if(func.getName().getID().equals(callName)) {
                     for(Name expr: func.getOutputParamList()){
-                        BasicMatrixValue val = Util.getBasicMatrixValue(funcAnalysis,(TIRNode) func,
+                        BasicMatrixValue val = Util.getBasicMatrixValue(funcAnalysis, func,
                                 expr.getID());
                         if(!val.hasShape()||!val.getShape().isScalar()) return false;
                     }

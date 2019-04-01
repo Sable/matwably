@@ -17,7 +17,7 @@ public class ShapeBuiltinInputHandler extends BuiltinInputHandler {
     public boolean isInForm() {
         if(arguments.size() == 1){
             NameExpr nameExpr = (NameExpr)arguments.getChild(0);
-            BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis,stmt,
+            BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis,(ast.ASTNode) stmt,
                     nameExpr.getName().getID());
             if(bmv.hasShape()&&!bmv.getShape().isScalar() && bmv.getShape().getDimensions().size() == 2){
                 java.util.List<DimValue> dimValues = bmv.getShape().getDimensions();
@@ -42,7 +42,7 @@ public class ShapeBuiltinInputHandler extends BuiltinInputHandler {
             result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, new ConstLiteral(new F64(), 1)));
         }else if(sizeArgs == 1){
             NameExpr nameExpr = (NameExpr)arguments.getChild(0);
-            BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis,stmt,
+            BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis,(ast.ASTNode)stmt,
                     nameExpr.getName().getID());
             if(bmv.hasShape() && bmv.getShape().isScalar()){
                 result.addInstructions(MatWablyArray.createF64Vector(2));
@@ -60,7 +60,7 @@ public class ShapeBuiltinInputHandler extends BuiltinInputHandler {
             int i = 0;
             for(ast.Expr argExpr: arguments){
                 String nameExpr = ((ast.NameExpr) argExpr).getName().getID();
-                BasicMatrixValue matVal = Util.getBasicMatrixValue(valueAnalysis,stmt, nameExpr);
+                BasicMatrixValue matVal = Util.getBasicMatrixValue(valueAnalysis,(ast.ASTNode)stmt, nameExpr);
                 if(!matVal.hasShape() || !matVal.getShape().isScalar()){
                     throw new Error("Size inputs must be scalar.");
                 }

@@ -1,13 +1,10 @@
 package matwably.code_generation;
 
+import ast.ASTNode;
 import ast.*;
 import matwably.ast.*;
 import matwably.ast.List;
-import matwably.util.Util;
-import natlab.tame.tir.TIRNode;
-import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.aggrvalue.AggrValue;
-import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
+import matwably.util.ValueAnalysisUtil;
 
 import java.util.HashMap;
 
@@ -21,10 +18,10 @@ public class NameExpressionGenerator {
     /**
      * Contains the map the NameExpr to expression map.
      */
-    HashMap<Name, Expr> variable_expression_map;// Null by default
-    private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
-    public NameExpressionGenerator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction){
-        this.analysisFunction = analysisFunction;
+    HashMap<Name, Expr> variable_expression_map = new HashMap<>();
+    private ValueAnalysisUtil valueAnalysisUtil;
+    public NameExpressionGenerator(ValueAnalysisUtil valueAnalysisUtil){
+        this.valueAnalysisUtil  = valueAnalysisUtil;
     }
     /**
      * Flag to indicate whether to build expression tree, or simple generate the NameExpr as is. i.e.
@@ -61,32 +58,38 @@ public class NameExpressionGenerator {
                 expr.getPrettyPrinted(), expr.getClass().getName())
         );
     }
+
+    /**
+     * Returns whether NameExpr is simple, i.e. it does not lead to re-computation of results once
+     * the expression tree is built.
+     * @param nameExpr Input name expression
+     * @return Returns whether NameExpr is simple
+     */
+    public boolean isSimpleExpression(NameExpr nameExpr, ASTNode stmt){
+       // TODO: implement this once we have the expression tree re-builder
+       return this.build_expression_tree && !variable_expression_map.containsKey(nameExpr);
+    }
     /**
      * Main function generates expressions, if optimization turned on, it creates a tree of expression.
      * @param nameExpr Takes the NameExpr to
      * @param stmt Statement from the NameExpression coming from Matlab
-     * @return
+     * @return Generated expression
      */
-    public List<Instruction> genNameExpr(NameExpr nameExpr, TIRNode stmt){
-        Name name = nameExpr.getName();
-        if(this.build_expression_tree && variable_expression_map.containsKey(name)){
-//            ast.Expr expr = variable_expression_map.get(name);
-//            if(expr instanceof LiteralExpr){
-//                return genLiteralExpr(expr);
-//            }
-//            else if(expr instanceof NameExpr){// Copy Statement
-//                return genNameExpr((NameExpr)expr, stmt);
-//            }
-            String id = name.getID();
-            BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, stmt, id);
-            String typedName= (val.hasShape()&& val.getShape().isScalar())?Util.getTypedLocalF64(id):Util.getTypedLocalI32(id);
-            return new List<>(new GetLocal(new Idx(typedName)));
-        }else{
-            String id = name.getID();
-            BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, stmt, id);
-            String typedName= (val.hasShape()&& val.getShape().isScalar())?Util.getTypedLocalF64(id):Util.getTypedLocalI32(id);
-            return new List<>(new GetLocal(new Idx(typedName)));
-        }
+    public List<Instruction> genNameExpr(NameExpr nameExpr, ASTNode stmt){
+//        Name name = nameExpr.getName();
+//        if(this.build_expression_tree && variable_expression_map.containsKey(name)){
+////            ast.Expr expr = variable_expression_map.get(name);
+////            if(expr instanceof LiteralExpr){
+////                return genLiteralExpr(expr);
+////            }
+////            else if(expr instanceof NameExpr){// Copy Statement
+////                return genNameExpr((NameExpr)expr, stmt);
+////            }
+//            return new List<>(new GetLocal(
+//                    new Idx(valueAnalysisUtil.genTypedName(nameExpr,stmt,true))));
+//        }else{
+//        }
+        return new List<>(new GetLocal(new Idx(valueAnalysisUtil.genTypedName(nameExpr,stmt))));
 
     }
 

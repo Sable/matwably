@@ -43,7 +43,7 @@ public class OperatorGenerator extends BuiltinSimplifier {
             for (ast.Expr arg : arguments) {
                 String argVar = ((ast.NameExpr) arg)
                         .getName().getID();
-                BasicMatrixValue bmv = Util.getBasicMatrixValue(analysis, node, argVar);
+                BasicMatrixValue bmv = Util.getBasicMatrixValue(analysis,(ast.ASTNode) node, argVar);
                 if (bmv == null || bmv.getShape() == null || !bmv.getShape().isScalar()) {
                     this.isSimplifiable = false;
                     return false;
@@ -65,8 +65,8 @@ public class OperatorGenerator extends BuiltinSimplifier {
                     .getChild(0)).getName().getID()))));
             result.add(unaryOps.get(funcName));
         }else if(binaryOps.containsKey(funcName)){
-            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(0),this.node));
-            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(1),this.node));
+            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(0),(ast.ASTNode)this.node));
+            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(1),(ast.ASTNode)this.node));
 //            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(0)).getName().getID()))));
 //            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(1)).getName().getID()))));
             result.add(binaryOps.get(funcName));

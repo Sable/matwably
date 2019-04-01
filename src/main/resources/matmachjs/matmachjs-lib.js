@@ -84,10 +84,10 @@ STATIC_BASE = GLOBAL_BASE; // Global_base is at 1024, I think in wasm there is s
                            // in those addresses.
 STATICTOP = STATIC_BASE + STATICBUMP; // STATIC END
 
-staticAlloc(1088); // This manually adds the static offset occupied by my WebAssembly module string errors.
+staticAlloc(1224); // This manually adds the static offset occupied by my WebAssembly module string errors.
                     // Check the data segments in my `matmachjs.wat` module. 
-
 DYNAMICTOP_PTR = staticAlloc(4); // Allocate address to store DYNAMIC_PTR 
+
 STACK_BASE = STACKTOP = alignMemory(STATICTOP);
 STACK_MAX = STACK_BASE + TOTAL_STACK;
 DYNAMIC_BASE = alignMemory(STACK_MAX);
@@ -295,7 +295,7 @@ function enlargeMemory() {
  * @param {number} length 
  */
 function printArrayDouble(arr_ptr, length) {
-    let arr = new Float64Array(memory.buffer, arr_ptr, length);
+    let arr = new Float64Array(Module.wasmMemory.buffer, arr_ptr, length);
     console.log(arr);
 }
 /**

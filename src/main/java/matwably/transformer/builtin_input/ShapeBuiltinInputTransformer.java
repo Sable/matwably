@@ -84,7 +84,7 @@ public class ShapeBuiltinInputTransformer extends AbstractBuiltinInputTransforme
             for(ast.Expr argExpr: stmt.getArguments()){
                 ast.NameExpr nameExpr = (ast.NameExpr) argExpr;
                 BasicMatrixValue matVal = Util.getBasicMatrixValue(valueAnalysis,stmt, nameExpr.getName().getID());
-                System.out.println(matVal);
+
                 if(!matVal.hasShape() || !matVal.getShape().isScalar()){
                     throw new Error("Invalid argument to builtin: "+stmt.getFunctionName().getID()+
                             ", Size inputs must be scalar.");

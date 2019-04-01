@@ -18,6 +18,7 @@ public final class CommandLineOptions {
     @Parameter(names = {"--opt-peephole"},
             description = "Option to turn on peephole optimizer, default is on")
     public boolean peephole = false;
+    // TODO: Add this capability to the main file.
     @Parameter(names = {"--old-builtins"},
             description = "Option to use old built-in generation")
     public boolean old_builtin = false;
@@ -26,16 +27,29 @@ public final class CommandLineOptions {
             description = "Option to in-line wasm code in a JavaScript UInt8Array instead of using I/O")
     public boolean inline_wasm = false;
 
+    @Parameter(names = {"--omit-copy-insertion","-ci"},
+            description = "Option to omit copy insertion")
+    public boolean omit_copy_insertion = false;
     @Parameter(names = {"--verbose","-v"},
             description = "Verbose information for program")
     public boolean verbose = false;
     @Parameter(names = {"--gen-wast"},
             description = "Option to also generate a wat file for the resulting wasm, default is true")
     public boolean generate_wat_file = false;
+    // TODO: Actually add support for this.
+    @Parameter(names = {"--inline-builtins"},description = "Inlines built-in calls where possible")
+    public boolean inline_builtins = false;
+    // TODO: Place flag in code to make it viable.
+    @Parameter(names = {"--opt-alloc-params"}, description = "Optimizes allocations for built-in call parameters")
+    public boolean opt_alloc_params = false;
+    // TODO: Place flag in code to allow or disallow memory freeing.
+    @Parameter(names = {"--disallow-free"}, description = "Takes away free calls from code, results in memory leakage")
+    public boolean disallow_free = false;
 
-    @Parameter(names = {"--var-el","-e"},
+    @Parameter(names = {"--variable-elimination","-e"},
             description = "Option to turn on intermediate variable elimination")
     public boolean variable_elimination = true;
+
     @Parameter(names = {"-o","--output-file"},description = "Outfile to place code")
     public String output_file;
     public String basename_output_file;
@@ -101,6 +115,7 @@ public final class CommandLineOptions {
         }
         return gen_file;
     }
+
 
 
 

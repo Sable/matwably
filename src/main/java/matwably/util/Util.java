@@ -14,7 +14,7 @@
 
 package matwably.util;
 
-import natlab.tame.tir.TIRNode;
+import ast.ASTNode;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueSet;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
@@ -23,7 +23,7 @@ import natlab.toolkits.rewrite.TempFactory;
 
 public class Util {
     public static BasicMatrixValue getBasicMatrixValue(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
-                                                                     TIRNode tirNode, String variable) {
+                                                       ASTNode tirNode, String variable) {
         if (tirNode == null)
             return null;
 
@@ -50,10 +50,7 @@ public class Util {
         return TempFactory.genFreshTempString()+"_f64";
     }
     public static String getTypedName(String name, BasicMatrixValue val) {
-        if(!val.hasShape()){
-            throw new Error("Variable: ["+name+"] has unknown shape value: "+val);
-        }
-        return name + "_"+((val.getShape().isScalar()?"f64":"i32"));
+        return name + "_"+((val.hasShape()&&val.getShape().isScalar())?"f64":"i32");
     }
 //    public static ValueType getValueType(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis, TIRNode tirNode, String variable ){
 //        BasicMatrixValue bmv = Util.getBasicMatrixValue(analysis, tirNode, variable);

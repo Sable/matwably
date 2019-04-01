@@ -1,11 +1,11 @@
+
 package matwably.analysis;
 
-import ast.ASTNode;
-import ast.Name;
-import ast.Stmt;
+import ast.*;
 import matwably.ast.Instruction;
 import matwably.ast.List;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
+import matwably.code_generation.builtin.trial.MatWablyBuiltinGeneratorFactory;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 import natlab.toolkits.analysis.core.ReachingDefs;
@@ -16,11 +16,24 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * This class runs the built-in generators to produce an analysis of them and all the stmts needed to make the call.
- * Moreover, to save another extra analysis, it also has a Set called `logicalUses` which keeps track of variables
+ * @author dherre3
+ * This class runs the built-in generators to produce an analysis of them and all the stmts needed to make the call
+ * in an optimal way.
+ * - First optimization is that of pushing allocation out-of-loops. To do
+ * this we need to recognize which operations are loop-invariant. An easy start is actually to do so for input-vectors,
+ * where if we know how the call is made, the allocation for the inputs is pushed outside the loop. To do this we carry
+ * to extra data structures: {@link matwably.analysis.MatWablyBuiltinAnalysis#loopAllocationInstructions} and
+ * {@link matwably.analysis.MatWablyBuiltinAnalysis#loopFreeingInstructions}
+ * - Moreover, to save another extra analysis, it also has a Set called `logicalUses` which keeps track of variables
  * that come from a logical function call, this is used in loops and if-statements, in order to save a
- * few-extra instructions.
- * Lastly, it also takes care of mapping input_vec in function calls to loop stmts.
+ * few-extra instructions. To this end, we maintain here a Set called, logicalUses.
+ * {@link matwably.analysis.MatWablyBuiltinAnalysis#logicalUses}.
+ * - Another optimization is that of tagging Name definitions to indices of get/set array, in this case, we use ReachingDefs,
+ * and do so when statically possible. The idea is that we will be able to
+ * re-build get/set statements and use a more optimal built-in implementation for array accessing. For instance,
+ * if you use b = a(2:10,:), this will be translated into temp= colon(2,10);b = a(temp,:),we merely recognize that temp
+ * is actually only part of the get expression, and instead of allocating an array, we use a get specialization that
+ * actully indices the array through the 2:10 expression.
  */
 public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
     private Set<Name> logicalUses = new HashSet<>();
@@ -47,7 +60,7 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      * @param name Use of a variable
      * @return Boolean variable which describes when a variable is logical. Please note the limitations of this function
      */
-    public boolean isLogical(Name name){
+    public boolean isLogicalUse(Name name){
         return logicalUses.contains(name);
     }
 
@@ -58,6 +71,8 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
         if(functionInformation == null) throw new Error("Must have analyses to generate builtin");
         this.functionInformation = functionInformation;
         this.reachingDefs = functionInformation.getReachingDefs();
+    }
+    public void analyze(){
         functionInformation.getFunction().analyze(this);
     }
 
@@ -68,19 +83,20 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      */
     @Override
     public void caseTIRCallStmt(TIRCallStmt callStmt) {
-        MatWablyBuiltinGenerator generator = new MatWablyBuiltinGenerator(callStmt,
-                    callStmt.getArguments(),
-                    callStmt.getTargets(),callStmt.getFunctionName().getID(),
-                    this.functionInformation );
-
-        if(generator.isLogicalFunction()){
+        MatWablyBuiltinGenerator generator;
+        generator = MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),
+                                callStmt.getTargets(), callStmt.getFunctionName().getID(), functionInformation);
+        generator.generate();
+        if( generator.isLogical()){
             if(callStmt.getTargets().size() > 1) throw new Error("Logical function must always return one value");
             Set<Name> uses = reachingDefs.getUseDefDefUseChain().getUses(callStmt.getTargetName());
+            // Adds all the logical uses that are not ambiguous so that
             logicalUses.
                     addAll(uses.stream().
                             filter((Name name)->reachingDefs.getUseDefDefUseChain().getDefs(name).size() == 1)
                             .collect(Collectors.toSet()));
         }
+
         // Add free/alloc instructions to loop.
         addLoopInstructions(generator);
         // Put the built-in generator in map for later use
@@ -93,12 +109,13 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      */
     @Override
     public void caseTIRArraySetStmt(TIRArraySetStmt setStmt){
-        MatWablyBuiltinGenerator generator = new MatWablyBuiltinGenerator(setStmt,
-                setStmt.getIndices(),
-                null,"set",
-                this.functionInformation );
-        callGeneratorMap.put(setStmt, generator);
-        addLoopInstructions(generator);
+        MatWablyBuiltinGenerator generator;
+        generator = MatWablyBuiltinGeneratorFactory.getGenerator(setStmt, setStmt.getIndices(),
+                null, "subsasgn", functionInformation);
+        if(generator != null){
+            callGeneratorMap.put(setStmt, generator);
+            addLoopInstructions(generator);
+        }
     }
     /**
      * TIRArrayGet case, similar to function call.
@@ -106,13 +123,23 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      */
     @Override
     public void caseTIRArrayGetStmt(TIRArrayGetStmt getStmt){
-        MatWablyBuiltinGenerator generator = new MatWablyBuiltinGenerator(getStmt,
-                getStmt.getIndices(),
-                getStmt.getTargets(),"get",
-                this.functionInformation );
-        callGeneratorMap.put(getStmt, generator);
-        addLoopInstructions(generator);
+        /* TODO (Dherre3) handle logic here where we avoid the statement generation for a colon expression, since
+        * TODO we can avoid it if is in the get*/
+        TIRCommaSeparatedList indices = getStmt.getIndices();
+        // Go through each, if index ReachingDefs only has one definition, tag that as statement as one not to be
+        // generated. Make sure that the call for get actually handles this case.
+        NameExpr[] indiceNameExpr = (NameExpr[]) indices.stream().filter((Expr expr)-> expr instanceof NameExpr &&
+                reachingDefs.getUseDefDefUseChain().getDefs(((NameExpr)expr).getName()).size() == 1
+        && reachingDefs.getUseDefDefUseChain().getDefs(((NameExpr)expr).getName()).toArray()[0]
+                instanceof TIRAbstractAssignStmt).toArray();
 
+        MatWablyBuiltinGenerator generator;
+        generator = MatWablyBuiltinGeneratorFactory.getGenerator(getStmt, getStmt.getIndices(),
+                null, "subsref", functionInformation);
+        if(generator != null){
+            callGeneratorMap.put(getStmt, generator);
+            addLoopInstructions(generator);
+        }
     }
 
     /**

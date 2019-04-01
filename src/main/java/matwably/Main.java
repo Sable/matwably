@@ -15,7 +15,9 @@
 package matwably;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import matwably.ast.*;
+import matwably.ast.Function;
+import matwably.ast.ImportedWat;
+import matwably.ast.Module;
 import matwably.code_generation.FunctionGenerator;
 import matwably.code_generation.wasm.FunctionExport;
 import matwably.optimization.peephole.PeepholeOptimizer;
@@ -23,10 +25,12 @@ import matwably.pretty.PrettyPrinter;
 import natlab.tame.BasicTamerTool;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
+import natlab.tame.valueanalysis.ValueAnalysisPrinter;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
+
 import java.io.*;
 import java.util.HashSet;
 import java.util.Set;
@@ -82,6 +86,11 @@ public class Main {
         for (int i = 0; i < numFunctions; ++i) {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis =
                         analysis.getNodeList().get(i).getAnalysis();
+            if(opts.verbose) {
+                //System.out.println(funcAnalysis.getTree().getPrettyPrinted());
+                System.out.println(ValueAnalysisPrinter.prettyPrint(funcAnalysis));
+            }
+
             FunctionGenerator gen = new FunctionGenerator(analysis, i, opts);
             String gen_function_name = gen.genFunctionName();
             if (!generated.contains(gen_function_name)) {

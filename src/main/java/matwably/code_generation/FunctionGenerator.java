@@ -1,11 +1,13 @@
 package matwably.code_generation;
 
+import ast.ASTNode;
 import ast.*;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.transformer.CopyInsertion;
 import matwably.CommandLineOptions;
 import matwably.analysis.IntermediateVariableAnalysis;
 import matwably.analysis.Locals;
+import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.ast.Function;
@@ -14,11 +16,13 @@ import matwably.ast.Opt;
 import matwably.code_generation.builtin.BuiltinGenerator;
 import matwably.code_generation.builtin.OperatorGenerator;
 import matwably.code_generation.builtin.ResultWasmGenerator;
+import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.code_generation.wasm.SwitchStatement;
 import matwably.util.Ast;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.Util;
+import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
@@ -27,10 +31,10 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.tame.valueanalysis.value.Args;
+import natlab.toolkits.analysis.core.ReachingDefs;
 import natlab.toolkits.rewrite.TempFactory;
 
 import java.util.HashMap;
-import java.util.Set;
 import java.util.Stack;
 
 /**
@@ -39,6 +43,8 @@ import java.util.Stack;
  * TODO: Globals are not supported
  */
 public class FunctionGenerator {
+
+
     /**
      * Empty,                Nothing in the loop executes, e.g. for i=[]:1:10. In this case i remains undefined
      * NonMoving,            Bounds are equal so that the statements in the loop only run ones. In this case we can
@@ -58,10 +64,12 @@ public class FunctionGenerator {
     private List<TypeUse> locals;
     private List<TypeUse> parameters;
     private  HashMap<String, TypeUse> local_map;
-    private Stack<Idx> startLoop = new Stack<>();
-    private Stack<Idx> endLoop = new Stack<>();
+    private Stack<LoopMetaInformation> loopStack = new Stack<>();
     private String function_name;
-    private Set<Stmt> redundant_stmts;
+    private MatWablyBuiltinAnalysis builtin_analysis;
+    private IntermediateVariableAnalysis inter;
+    private ValueAnalysisUtil valueAnalysisUtil;
+
     /**
      * Returns the ast of the generated function
      * @return
@@ -76,7 +84,7 @@ public class FunctionGenerator {
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     private InterproceduralFunctionQuery interproceduralFunctionQuery;
     private NameExpressionGenerator name_expr_generator;
-    private MatWablyFunctionInformation funcionAnalyses;
+    private MatWablyFunctionInformation functionAnalyses;
     /**
      * Function Generator constructor, takes the whole value inter-
      * procedural analysis, the index of the function i from the
@@ -91,11 +99,10 @@ public class FunctionGenerator {
         this.analysisFunction = analysis.getNodeList().get(i).getAnalysis();
         this.locals = new List<>();
         this.parameters = new List<>();
-
+        this.valueAnalysisUtil = new ValueAnalysisUtil(analysisFunction);
+        this.name_expr_generator = new NameExpressionGenerator(valueAnalysisUtil);
         this.output_parameters = new List<>();
         this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(programAnalysis);
-        this.name_expr_generator = new NameExpressionGenerator(this.analysisFunction);
-//        this.redundant_stmts
         this.function = genFunction(this.analysisFunction.getTree());
 
     }
@@ -110,17 +117,26 @@ public class FunctionGenerator {
 
         // Run Literal elimination analysis
         if(opts.variable_elimination){
-            IntermediateVariableAnalysis inter = new IntermediateVariableAnalysis(
+           this.inter = new IntermediateVariableAnalysis(
                 this.analysisFunction.getTree(),
                 interproceduralFunctionQuery );
-            inter.apply();
-            this.redundant_stmts = inter.redundant_stmts;
-            name_expr_generator.setNameExpressionTreeMap(inter.use_expr_map);
-
+            this.inter.apply();
+            name_expr_generator.setNameExpressionTreeMap(this.inter.use_expr_map);
         }
+        // Run reaching definition and add it to set of analysis
+        ReachingDefs defs = new ReachingDefs(this.analysisFunction.getTree());
+        defs.analyze();
         // Set analyses
-        funcionAnalyses = new MatWablyFunctionInformation(analysisFunction, interproceduralFunctionQuery, name_expr_generator);
+        functionAnalyses = new MatWablyFunctionInformation(this.analysisFunction.getTree(),
+                    analysisFunction,
+                    interproceduralFunctionQuery,
+                    defs,
+                    valueAnalysisUtil,
+                    name_expr_generator);
 
+        // Perform call stmt analysis
+        this.builtin_analysis = new MatWablyBuiltinAnalysis(functionAnalyses);
+        this.builtin_analysis.analyze();
 
         // Perform copy insertion
         performCopyInsertion();
@@ -246,17 +262,31 @@ public class FunctionGenerator {
         if (tirStmt instanceof TIRAssignLiteralStmt) {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         } else if (tirStmt instanceof TIRCallStmt) {
-                ResultWasmGenerator callGenerator = BuiltinGenerator.
-                        generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,name_expr_generator);
+            List<Instruction> res = new List<>();
+            MatWablyBuiltinGenerator generator = builtin_analysis.getGenerator((TIRCallStmt)tirStmt);
+            generator.generate();
+            ResultWasmGenerator resultWasmGenerator = generator.getResult();
+            if(generator == null) throw new Error("Function call '"+((TIRCallStmt)tirStmt).getFunctionName().getID()+"()' should have been analyzed previously");
+//            ResultWasmGenerator resultWasmGenerator = BuiltinGenerator.
+//                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,name_expr_generator);
+            locals.addAll(resultWasmGenerator.getLocals());
+            if(this.loopStack.isEmpty())
+                    res.addAll(resultWasmGenerator.getAlloc_input_vec_instructions());
+
+            res.addAll(resultWasmGenerator.getInstructions());
+
+            if(this.loopStack.isEmpty())
+                res.addAll(resultWasmGenerator.getFree_input_vec_instructions());
+
+
 
 //            TIRCallStmt callStmt = (TIRCallStmt)tirStmt;
 //            ResultWasmGenerator callGenerator =
 //                    MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),callStmt.getTargets(),
 //                            callStmt.getFunctionName().getID(), interproceduralFunctionQuery, analysisFunction, name_expr_generator)
 //                        .generate();
-
-            locals.addAll(callGenerator.getLocals());
-            return callGenerator.getInstructions();
+//            res.addAll(callGenerator.getInstructions());
+            return res;
         }else if (tirStmt instanceof TIRCopyStmt) {
             return genCopyStmt((TIRCopyStmt) tirStmt);
         } else if(tirStmt instanceof TIRArrayGetStmt){
@@ -266,11 +296,11 @@ public class FunctionGenerator {
         }else if(tirStmt instanceof TIRForStmt){
             return genForStmt((TIRForStmt) tirStmt);
         }else if(tirStmt instanceof TIRContinueStmt){
-            return genContinueStmt((TIRContinueStmt)tirStmt);
+            return genContinueStmt();
         }else if(tirStmt instanceof TIRWhileStmt){
             return genWhileStmt((TIRWhileStmt) tirStmt);
         }else if(tirStmt instanceof TIRBreakStmt){
-            return genBreakStmt((TIRBreakStmt) tirStmt);
+            return genBreakStmt();
         }else if(tirStmt instanceof TIRIfStmt) {
             return genIfStmt((TIRIfStmt) tirStmt);
         }else if(tirStmt instanceof TIRReturnStmt){
@@ -323,11 +353,11 @@ public class FunctionGenerator {
         return res;
     }
 
-    private List<Instruction> genContinueStmt(TIRContinueStmt tirStmt) {
-        return new List<>(new Br(startLoop.peek()));
+    private List<Instruction> genContinueStmt() {
+        return new List<>(new Br(loopStack.peek().getStartLoop()));
     }
-    private List<Instruction> genBreakStmt(TIRBreakStmt tirStmt) {
-        return new List<>(new Br(endLoop.peek()));
+    private List<Instruction> genBreakStmt() {
+        return new List<>(new Br(loopStack.peek().getEndLoop()));
     }
     private List<Instruction> genWhileStmt(TIRWhileStmt tirStmt) {
         List<Instruction> res = new List<>();
@@ -336,8 +366,7 @@ public class FunctionGenerator {
 
         Idx startLabel = new Idx("loop_"+TempFactory.genFreshTempString()) ;
         Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString()) ;
-        endLoop.push(endLabel);
-        startLoop.push(startLabel);
+        loopStack.push(new LoopMetaInformation(tirStmt, startLabel, endLabel));
 
         Loop loop = new Loop();
         Block block = new Block();
@@ -365,8 +394,7 @@ public class FunctionGenerator {
             throw new Error("Must have type information for while loop condition: "+tirStmt.getPrettyPrinted());
         }
         res.add(loop);
-        endLoop.pop();
-        startLoop.pop();
+        loopStack.pop();
         return res;
     }
 
@@ -374,6 +402,7 @@ public class FunctionGenerator {
         List<Instruction> res =new List<>();
         LoopDirection direction = getLoopDirection(tirStmt);
         // If the boundaries do not enter the loop, skip the loop creation entirely
+
         if(direction == LoopDirection.Empty) return res;
 //        Instruction increment;
         if(direction == LoopDirection.Ascending||direction == LoopDirection.Descending) {
@@ -495,8 +524,8 @@ public class FunctionGenerator {
     private List<Instruction> genNonMovingForloop(TIRForStmt tirStmt) {
         Block block = new Block();
         Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString()) ;
-        endLoop.push(endLabel);
-        startLoop.push(endLabel);
+        loopStack.push(new LoopMetaInformation(tirStmt, endLabel, endLabel));
+
 
         block.setLabel(endLabel);
         List<Instruction> res = new List<>();
@@ -505,8 +534,7 @@ public class FunctionGenerator {
         res.add(new SetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getLoopVarName().getID()))));
         res.addAll(genStatementList(tirStmt.getStatements()));
         block.setInstructionList(res);
-        endLoop.pop();
-        startLoop.pop();
+        loopStack.pop();
         return new List<>(block);
     }
 
@@ -516,16 +544,14 @@ public class FunctionGenerator {
         // Get Flag for increase
         String flagFirstIterLocal = Util.genTypedLocalI32();
         locals.add(new TypeUse(flagFirstIterLocal, new I32()));
-        Idx startLabel = new Idx("loop_"+TempFactory.genFreshTempString()) ;
-        Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString()) ;
-        endLoop.push(endLabel);
-        startLoop.push(startLabel);
+        Idx startLabel = new Idx("loop_"+TempFactory.genFreshTempString());
+        Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString());
+        loopStack.push(new LoopMetaInformation(tirStmt, startLabel, endLabel));
 
         Loop loop = new Loop();
         Block block = new Block();
         loop.setLabel(startLabel);
         block.setLabel(endLabel);
-
         // I32 Variables for loop.
         String typedVarLoop = Util.getTypedLocalF64(tirStmt.getLoopVarName().getID());
         NumericInstruction increment;
@@ -569,8 +595,7 @@ public class FunctionGenerator {
         // Add break to loop beginning
         block.addInstruction(new Br(startLabel));
         loop.addInstruction(block);
-        endLoop.pop();
-        startLoop.pop();
+        loopStack.pop();
         return  new List<>(loop,
                 new ConstLiteral(new I32(), 0),
                 new SetLocal(new Idx(flagFirstIterLocal)));
@@ -658,12 +683,15 @@ public class FunctionGenerator {
         return res;
     }
     private void performCopyInsertion(){
-        TIRFunction tirFunction = this.analysisFunction.getTree();
-        PointsToAnalysis pta;
-        do {
-            pta = new PointsToAnalysis(tirFunction);
-            tirFunction.tirAnalyze(pta);
-        } while (CopyInsertion.apply(tirFunction, pta));
+        if(!opts.omit_copy_insertion){
+            TIRFunction tirFunction = this.analysisFunction.getTree();
+            PointsToAnalysis pta;
+            do {
+                pta = new PointsToAnalysis(tirFunction);
+                tirFunction.tirAnalyze(pta);
+            } while (CopyInsertion.apply(tirFunction, pta));
+        }
+
     }
     private List<Instruction> genGetArrayStmt(TIRArrayGetStmt tirStmt) {
         List<Instruction> res = new List<>();
@@ -705,7 +733,7 @@ public class FunctionGenerator {
         return res;
     }
     // TODO: Tree_expr opt
-    private List<Instruction> computeIndexWasm(TIRNode node, String arrayName, TIRCommaSeparatedList indices){
+    private List<Instruction> computeIndexWasm(ASTNode node, String arrayName, TIRCommaSeparatedList indices){
         List<Instruction> res = new List<>();
         String typedArrayName = Util.getTypedLocalI32(arrayName);
         if ( indices.size() == 1) {
@@ -744,7 +772,7 @@ public class FunctionGenerator {
         res.add(new CvTrunc(new I32(), new F64(), true));
         return res;
     }
-    private Integer[] computeStride(TIRNode node, String arrayName) {
+    private Integer[] computeStride(ASTNode node, String arrayName) {
         BasicMatrixValue bmv = Util.getBasicMatrixValue(analysisFunction, node, arrayName);
         int numDimensions = bmv.getShape().getDimensions().size();
         Integer[] stride = new Integer[numDimensions];
@@ -788,7 +816,7 @@ public class FunctionGenerator {
         return insts;
     }
     // TODO: Tree_expr opt
-    private boolean isSlicingOperation(TIRStmt tirStmt, TIRCommaSeparatedList indices) {
+    private boolean isSlicingOperation(ASTNode tirStmt, TIRCommaSeparatedList indices) {
         for (ast.Expr index : indices) {
             if (index instanceof ast.ColonExpr)
                 return true;
@@ -809,7 +837,7 @@ public class FunctionGenerator {
         inst.add(new SetLocal(new Idx(new Opt<>(new Identifier(newName)),findLocalsIndex(newName))));
         return inst;
     }
-    private List<Instruction> genExpr(ast.Expr expr, TIRStmt stmt) {
+    private List<Instruction> genExpr(ast.Expr expr, ASTNode stmt) {
         if (expr instanceof ast.IntLiteralExpr)
             return genIntLiteralExpr((ast.IntLiteralExpr) expr);
         if (expr instanceof ast.FPLiteralExpr)
@@ -845,7 +873,7 @@ public class FunctionGenerator {
         return -1;
     }
     // TODO: Tree_expr opt
-    private List<Instruction> genNameExpr(NameExpr expr, TIRStmt stmt) {
+    private List<Instruction> genNameExpr(NameExpr expr, ASTNode stmt) {
         // TODO(dherre3): Change this for globals
         String name = expr.getName().getID();
         int localIndex = findLocalsIndex(name);

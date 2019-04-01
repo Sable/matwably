@@ -62,7 +62,7 @@ public class Locals {
             String name = tirCopyStmt.getLHS().getVarName();
             addDeclaration(tirCopyStmt, name);
         }
-        private String getTypedName(TIRNode node, String name){
+        private String getTypedName(ASTNode node, String name){
             BasicMatrixValue nodeVal = Util.getBasicMatrixValue(analysis, node, name);
             return name +"_"+ ((nodeVal.getShape().isScalar())?"f64":"i32");
         }
@@ -72,7 +72,7 @@ public class Locals {
          * @param node
          * @param name
          */
-        private void addDeclaration(TIRNode node, String name){
+        private void addDeclaration(ASTNode node, String name){
             BasicMatrixValue nodeVal = Util.getBasicMatrixValue(analysis, node, name);
             String newName =  Util.getTypedName(name, nodeVal);
             if(!names_mapping.containsKey(newName)){
@@ -80,7 +80,7 @@ public class Locals {
                 names_mapping.put(newName, typeUse);
             }
         }
-        private void addTargets(TIRCommaSeparatedList targets, TIRNode tirNode){
+        private void addTargets(TIRCommaSeparatedList targets, ASTNode tirNode){
             for(Expr expr : targets){
                 NameExpr exprName = (NameExpr) expr;
                 String name = exprName.getName().getID();
