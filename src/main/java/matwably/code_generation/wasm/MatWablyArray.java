@@ -24,6 +24,9 @@ public class MatWablyArray{
     public static List<Instruction> freeMachArray(String arr_name){
         return new List<>(new GetLocal(new Idx(arr_name)), new Call(new Idx("free_macharray")));
     }
+    public static List<Instruction> freeMachArray(){
+        return new List<>(new Call(new Idx("free_macharray")));
+    }
     public static List<Instruction> getArrayIndexF64(String arr_name,int index) {
         List<Instruction> ret = new List<>();
         ret.add(new GetLocal(new Idx(arr_name)));
@@ -37,6 +40,28 @@ public class MatWablyArray{
         ret.add(new ConstLiteral(new I32(), index));
         if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for expression array");
         ret.add(new Call(new Idx("get_array_index_f64_no_check")));
+        return ret;
+    }
+    public static List<Instruction> getArrayIndexI32(String arr_name, int index) {
+        List<Instruction> ret = new List<>();
+        ret.add(new GetLocal(new Idx(arr_name)));
+        ret.add(new ConstLiteral(new I32(), index));
+        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for: "+arr_name);
+        ret.add(new Call(new Idx("get_array_index_i32_no_check")));
+        return ret;
+    }
+    public static List<Instruction> getArrayIndexI32(int index) {
+        List<Instruction> ret = new List<>();
+        ret.add(new ConstLiteral(new I32(), index));
+        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for expression array");
+        ret.add(new Call(new Idx("get_array_index_i32_no_check")));
+        return ret;
+    }
+    public static List<Instruction> getArrayIndexF64Check(int index) {
+        List<Instruction> ret = new List<>();
+        ret.add(new ConstLiteral(new I32(), index));
+        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for expression array");
+        ret.add(new Call(new Idx("get_array_index_f64")));
         return ret;
     }
     public static List<Instruction> getArrayIndexF64CheckBounds(String arr_name,int index) {
@@ -116,7 +141,7 @@ public class MatWablyArray{
         return createVector( capacity,false,isRowVector).add(new SetLocal(new Idx(name)));
     }
 
-    private static List<Instruction> createVector( int capacity,boolean isCellArray, boolean isRowVector){
+    public static List<Instruction> createVector( int capacity,boolean isCellArray, boolean isRowVector){
         List<Instruction> instructions = new List<>();
         int type = (isCellArray)?5:0;
         int orientation = (isRowVector)?0:1;

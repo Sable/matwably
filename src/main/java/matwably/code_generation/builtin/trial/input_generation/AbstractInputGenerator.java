@@ -2,13 +2,13 @@ package matwably.code_generation.builtin.trial.input_generation;
 
 import ast.ASTNode;
 import matwably.analysis.MatWablyFunctionInformation;
-import matwably.code_generation.NameExpressionGenerator;
+import matwably.code_generation.ExpressionGenerator;
 import matwably.code_generation.builtin.ResultWasmGenerator;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public abstract class AbstractInputGenerator {
-    NameExpressionGenerator name_expression_generator;
+    ExpressionGenerator name_expression_generator;
     ASTNode stmt;
     TIRCommaSeparatedList arguments;
     TIRCommaSeparatedList targets;
@@ -32,7 +32,7 @@ public abstract class AbstractInputGenerator {
         this.targets = targets;
         this.matwably_analysis_set = functionInformation;
         this.valueAnalysisUtil = functionInformation.getValueAnalysisUtil();
-        this.name_expression_generator = functionInformation.getNameExpressionGenerator();
+        this.name_expression_generator = functionInformation.getExpressionGenerator();
         this.result = result;
     }
 }

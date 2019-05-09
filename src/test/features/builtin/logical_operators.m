@@ -9,5 +9,7 @@ disp(a<=b)
 disp(a>=b)
 disp(a ~= b)
 disp(a == b)
+disp(any(a))
+disp(all(a))
 
 end

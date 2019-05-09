@@ -15,25 +15,24 @@
 package matwably;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import matwably.ast.Function;
-import matwably.ast.ImportedWat;
 import matwably.ast.Module;
-import matwably.code_generation.FunctionGenerator;
-import matwably.code_generation.wasm.FunctionExport;
+import matwably.code_generation.ProgramGenerator;
 import matwably.optimization.peephole.PeepholeOptimizer;
 import matwably.pretty.PrettyPrinter;
 import natlab.tame.BasicTamerTool;
-import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
-import natlab.tame.valueanalysis.ValueAnalysisPrinter;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
 
-import java.io.*;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import static matwably.util.FileUtility.readStreamIntoHexString;
+import static matwably.util.FileUtility.readStreamIntoString;
 
 public class Main {
 
@@ -65,47 +64,17 @@ public class Main {
         GenericFile gfile = opts.getGenericFile();
         FileEnvironment fenv = new FileEnvironment(gfile);
         ValueAnalysis<AggrValue<BasicMatrixValue>> analysis = BasicTamerTool.analyze(args_entry_function, fenv);
-        Set<String> generated = new HashSet<String>();
-        String entryPointName = analysis.getMainNode().getFunction().getName();
 
-        // Iterate and
-        int numFunctions = analysis.getNodeList().size();
-        Module module = new Module();
+        // Interface to query inter-procedurally.
+
+        // Generate program
+        ProgramGenerator pg = new ProgramGenerator(analysis, opts);
+        // Generate Matlab program
+        Module module = pg.genProgram();
+        // Pretty print program
         PrettyPrinter prettyPrinter = new PrettyPrinter(module);
-        try{
-            String builtInDeclations =
-                    readStreamIntoString(Main.class.
-                            getResourceAsStream("/matmachjs/matmachjs.wat"));
-            module.addImportedWat(new ImportedWat(builtInDeclations));
-        }catch(IOException ex){
-            throw new Error("MatMachJS library .wat file is missing from resources"+
-                    ((opts.verbose)?ex.getMessage():""));
-        }
 
-        // Running analysis on functions.
-        for (int i = 0; i < numFunctions; ++i) {
-            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis =
-                        analysis.getNodeList().get(i).getAnalysis();
-            if(opts.verbose) {
-                //System.out.println(funcAnalysis.getTree().getPrettyPrinted());
-                System.out.println(ValueAnalysisPrinter.prettyPrint(funcAnalysis));
-            }
-
-            FunctionGenerator gen = new FunctionGenerator(analysis, i, opts);
-            String gen_function_name = gen.genFunctionName();
-            if (!generated.contains(gen_function_name)) {
-                Function func_wasm = gen.getAst();
-                module.addFunctions(func_wasm);
-                module.addExport(FunctionExport.generate(func_wasm));
-                generated.add(gen_function_name);
-                if(opts.verbose){
-                    log(funcAnalysis.getTree().getPrettyPrinted());
-                    log("Generated: " + func_wasm.getIdentifier().getName());
-                }
-            }
-        }
-
-        // Call Peephole optimizer
+        // Call Peephole optimizer works at the Wasm level.
         if(opts.peephole){
             PeepholeOptimizer peep = new PeepholeOptimizer(module);
             peep.optimize();
@@ -169,54 +138,7 @@ public class Main {
         }
     }
 
-    /**
-     * Static function to read a stream in a hex string, used to inline wasm module into a hex string
-     * @param inputStream InputStream to be converted
-     * @return A hex string representation of the buffer
-     * @throws IOException If it fails to read the input stream file, it throws an IOException
-     */
-    private static String readStreamIntoHexString(InputStream inputStream) throws IOException {
-        BufferedInputStream bis = new BufferedInputStream(inputStream);
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        int result = bis.read();
-        while(result != -1) {
-            buf.write((byte) result);
-            result = bis.read();
-        }
 
-        return bytesToHex(buf.toByteArray());
-    }
-    /**
-     * Static function to read a stream in a hex string, used to inline wasm module into a hex string
-     * @param inputStream InputStream to be converted
-     * @return A UTF-8 string representation of the buffer
-     * @throws IOException If it fails to read the input stream file, it throws an IOException
-     */
-    private static String readStreamIntoString(InputStream inputStream) throws IOException {
-        BufferedInputStream bis = new BufferedInputStream(inputStream);
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        int result = bis.read();
-        while(result != -1) {
-            buf.write((byte) result);
-            result = bis.read();
-        }
-        return buf.toString("UTF-8");
-    }
-    /**
-     * Static function to convert a byte array  in a hex string, used to inline wasm module into a hex string
-     * @param bytes Byte array to be converted into hex string
-     * @return A hex string representation of the byte array
-     */
-    private static String bytesToHex(byte[] bytes) {
-        char[] hexArray = "0123456789ABCDEF".toCharArray();
-        char[] hexChars = new char[bytes.length * 2];
-        for ( int j = 0; j < bytes.length; j++ ) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-        }
-        return new String(hexChars);
-    }
 
     /**
      * Shortening log function, in the future this could be replaced by an actual log file that may or may not

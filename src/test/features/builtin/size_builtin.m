@@ -1,4 +1,4 @@
-function size_builtin()
+function size_builtin(a)
     a = size(ones(3,3));
     disp(a)
     [b,a] = size(ones(4,4));

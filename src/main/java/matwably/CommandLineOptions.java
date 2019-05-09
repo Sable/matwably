@@ -15,6 +15,9 @@ public final class CommandLineOptions {
     @Parameter(names = {"-h","--help"}, hidden = true)
     public boolean help = false;
 
+    @Parameter(names = {"--disallow-logical"}, description = "Flag to disallow logical variable in the program")
+    public boolean disallow_logicals = false;
+
     @Parameter(names = {"--opt-peephole"},
             description = "Option to turn on peephole optimizer, default is on")
     public boolean peephole = false;

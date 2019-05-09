@@ -138,7 +138,7 @@ Nop: Instruction;
 Unreachable: Instruction;
 Block:ControlInstruction::= [Label: Idx] [ReturnType] Instruction*;
 Loop:ControlInstruction::= [Label: Idx] [ReturnType] Instruction*;
-If: ControlInstruction::= [ReturnType] InstructionsIf:Instruction* InstructionsElse:Instruction*;
+If: ControlInstruction::= [Label: Idx] [ReturnType]  InstructionsIf:Instruction* InstructionsElse:Instruction*;
 Br: ControlInstruction ::= Label:Idx;
 BrIf: ControlInstruction::=  Label:Idx;
 BrTable: ControlInstruction ::= Labels:Idx*Br;

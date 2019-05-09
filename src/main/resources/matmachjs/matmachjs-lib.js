@@ -11,6 +11,14 @@ if(typeof console === "undefined" ) {
 }else if(typeof console.warn === "undefined"){
 	console.warn = print;
 }
+// Polyfill
+if(typeof performance === "undefined" ) {
+    performance = {};
+    performance.now = Date.now;
+}
+if(typeof performance.now === "undefined"){
+    performance.now = Date.now;
+}
 /**
  * MEMORY CONSTANTS
  */

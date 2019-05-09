@@ -1,32 +1,32 @@
 package matwably.code_generation;
 
 import ast.ASTNode;
-import ast.*;
+import ast.Name;
+import ast.NameExpr;
+import ast.Stmt;
+import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.transformer.CopyInsertion;
+import matjuice.transformer.MJCopyStmt;
+import matjuice.transformer.ParameterCopyTransformer;
 import matwably.CommandLineOptions;
-import matwably.analysis.IntermediateVariableAnalysis;
 import matwably.analysis.Locals;
 import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.MatWablyFunctionInformation;
+import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableAnalysis;
+import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
+import matwably.analysis.intermediate_variable.IntermediateVariableAnalysis;
+import matwably.analysis.memory_management.GarbageCollectionAnalysis;
 import matwably.ast.*;
-import matwably.ast.Function;
-import matwably.ast.List;
-import matwably.ast.Opt;
 import matwably.code_generation.builtin.BuiltinGenerator;
-import matwably.code_generation.builtin.OperatorGenerator;
 import matwably.code_generation.builtin.ResultWasmGenerator;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.code_generation.wasm.SwitchStatement;
-import matwably.util.Ast;
-import matwably.util.InterproceduralFunctionQuery;
-import matwably.util.Util;
-import matwably.util.ValueAnalysisUtil;
+import matwably.util.*;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
-import natlab.tame.valueanalysis.ValueSet;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
@@ -35,129 +35,185 @@ import natlab.toolkits.analysis.core.ReachingDefs;
 import natlab.toolkits.rewrite.TempFactory;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 /**
  * Class generates TIRFunctions given the ValueAnalysis, the index of the function inside the analysis to be generated
  * and the command line options for the generation. i.e. what optimizations to apply
  * TODO: Globals are not supported
+ * TODO: TIRReturn statement
  */
 public class FunctionGenerator {
 
 
-    /**
-     * Empty,                Nothing in the loop executes, e.g. for i=[]:1:10. In this case i remains undefined
-     * NonMoving,            Bounds are equal so that the statements in the loop only run ones. In this case we can
-     *                       skip the loop.
-     * Ascending/Descending, Loop goes in increasing or decreasing fashion
-     * Unknown,              Bounds are not known statically and the loop is generated dynamically.
-     */
-    private enum LoopDirection {
-        Empty,
-        NonMoving,
-        Ascending,
-        Descending,
-        Unknown
-    };
+    private TIRFunction matlabFunction;
+
+
     private CommandLineOptions opts;
     private List<TypeUse> output_parameters;
     private List<TypeUse> locals;
     private List<TypeUse> parameters;
-    private  HashMap<String, TypeUse> local_map;
+    private HashMap<String, TypeUse> local_map;
     private Stack<LoopMetaInformation> loopStack = new Stack<>();
-    private String function_name;
     private MatWablyBuiltinAnalysis builtin_analysis;
     private IntermediateVariableAnalysis inter;
     private ValueAnalysisUtil valueAnalysisUtil;
+    private LogicalVariableUtil logicalVariableUtil;
 
     /**
      * Returns the ast of the generated function
-     * @return
+     * @return Returns the generated WebAssembly function.
      */
     public Function getAst() {
         return function;
     }
 
-    Function function;
+    private Function function;
 
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
+    /**
+     * @deprecated
+     * TODO Get rid of this once we finalize get and set in the compiler.
+     */
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     private InterproceduralFunctionQuery interproceduralFunctionQuery;
-    private NameExpressionGenerator name_expr_generator;
+    private ExpressionGenerator expressionGenerator;
     private MatWablyFunctionInformation functionAnalyses;
+
     /**
      * Function Generator constructor, takes the whole value inter-
      * procedural analysis, the index of the function i from the
      * analysis and the compilation options.
+     * @param analysisFunction IntraproceduralValueAnalysis for the function being generated
      * @param analysis ValueAnalysis with shape information
-     * @param i Function to analyze from the Value Analysis
+     * @param functionQuery Function query object, allows to query inter procedural information.
      * @param opts Command-line options to apply optimizations
      */
-    public FunctionGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int i, CommandLineOptions opts) {
+    public FunctionGenerator(
+                             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
+                             ValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
+                             InterproceduralFunctionQuery functionQuery,
+                             CommandLineOptions opts){
         this.opts = opts;
         this.programAnalysis = analysis;
-        this.analysisFunction = analysis.getNodeList().get(i).getAnalysis();
-        this.locals = new List<>();
-        this.parameters = new List<>();
-        this.valueAnalysisUtil = new ValueAnalysisUtil(analysisFunction);
-        this.name_expr_generator = new NameExpressionGenerator(valueAnalysisUtil);
+        this.analysisFunction = analysisFunction;
+        this.matlabFunction = analysisFunction.getTree();
+        this.interproceduralFunctionQuery = functionQuery;
+        this.valueAnalysisUtil = new ValueAnalysisUtil(this.analysisFunction);
         this.output_parameters = new List<>();
-        this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(programAnalysis);
-        this.function = genFunction(this.analysisFunction.getTree());
-
+        this.parameters = new List<>();
+        this.locals = new List<>();
     }
+    public String genFunctionName() {
+        TIRFunction func = analysisFunction.getTree();
+        Args<AggrValue<BasicMatrixValue>> args =  analysisFunction.getArgs();
+        StringBuilder suffix = new StringBuilder(func.getName().getID()+"_");
+        for (Object arg : args) {
+            BasicMatrixValue bmv = (BasicMatrixValue) arg;
+            if (bmv.hasShape() && bmv.getShape().isScalar())
+            {
+                suffix.append("S");
+            }else{
+                suffix.append("M");
+            }
+        }
+        return suffix.toString();
+    }
+    public void runAnalyses(){
 
-    /**
-     * Function generator method, takes a tamer function as input
-     * and generates a WebAssembly function
-     * @param tirFunction TameIR function node
-     * @return Returns Corresponding generated WebAssembly node.
-     */
-    private Function genFunction( TIRFunction tirFunction ){
+        // Add copy of parameters
+        Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(matlabFunction);
+        ParameterCopyTransformer.apply(matlabFunction, writtenParams);
 
+        // Run reaching definition and add it to set of analysis
+        ReachingDefs defs = new ReachingDefs(this.matlabFunction);
+        defs.analyze();
+        this.logicalVariableUtil = new LogicalVariableUtil(interproceduralFunctionQuery, defs);
+
+        // TODO: Remove this, and do it with ReachingDefinitions
+        // Ambiguous variable analysis
+        AmbiguousVariableAnalysis amb_var = new AmbiguousVariableAnalysis(this.matlabFunction,
+                valueAnalysisUtil);
+        AmbiguousVariableUtil amb_var_util = new AmbiguousVariableUtil(amb_var);
+        // Perform analysis
+        this.expressionGenerator = new ExpressionGenerator(valueAnalysisUtil,amb_var_util,this.logicalVariableUtil);
         // Run Literal elimination analysis
         if(opts.variable_elimination){
-           this.inter = new IntermediateVariableAnalysis(
-                this.analysisFunction.getTree(),
-                interproceduralFunctionQuery );
+            this.inter = new IntermediateVariableAnalysis(
+                    this.analysisFunction.getTree(),
+                    interproceduralFunctionQuery );
             this.inter.apply();
-            name_expr_generator.setNameExpressionTreeMap(this.inter.use_expr_map);
+            expressionGenerator.setNameExpressionTreeMap(this.inter.use_expr_map);
         }
-        // Run reaching definition and add it to set of analysis
-        ReachingDefs defs = new ReachingDefs(this.analysisFunction.getTree());
-        defs.analyze();
+
+
+
+
+
+
+
+
         // Set analyses
-        functionAnalyses = new MatWablyFunctionInformation(this.analysisFunction.getTree(),
-                    analysisFunction,
-                    interproceduralFunctionQuery,
-                    defs,
-                    valueAnalysisUtil,
-                    name_expr_generator);
+        functionAnalyses = new MatWablyFunctionInformation(
+                this.matlabFunction,
+                this.analysisFunction,
+                this.interproceduralFunctionQuery,
+                defs,
+                this.valueAnalysisUtil,
+                this.expressionGenerator,
+                this.inter,
+                amb_var_util,
+                this.logicalVariableUtil,
+                this.opts );
+
 
         // Perform call stmt analysis
         this.builtin_analysis = new MatWablyBuiltinAnalysis(functionAnalyses);
         this.builtin_analysis.analyze();
 
-        // Perform copy insertion
-        performCopyInsertion();
 
+        if(!opts.disallow_free){
+            GarbageCollectionAnalysis gcA = new GarbageCollectionAnalysis(this.analysisFunction.getTree(),
+                    valueAnalysisUtil,interproceduralFunctionQuery, opts);
+            gcA.analyze();
+        }
+
+
+        // Perform copy insertion
+        if(!opts.omit_copy_insertion) {
+            performCopyInsertion();
+        }
+    }
+    /**
+     * Function generator method, takes a tamer function as input
+     * and generates a WebAssembly function
+     */
+    public void generate(){
+        runAnalyses();
         // Setting function name and signature setting output_parameters
         Type funcType = genSignature();
-        this.function_name = genFunctionName();
+        String function_name = genFunctionName();
         // Setting locals
         Locals localsAnalysis = new Locals();
-        local_map = localsAnalysis.apply(tirFunction, analysisFunction);
+        local_map = localsAnalysis.apply(matlabFunction,
+                functionAnalyses.getValueAnalysisUtil(),
+                functionAnalyses.getLogicalVariableUtil(),
+                opts.disallow_logicals);
         locals.addAll(local_map.values());
 
         // Setting instructions
-        List<Instruction> instructions = genStatementList(tirFunction.getStmtList());
+        List<Instruction> instructions = genStatementList(matlabFunction.getStmtList());
         Expression exp = new Expression(instructions);
         // Setting return function, automatically adds return statements for variables
         instructions.addAll(addReturn());
-        return new Function(new Opt<>(new Identifier(this.function_name)),funcType, locals, exp );
+        this.function =  new Function(new Opt<>(new Identifier(function_name)),funcType, locals, exp );
     }
+
     /**
      * Generates the return instructions for the Matlab function
+     * TODO Add freeing instruction for boxing to the
      * @return Returns Corresponding generated WebAssembly node.
      * @apiNote Does not support Globals.
      */
@@ -168,12 +224,7 @@ public class FunctionGenerator {
         if(size == 1){
             // If its only one, suffices to
             TypeUse typeUse = this.output_parameters.getChild(0);
-            // TODO(dherre3) Fix for globals, this assumes the variable is a local
-            if(typeUse.hasIdentifier()){
-                instructions.add(new GetLocal(new Idx(new Opt<>(typeUse.getIdentifier()),0 )));
-            }else{
-                throw new Error("TypeUse must have a defined identifier");
-            }
+            instructions.add(new GetLocal(new Idx(new Opt<>(typeUse.getIdentifier()),0 )));
         }else if(size > 1){
             // Check
             int i = 0;
@@ -188,14 +239,14 @@ public class FunctionGenerator {
                 locals.add(new TypeUse(nameInputVec, new I32()));
                 // Add statement name
                 instructions.add(new SetLocal(new Idx(nameInputVec)));
-                for (ValueSet<?> arg :  analysisFunction.getResult()) {
+                for (TypeUse argTypeUse : this.output_parameters) {
                     instructions.add(new GetLocal(new Idx(nameInputVec)));
-                    TypeUse argTypeUse = this.output_parameters.getChild(i);
                     instructions.add(new ConstLiteral(new I32(), i));
                     instructions.add(new GetLocal(new Idx(argTypeUse.getIdentifier().getName())));
                     instructions.add(new Call(new Idx(new Opt<>(new Identifier("set_array_index_f64_no_check")),0)));
                     i++;
                 }
+
             }else{
                 // Otherwise, it boxes scalar values, inefficient, but that is as good as we can to do statically.
                 instructions.addAll(MatWablyArray.createCellVector(
@@ -205,10 +256,8 @@ public class FunctionGenerator {
                 locals.add(new TypeUse(nameInputVec, new I32()));
                 // Add statement to set the vector
                 instructions.add(new SetLocal(new Idx(nameInputVec)));
-                for (ValueSet<?> arg :  analysisFunction.getResult()) {
-
+                for (TypeUse argTypeUse : this.output_parameters) {
                     instructions.add(new GetLocal(new Idx(nameInputVec)));
-                    TypeUse argTypeUse = this.output_parameters.getChild(i);
                     instructions.add(new ConstLiteral(new I32(), i));
                     instructions.add(new GetLocal(new Idx(argTypeUse.getIdentifier().getName())));
                     if(argTypeUse.getType().isF64()){// If its scalar
@@ -216,6 +265,7 @@ public class FunctionGenerator {
                     }
                     instructions.add(new Call(new Idx(new Opt<>(new Identifier("set_array_index_i32_no_check")),0)));
                     i++;
+
                 }
             }
             instructions.add(new GetLocal(new Idx(new Opt<>(new Identifier(nameInputVec)),0)));
@@ -263,30 +313,30 @@ public class FunctionGenerator {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         } else if (tirStmt instanceof TIRCallStmt) {
             List<Instruction> res = new List<>();
-            MatWablyBuiltinGenerator generator = builtin_analysis.getGenerator((TIRCallStmt)tirStmt);
-            generator.generate();
+            MatWablyBuiltinGenerator generator = builtin_analysis.getGenerator((TIRCallStmt) tirStmt);
+
+//            generator.generate();
             ResultWasmGenerator resultWasmGenerator = generator.getResult();
-            if(generator == null) throw new Error("Function call '"+((TIRCallStmt)tirStmt).getFunctionName().getID()+"()' should have been analyzed previously");
-//            ResultWasmGenerator resultWasmGenerator = BuiltinGenerator.
-//                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,name_expr_generator);
+            //            ResultWasmGenerator resultWasmGenerator = BuiltinGenerator.
+//                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,expressionGenerator);
             locals.addAll(resultWasmGenerator.getLocals());
-            if(this.loopStack.isEmpty())
-                    res.addAll(resultWasmGenerator.getAlloc_input_vec_instructions());
+            if (this.loopStack.isEmpty())
+                res.addAll(resultWasmGenerator.getAlloc_input_vec_instructions());
 
             res.addAll(resultWasmGenerator.getInstructions());
 
-            if(this.loopStack.isEmpty())
+            if (this.loopStack.isEmpty())
                 res.addAll(resultWasmGenerator.getFree_input_vec_instructions());
-
-
 
 //            TIRCallStmt callStmt = (TIRCallStmt)tirStmt;
 //            ResultWasmGenerator callGenerator =
 //                    MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),callStmt.getTargets(),
-//                            callStmt.getFunctionName().getID(), interproceduralFunctionQuery, analysisFunction, name_expr_generator)
+//                            callStmt.getFunctionName().getID(), interproceduralFunctionQuery, analysisFunction, expressionGenerator)
 //                        .generate();
 //            res.addAll(callGenerator.getInstructions());
             return res;
+        }else if(tirStmt instanceof MJCopyStmt){
+            return genMJCopyStmt((TIRCopyStmt) tirStmt);
         }else if (tirStmt instanceof TIRCopyStmt) {
             return genCopyStmt((TIRCopyStmt) tirStmt);
         } else if(tirStmt instanceof TIRArrayGetStmt){
@@ -309,9 +359,6 @@ public class FunctionGenerator {
             res.add(new Return());
             return res;
         }else if(tirStmt instanceof TIRCommentStmt){
-            /**
-             * TODO(dherre3): This is wrong, when we encounter a return stmt, we should load all output parameters and return
-             */
             return new List<>();
         }
         throw new UnsupportedOperationException(
@@ -322,40 +369,65 @@ public class FunctionGenerator {
     }
 
     /**
+     * Cloning node from MJCopyStmt, since we know is a matrix, we may simply clone
+     * @param tirStmt input node where they copy happens
+     * @return Returns generated list of instructions
+     */
+    private List<Instruction> genMJCopyStmt(TIRCopyStmt tirStmt) {
+        List<Instruction> res = new List<>();
+        res.addAll(expressionGenerator.genNameExpr((NameExpr)tirStmt.getRHS(), tirStmt));
+        res.addAll(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
+        res.addAll(new SetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getTargetName().getID()))));
+        return res;
+    }
+    private List<Instruction> genCondition(Stmt tirStmt, Name name){
+        List<Instruction> res = new List<>();
+        // Condition
+        if(valueAnalysisUtil.isScalar(name.getID(), tirStmt, true)){
+            // Check if is logical here
+            res.addAll(expressionGenerator.genName(name, tirStmt));
+            if(opts.disallow_logicals
+                    || ! logicalVariableUtil.isUseLogical(name)){
+                res.add(new ConstLiteral(new F64(),0));
+                res.add(new Ne(new F64()));
+            }
+        }else{
+            res.addAll(expressionGenerator.genName(name, tirStmt));
+            res.add(new Call(new Idx("all_nonzero_reduction")));
+        }
+        return res;
+    }
+    /**
      * Generates TIRIfStmt node
      * @param tirStmt TIRIfstmt node
      * @return Returns list of instructions for if statement.
      */
     private List<Instruction> genIfStmt(TIRIfStmt tirStmt) {
         List<Instruction> res = new List<>();
-        String condVar = tirStmt.getConditionVarName().getID();
-        BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt, condVar);
-        If ifStmt = new If();
+        // Generate condition
+        res.addAll(genCondition(tirStmt, tirStmt.getConditionVarName()));
 
-        if(val.hasShape()){
-            if(val.getShape().isScalar()){
-                res.add(new GetLocal(new Idx(Util.getTypedLocalF64(condVar))));
-                res.add(new ConstLiteral(new F64(), 0));
-                res.add(new Eq(new F64()));
-            }else{
-                res.add(new GetLocal(new Idx(Util.getTypedLocalI32(condVar))));
-                res.add(new Call(new Idx("all_nonzero_reduction")));
-            }
-            res.add(new Eqz(new I32()));
-            ifStmt.setInstructionsIfList(genStatementList(tirStmt.getIfStatements()));
-            if(tirStmt.hasElseBlock()){
-                ifStmt.setInstructionsElseList(genStatementList(tirStmt.getElseStatements()));
-            }
-        }else{
-            throw new Error("Must have type information for if condition: "+tirStmt.getPrettyPrinted());
-        }
+        // Initialize
+        If ifStmt = new If();
         res.add(ifStmt);
+
+        // Generate statements
+        ifStmt.setInstructionsIfList(genStatementList(tirStmt.getIfStatements()));
+        if(tirStmt.hasElseBlock()){
+            ifStmt.setInstructionsElseList(genStatementList(tirStmt.getElseStatements()));
+        }
         return res;
     }
 
     private List<Instruction> genContinueStmt() {
-        return new List<>(new Br(loopStack.peek().getStartLoop()));
+        List<Instruction> res = new List<>();
+        LoopMetaInformation infoLoop = loopStack.peek();
+        res.addAll(infoLoop.getConditionCode().treeCopy());
+        res.add(new BrIf(infoLoop.getStartLoop()));
+        res.add(new Br(infoLoop.getEndLoop()));
+        return res;
     }
+
     private List<Instruction> genBreakStmt() {
         return new List<>(new Br(loopStack.peek().getEndLoop()));
     }
@@ -365,51 +437,80 @@ public class FunctionGenerator {
         BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt,expr.getName().getID() );
 
         Idx startLabel = new Idx("loop_"+TempFactory.genFreshTempString()) ;
-        Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString()) ;
-        loopStack.push(new LoopMetaInformation(tirStmt, startLabel, endLabel));
+        Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString());
 
+        // Condition
+        List<Instruction> condition = genCondition(tirStmt, tirStmt.getCondition().getName());
+        loopStack.push(new LoopMetaInformation(tirStmt, startLabel, endLabel,condition ));
+        res.addAll(condition);
+
+        // Generate loop
+        If ifStmt = new If();
+        res.add(ifStmt);
         Loop loop = new Loop();
-        Block block = new Block();
+        ifStmt.addInstructionsIf(loop);
+        ifStmt.setLabel(endLabel);
         loop.setLabel(startLabel);
-        block.setLabel(endLabel);
-        loop.addInstruction(block);
-        if(val.hasShape()){
-            if(val.getShape().isScalar()){
-                block.addInstruction(new GetLocal(new Idx(Util.getTypedLocalF64(expr.getName().getID()))));
-                block.addInstruction(new ConstLiteral(new F64(), 0));
-                block.addInstruction(new Eq(new F64()));
-            }else{
-                block.addInstruction(new GetLocal(new Idx(Util.getTypedLocalI32(expr.getName().getID()))));
-                block.addInstruction(new Call(new Idx("all_nonzero_reduction")));
-                block.addInstruction(new Eqz(new I32()));
+        loop.getInstructionList().addAll(genStatementList(tirStmt.getStatements()));
 
-            }
-//            block.addInstruction(new Eqz(new I32()));
-            block.addInstruction(new BrIf(endLabel));
-            // Gen Stmts
-            block.getInstructionList().addAll(genStatementList(tirStmt.getStatements()));
-            // Add break to loop beginning
-            block.addInstruction(new Br(startLabel));
-        }else{
-            throw new Error("Must have type information for while loop condition: "+tirStmt.getPrettyPrinted());
-        }
-        res.add(loop);
+        // Add condition again
+        loop.getInstructionList().addAll(condition);
+        loop.addInstruction(new BrIf(startLabel));
         loopStack.pop();
+        return res;
+    }
+
+    /**
+     * // TODO This function is right when for i=a:b:c; end; and i=[], for now, since this significantly
+     *  //todo complicates the generation, ignore the case.
+     * @param tirStmt For loop to generate
+     * @return List of instructions generated for a non-moving for-loop.
+     */
+    private List<Instruction> genEmptyForLoop(TIRForStmt tirStmt){
+        List<Instruction> res = MatWablyArray.createVector(0, false, true);
+        res.add(new SetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.getLoopVarName().getID(), tirStmt, false))));
         return res;
     }
 
     private List<Instruction> genForStmt(TIRForStmt tirStmt) {
         List<Instruction> res =new List<>();
-        LoopDirection direction = getLoopDirection(tirStmt);
+        LoopDirection direction = LoopMetaInformation.getLoopDirection(tirStmt,
+                functionAnalyses.getFunctionAnalysis());
         // If the boundaries do not enter the loop, skip the loop creation entirely
 
         if(direction == LoopDirection.Empty) return res;
 //        Instruction increment;
         if(direction == LoopDirection.Ascending||direction == LoopDirection.Descending) {
+            // We need to check if this variables are eliminated by expression eliminator analysis
+            // If they are, we create new ones for the loop variables
+            String typedLow = Util.getTypedLocalF64(tirStmt.getLowerName().getID());
+            String typedHigh = Util.getTypedLocalF64(tirStmt.getUpperName().getID());
+            String typedInc = (tirStmt.hasIncr())?Util.getTypedLocalF64(tirStmt.getIncName().getID()):null;
+            if(opts.variable_elimination) {
+                if(this.inter.isEliminatedName(tirStmt.getLowerName())){
+                    typedLow = Util.genTypedLocalF64();
+                    locals.add(Ast.genF64TypeUse(typedLow));
+                    res.addAll(expressionGenerator.genName(tirStmt.getLowerName(),tirStmt));
+                    res.add(new SetLocal(new Idx(typedLow)));
+                }
+                if(this.inter.isEliminatedName(tirStmt.getUpperName())){
+                    typedHigh = Util.genTypedLocalF64();
+                    locals.add(Ast.genF64TypeUse(typedHigh));
+                    res.addAll(expressionGenerator.genName(tirStmt.getUpperName(),tirStmt));
+                    res.add(new SetLocal(new Idx(typedHigh)));
+                }
+                if(tirStmt.hasIncr() &&
+                        this.inter.isEliminatedName(tirStmt.getIncName())){
+                    typedInc = Util.genTypedLocalF64();
+                    locals.add(Ast.genF64TypeUse(typedInc));
+                    res.addAll(expressionGenerator.genName(tirStmt.getIncName(),tirStmt));
+                    res.add(new SetLocal(new Idx(typedInc)));
+                }
+            }
             return genStaticLoop(tirStmt, direction,
-                    Util.getTypedLocalF64(tirStmt.getLowerName().getID()),
-                    Util.getTypedLocalF64(tirStmt.getUpperName().getID()),
-                    Util.getTypedLocalF64((tirStmt.hasIncr())?tirStmt.getIncName().getID():null));
+                    typedLow,
+                    typedHigh,
+                    typedInc);
         }else if(direction == LoopDirection.NonMoving){
             res.addAll(genNonMovingForloop(tirStmt));
         }else if(direction == LoopDirection.Unknown){
@@ -418,222 +519,259 @@ public class FunctionGenerator {
         return res;
     }
 
+    @SuppressWarnings("unchecked")
     private List<Instruction> genDynamicForLoop(TIRForStmt tirStmt) {
         List<Instruction> res = new List<>();
         String isEmptyFlag = Util.genTypedLocalI32();
         locals.add(new TypeUse(isEmptyFlag, new I32()));
         // Dynamically generate increase, decrease empty or not moving
         // Add checks for empty arrays, if arrays.
-        String lowTyped;
-        String highTyped;
-        BasicMatrixValue val_lower = Util.getBasicMatrixValue(analysisFunction,tirStmt, tirStmt.getLowerName().getID());
-        BasicMatrixValue val_upper = Util.getBasicMatrixValue(analysisFunction,tirStmt, tirStmt.getUpperName().getID());
-        if( val_lower.hasShape()){
-            if(!val_lower.getShape().isScalar() ){
-
-                lowTyped = Util.getTypedLocalI32(tirStmt.getLowerName().getID());
-                res.addAll(MatWablyArray.isEmpty(lowTyped));
-                List<Instruction> get_first_elem = MatWablyArray.getArrayIndexF64CheckBounds(lowTyped, 1);
-                lowTyped = Util.genTypedLocalF64();
-                get_first_elem.add(new SetLocal(new Idx(lowTyped)));
-                res.add(new If(new Opt<>(),
-                        new List<>(new ConstLiteral(new I32(), 1), new SetLocal(new Idx(isEmptyFlag)))
-                        ,get_first_elem));
-                locals.add(new TypeUse(lowTyped, new F64()));
-            }else{
-                lowTyped = Util.getTypedLocalF64(tirStmt.getLowerName().getID());
-            }
-        }else{
-            throw new Error("Need shape information missing for variable: "+tirStmt.getLowerName().getID()+" in stmt: "+
-                    tirStmt.getPrettyPrinted());
+        String typedLow;
+        typedLow = valueAnalysisUtil.genTypedName(tirStmt.getLowerName().getID(),tirStmt,true);
+        if(!valueAnalysisUtil.isScalar(tirStmt.getLowerName().getID(),tirStmt, true)){
+            res.addAll(MatWablyArray.isEmpty(typedLow));
+            List<Instruction> get_first_elem = MatWablyArray.getArrayIndexF64CheckBounds(typedLow, 1);
+            typedLow = Util.genTypedLocalF64();
+            get_first_elem.add(new SetLocal(new Idx(typedLow)));
+            res.add(new If(new Opt<>(),new Opt<>(),
+                    new List<>(new ConstLiteral(new I32(), 1), new SetLocal(new Idx(isEmptyFlag)))
+                    ,get_first_elem));
+            locals.add(new TypeUse(typedLow, new F64()));
         }
-        if(val_upper.hasShape()){
-            if(!val_upper.getShape().isScalar() ){
-                highTyped = Util.getTypedLocalI32(tirStmt.getUpperName().getID());
-                res.addAll(MatWablyArray.isEmpty(highTyped));
-                List<Instruction> get_first_elem = MatWablyArray.getArrayIndexF64CheckBounds(highTyped, 1);
-                highTyped = Util.genTypedLocalF64();
-                get_first_elem.add(new SetLocal(new Idx(highTyped)));
-                res.add(new If(new Opt<>(),
-                        new List<>(new ConstLiteral(new I32(), 1), new SetLocal(new Idx(isEmptyFlag)))
-                        ,get_first_elem));
-
-                locals.add(new TypeUse(highTyped, new F64()));
-            }else{
-                highTyped = Util.getTypedLocalF64(tirStmt.getUpperName().getID());
-            }
-        }else {
-            throw new Error("Need shape information missing for variable: "+tirStmt.getLowerName().getID()+" in stmt: "
-                    +tirStmt.getPrettyPrinted());
+        String typedHigh;
+        typedHigh = valueAnalysisUtil.genTypedName(tirStmt.getUpperName().getID(),tirStmt,true);
+        if(!valueAnalysisUtil.isScalar(tirStmt.getUpperName().getID(),tirStmt, true)){
+            res.addAll(MatWablyArray.isEmpty(typedHigh));
+            List<Instruction> get_first_elem = MatWablyArray.getArrayIndexF64CheckBounds(typedHigh, 1);
+            typedHigh = Util.genTypedLocalF64();
+            get_first_elem.add(new SetLocal(new Idx(typedHigh)));
+            res.add(new If(new Opt<>(),new Opt<>(),
+                    new List<>(new ConstLiteral(new I32(), 1), new SetLocal(new Idx(isEmptyFlag)))
+                    ,get_first_elem));
+            locals.add(new TypeUse(typedHigh, new F64()));
         }
-        String increaseVar = "";
+        String typedInc = "";
         if(tirStmt.hasIncr()){
-            BasicMatrixValue val_incr = Util.getBasicMatrixValue(analysisFunction,tirStmt, tirStmt.getIncName().getID());
-            if(val_incr.hasShape()){
-                if(!val_incr.getShape().isScalar()){
-                    increaseVar = Util.getTypedLocalI32(tirStmt.getIncName().getID());
-                    res.addAll(MatWablyArray.isEmpty(increaseVar));
-                    List<Instruction> get_first_elem = MatWablyArray.getArrayIndexF64CheckBounds(increaseVar, 1);
-                    increaseVar = Util.genTypedLocalF64();
-                    get_first_elem.add(new SetLocal(new Idx(increaseVar)));
-                    res.add(new If(new Opt<>(),
-                            new List<>(new ConstLiteral(new I32(), 1), new SetLocal(new Idx(isEmptyFlag)))
-                            ,get_first_elem));
-                    locals.add(new TypeUse(increaseVar, new F64()));
-                }else{
-                    increaseVar = Util.getTypedLocalF64(tirStmt.getIncName().getID());
-                }
-            }else {
-                throw new Error("Need shape information missing for variable: "+tirStmt.getIncName().getID()+" in stmt: "
-                        + tirStmt.getPrettyPrinted());
+            typedInc = valueAnalysisUtil.genTypedName(tirStmt.getIncName().getID(),tirStmt,true);;
+            if(!valueAnalysisUtil.isScalar(tirStmt.getIncName().getID(),tirStmt, true)){
+                res.addAll(MatWablyArray.isEmpty(typedInc));
+                List<Instruction> get_first_elem = MatWablyArray.getArrayIndexF64CheckBounds(typedInc, 1);
+                typedInc = Util.genTypedLocalF64();
+                get_first_elem.add(new SetLocal(new Idx(typedInc)));
+                res.add(new If(new Opt<>(),new Opt<>(),
+                        new List<>(new ConstLiteral(new I32(), 1), new SetLocal(new Idx(isEmptyFlag)))
+                        ,get_first_elem));
+                locals.add(new TypeUse(typedInc, new F64()));
+            }
+        }
+        if(opts.variable_elimination) {
+            if(this.inter.isEliminatedName(tirStmt.getLowerName())){
+                typedLow = Util.genTypedLocalF64();
+                locals.add(Ast.genF64TypeUse(typedLow));
+                res.addAll(expressionGenerator.genName(tirStmt.getLowerName(),tirStmt));
+                res.add(new SetLocal(new Idx(typedLow)));
+            }
+            if(this.inter.isEliminatedName(tirStmt.getUpperName())){
+                typedHigh = Util.genTypedLocalF64();
+                locals.add(Ast.genF64TypeUse(typedHigh));
+                res.addAll(expressionGenerator.genName(tirStmt.getUpperName(),tirStmt));
+                res.add(new SetLocal(new Idx(typedHigh)));
+            }
+            if(tirStmt.hasIncr() &&
+                    this.inter.isEliminatedName(tirStmt.getIncName())){
+                typedInc = Util.genTypedLocalF64();
+                locals.add(Ast.genF64TypeUse(typedInc));
+                res.addAll(expressionGenerator.genName(tirStmt.getIncName(),tirStmt));
+                res.add(new SetLocal(new Idx(typedInc)));
             }
         }
         // Add if statement, if we enter the if statement the loop executes, otherwise it does not
         // execute
 
-
         List<Instruction> condSwitch = new List<>();
         if(tirStmt.hasIncr()){
             condSwitch.addAll(
-                    new GetLocal(new Idx(lowTyped)),
-                    new GetLocal(new Idx(increaseVar)),
-                    new GetLocal(new Idx(highTyped)),
+                    new GetLocal(new Idx(typedLow)),
+                    new GetLocal(new Idx(typedInc)),
+                    new GetLocal(new Idx(typedHigh)),
                     new Call(new Idx("dynamic_loop_three")));
         }else{
             condSwitch.addAll(
-                    new GetLocal(new Idx(lowTyped)),
-                    new GetLocal(new Idx(highTyped)),
+                    new GetLocal(new Idx(typedLow)),
+                    new GetLocal(new Idx(typedHigh)),
                     new Call(new Idx("dynamic_loop_two")));
         }
         SwitchStatement swit = new SwitchStatement(
                 condSwitch,
                 genNonMovingForloop(tirStmt),
-                genStaticLoop(tirStmt,LoopDirection.Descending, lowTyped, highTyped, increaseVar),
-                genStaticLoop(tirStmt,LoopDirection.Ascending, lowTyped, highTyped, increaseVar)
+                genStaticLoop(tirStmt,LoopDirection.Descending, typedLow, typedHigh, typedInc),
+                genStaticLoop(tirStmt,LoopDirection.Ascending, typedLow, typedHigh, typedInc)
         );
         res.addAll(
                 new GetLocal(new Idx(isEmptyFlag)),
                 new Eqz(new I32()));
         If ifStmt = new If();
         ifStmt.setInstructionsIfList(swit.generate());
+//        ifStmt.getInstructionsElseList().addAll(genEmptyForLoop(tirStmt));
         res.add(ifStmt);
-//        res.add(new Drop());
         return res;
     }
 
     private List<Instruction> genNonMovingForloop(TIRForStmt tirStmt) {
         Block block = new Block();
         Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString()) ;
-        loopStack.push(new LoopMetaInformation(tirStmt, endLabel, endLabel));
-
-
+        loopStack.push(new LoopMetaInformation(tirStmt, endLabel, endLabel,null));
         block.setLabel(endLabel);
+
         List<Instruction> res = new List<>();
         // Set the initial value of variable, Add instructions with no loop
-        res.add(new GetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getLowerName().getID()))));
-        res.add(new SetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getLoopVarName().getID()))));
+        res.addAll(expressionGenerator.genName(tirStmt.getLowerName(),tirStmt));
+        if(!valueAnalysisUtil.isScalar(tirStmt.getLowerName().getID(), tirStmt,true)){
+            res.addAll(MatWablyArray.getArrayIndexF64Check(1));
+        }
+        res.add(new SetLocal(new Idx(valueAnalysisUtil.
+                genTypedName(tirStmt.getLoopVarName().getID(),
+                        tirStmt, false))));
         res.addAll(genStatementList(tirStmt.getStatements()));
         block.setInstructionList(res);
         loopStack.pop();
         return new List<>(block);
     }
 
+    /**
+     * For stmt translation
+     * for i=1:1:10 or i=10:-2:1
+     *  %STATEMENTS
+     * end
+     *  =====>
+     * (set_local $i (get_local $low))
+     * f64.le/ge (get_local $low)(get_local $high) ;; condition
+     * if $l0
+     *  loop $l1
+     *      ;; STATEMENTS
+     *      (set_local $i (f64.add/sub
+     *          (get_local $i)(get_local $inc)))
+     *      (br_if $l1 (f64.le/ge (get_local $i)(get_local $high) ;; condition)
+     *  end
+     * end
+     * @param tirStmt
+     * @param direction
+     * @param typedLow
+     * @param typedHigh
+     * @param incrementVar
+     * @return
+     */
     private List<Instruction> genStaticLoop(TIRForStmt tirStmt, LoopDirection direction,
                                             String typedLow, String typedHigh, String incrementVar) {
 
-        // Get Flag for increase
-        String flagFirstIterLocal = Util.genTypedLocalI32();
-        locals.add(new TypeUse(flagFirstIterLocal, new I32()));
+
+        String typedLoopVar = valueAnalysisUtil.genTypedName(tirStmt.getLoopVarName().getID(),
+                                tirStmt,
+                                false);
+
         Idx startLabel = new Idx("loop_"+TempFactory.genFreshTempString());
         Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString());
-        loopStack.push(new LoopMetaInformation(tirStmt, startLabel, endLabel));
+
+        //Generate Condition (f64.le/ge (get_local $loop_var)(get_local $high))
+        List<Instruction> condition = new List<>(new GetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.
+                getLoopVarName().getID(), tirStmt, false))));
+        condition.addAll(new GetLocal(new Idx(typedHigh)));
+        condition.addAll((direction==LoopDirection.Ascending)?new Le(new F64(),
+                false):new Ge(new F64(),
+                false));
+
+        // Loop Increment
+        List<Instruction> loopIncrement = new List<>((tirStmt.hasIncr())?
+                new GetLocal(new Idx(incrementVar)):
+                new ConstLiteral(new F64(),1));
+        loopIncrement.addAll(
+                new GetLocal(new Idx(typedLoopVar)),
+                new Add(new F64()),
+                new SetLocal(new Idx(typedLoopVar)));
+
+        List<Instruction> endLoopInstr = new List<>();
+        endLoopInstr.addAll(loopIncrement);
+        endLoopInstr.addAll(condition);
+        loopStack.push(new LoopMetaInformation(tirStmt, startLabel, endLabel, endLoopInstr));
+
+        // Loop init
+        List<Instruction> res = new List<>(new GetLocal(new Idx(typedLow)));
+        res.add(new SetLocal(new Idx(typedLoopVar)));
+        res.addAll(condition);
+
+        // If statement
+        If ifStmt = new If();
+        res.add(ifStmt);
+        ifStmt.setLabel(endLabel);
 
         Loop loop = new Loop();
-        Block block = new Block();
         loop.setLabel(startLabel);
-        block.setLabel(endLabel);
-        // I32 Variables for loop.
-        String typedVarLoop = Util.getTypedLocalF64(tirStmt.getLoopVarName().getID());
-        NumericInstruction increment;
-        Instruction brIfCondition;//
-        if(direction == LoopDirection.Ascending){
-            increment = (tirStmt.hasIncr())?
-                    new GetLocal(new Idx(incrementVar)):
-                    new ConstLiteral(new F64(),1);
-            brIfCondition = new Gt(new F64(), true);
-        }else{
-            increment =  (tirStmt.hasIncr())?
-                    new GetLocal(new Idx(incrementVar)):
-                    new ConstLiteral(new F64(),-1);
-            brIfCondition = new Lt(new F64(), true);
-        }
-
-        // Add initialization of loop and increase flag.
-        loop.addInstruction(new GetLocal(new Idx(flagFirstIterLocal)));
-        List<Instruction> ifSmtsCond =  OperatorGenerator.generateBinOp("plus",
-                new GetLocal(new Idx(typedVarLoop)),increment);
-        ifSmtsCond.add(new SetLocal(new Idx(typedVarLoop)));
-
-        loop.addInstruction(new If(new Opt<>(),new List<>(
-                new GetLocal(new Idx(typedVarLoop)),
-                increment,
-                new Add(new F64()),
-                new SetLocal(new Idx(typedVarLoop))
-        ),new List<>(
-                new ConstLiteral(new I32(),1),
-                new SetLocal(new Idx(flagFirstIterLocal)),
-                // Initialize loop
-                new GetLocal(new Idx(typedLow)),
-                new SetLocal(new Idx(typedVarLoop))
-        )));
-        block.addInstruction(new GetLocal(new Idx(typedVarLoop)));
-        block.addInstruction(new GetLocal(new Idx(typedHigh)));
-        block.addInstruction(brIfCondition);
-        block.addInstruction(new BrIf(endLabel));
-        // Gen Stmts
-        block.getInstructionList().addAll(genStatementList(tirStmt.getStatements()));
-        // Add break to loop beginning
-        block.addInstruction(new Br(startLabel));
-        loop.addInstruction(block);
+        List<Instruction> listInstLoop = loop.getInstructionList();
+        listInstLoop.addAll(genStatementList(tirStmt.getStatements()));
+        listInstLoop.addAll(endLoopInstr);
+        listInstLoop.add(new BrIf(startLabel));
+        ifStmt.addInstructionsIf(loop);
         loopStack.pop();
-        return  new List<>(loop,
-                new ConstLiteral(new I32(), 0),
-                new SetLocal(new Idx(flagFirstIterLocal)));
+        return res;
+
+        // Get Flag for increase
+//        String flagFirstIterLocal = Util.genTypedLocalI32();
+//        locals.add(new TypeUse(flagFirstIterLocal, new I32()));
+//        Loop loop = new Loop();
+//        Block block = new Block();
+//        loop.setLabel(startLabel);
+//        block.setLabel(endLabel);
+//        // I32 Variables for loop.
+//        String typedVarLoop = Util.getTypedLocalF64(tirStmt.getLoopVarName().getID());
+//        List<Instruction> increment;
+//        Instruction brIfCondition;//
+//        if(direction == LoopDirection.Ascending){
+//            increment = (tirStmt.hasIncr())?
+//                    expressionGenerator.genName(tirStmt.getIncName(),tirStmt,true):
+//                    new List<>(new ConstLiteral(new F64(),1));
+//            brIfCondition = new Gt(new F64(), true);
+//        }else{
+//            increment =  (tirStmt.hasIncr())?
+//                    expressionGenerator.genName(tirStmt.getIncName(),tirStmt,true):
+//                    new List<>(new ConstLiteral(new F64(),-1));
+//            brIfCondition = new Lt(new F64(), true);
+//        }
+//
+//        // Add initialization of loop and increase flag.
+//        loop.addInstruction(new GetLocal(new Idx(flagFirstIterLocal)));
+//        List<Instruction> ifSmtsCond =  OperatorGenerator.generateBinOp("plus",
+//                new GetLocal(new Idx(typedVarLoop)),increment);
+//        ifSmtsCond.add(new SetLocal(new Idx(typedVarLoop)));
+//
+//        loop.addInstruction(new If(new Opt<>(),new Opt<>(),
+//                new List<>(
+//                new GetLocal(new Idx(typedVarLoop)),
+//                increment,
+//                new Add(new F64()),
+//                new SetLocal(new Idx(typedVarLoop))
+//        ),new List<>(
+//                new ConstLiteral(new I32(),1),
+//                new SetLocal(new Idx(flagFirstIterLocal)),
+//                // Initialize loop
+//                new GetLocal(new Idx(typedLow)),
+//                new SetLocal(new Idx(typedVarLoop))
+//        )));
+//        block.addInstruction(new GetLocal(new Idx(typedVarLoop)));
+//        block.addInstruction(new GetLocal(new Idx(typedHigh)));
+//        block.addInstruction(brIfCondition);
+//        block.addInstruction(new BrIf(endLabel));
+//        // Gen Stmts
+//        block.getInstructionList().addAll(genStatementList(tirStmt.getStatements()));
+//        // Add break to loop beginning
+//        block.addInstruction(new Br(startLabel));
+//        loop.addInstruction(block);
+//        loopStack.pop();
+//        return  new List<>(loop,
+//                new ConstLiteral(new I32(), 0),
+//                new SetLocal(new Idx(flagFirstIterLocal)));
     }
 
-    private LoopDirection getLoopDirection(TIRForStmt tirStmt) {
-            BasicMatrixValue valRangeLeft = Util.getBasicMatrixValue(analysisFunction, tirStmt, tirStmt.getLowerName().getID());
-            BasicMatrixValue valRangeRight = Util.getBasicMatrixValue(analysisFunction, tirStmt, tirStmt.getUpperName().getID());
-            if(valRangeRight.hasRangeValue()&&valRangeLeft.hasRangeValue()){
-                if (valRangeRight.getRangeValue()
-                        .isBothBoundsKnown()) {
-                    int valRight = valRangeRight.getRangeValue().getLowerBound().getIntValue();
-                    int valLeft =  valRangeLeft.getRangeValue().getUpperBound().getIntValue();
-                    if(valLeft == valRight) return LoopDirection.NonMoving;
-                    if(tirStmt.hasIncr()){
-                        BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt, tirStmt.getIncName().getID());
-                        if(val.hasRangeValue()){
-                            if(val.getRangeValue().isRangeValueNegative()){
-                                //e.g. -5:-1:5
-                                if(valRight > valLeft) return LoopDirection.Empty;
-                                return LoopDirection.Descending;
-                            }else if(val.getRangeValue().isRangeValuePositive()){
-                                //e.g. 5:1:-5
-                                if(valRight < valLeft) return LoopDirection.Empty;
-                                return LoopDirection.Ascending;
-                            }
-                        }else return LoopDirection.Unknown;
 
-                    }
-                    if(valRight > valLeft){
-                        return LoopDirection.Ascending;
-                    }else{
-                        return LoopDirection.Descending;
-                    }
-                }
-            }
-        return (tirStmt.hasIncr())? LoopDirection.Unknown: LoopDirection.Ascending;
-    }
 
     private List<Instruction> genSetArrayStmt(TIRArraySetStmt tirStmt){
         String val = tirStmt.getValueName().getID();
@@ -645,12 +783,12 @@ public class FunctionGenerator {
         if(isSlicingOperation(tirStmt, tirStmt.getIndices())){
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
                     null,"set",programAnalysis,
-                    analysisFunction,name_expr_generator);
+                    analysisFunction, expressionGenerator);
             ResultWasmGenerator result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(typedArr)));
             // Generate inputs
             generator.generateInputs();
-            // Make call to get_f64
+            // Make call to get_f62
 
             locals.addAll(result.getLocals());
             // Get shape of rhs
@@ -684,12 +822,11 @@ public class FunctionGenerator {
     }
     private void performCopyInsertion(){
         if(!opts.omit_copy_insertion){
-            TIRFunction tirFunction = this.analysisFunction.getTree();
             PointsToAnalysis pta;
             do {
-                pta = new PointsToAnalysis(tirFunction);
-                tirFunction.tirAnalyze(pta);
-            } while (CopyInsertion.apply(tirFunction, pta));
+                pta = new PointsToAnalysis(this.analysisFunction.getTree());
+                this.analysisFunction.getTree().tirAnalyze(pta);
+            } while (CopyInsertion.apply(this.analysisFunction.getTree(), pta));
         }
 
     }
@@ -702,7 +839,7 @@ public class FunctionGenerator {
         if(isSlicingOperation(tirStmt,tirStmt.getIndices())){
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
                     tirStmt.getTargets(),"get",programAnalysis,
-                    analysisFunction, name_expr_generator);
+                    analysisFunction, expressionGenerator);
 
             ResultWasmGenerator result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getArrayName().getID()))));
@@ -789,31 +926,32 @@ public class FunctionGenerator {
 
         return stride;
     }
-    // TODO: Tree_expr opt
+
+    /**
+     * Copy statement generator. Strategy:
+     * If is a scalar, \wasm passes registers by value, as any low-level IR would
+     * If it is a matrix. We find whether we are using omit_copy_insertion option,
+     * this option treats variables as references and adds copies to abide to Matlab
+     * semantics. If it is on, we simply copy reference. Otherwise we clone the array.
+     * @param tirStmt Statement to translate
+     * @return Instructions for the translated statement.
+     */
     private List<Instruction> genCopyStmt(TIRCopyStmt tirStmt) {
-        List<Instruction> insts = new List<>();
-        String name = tirStmt.getSourceName().getID();
+        List<Instruction> instructions = new List<>();
+        String source = tirStmt.getSourceName().getID();
         String target = tirStmt.getTargetName().getID();
-        BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt,name);
-        String nodeName = Util.getTypedName(name, val);
-        BasicMatrixValue valTarget = Util.getBasicMatrixValue(analysisFunction, tirStmt,target);
-        String nodeTargetName = Util.getTypedName(target, valTarget);
-        int index = findLocalsIndex(nodeName);
-        int indexTarget = findLocalsIndex(nodeTargetName);
-        insts.add(new GetLocal( new Idx(new Opt<>(new Identifier(nodeName)), index)));
-        if(val.getShape().isScalar()){
-            insts.add(new SetLocal( new Idx(new Opt<>(new Identifier(nodeTargetName)), index)));
+        instructions.addAll(expressionGenerator.genName(tirStmt.getSourceName(),tirStmt));
+        if(valueAnalysisUtil.isScalar(source, tirStmt,true)){
+            instructions.add(new SetLocal( new Idx(valueAnalysisUtil.genTypedName(target, tirStmt,false))));
         }else{
-            insts.add(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
-            insts.add(new SetLocal(new Idx(new Opt<>(new Identifier(nodeTargetName)),indexTarget)));
+            if(opts.omit_copy_insertion){
+                instructions.add(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
+                instructions.add(new SetLocal( new Idx(valueAnalysisUtil.genTypedName(target, tirStmt,false))));
+            }else{
+                instructions.add(new SetLocal( new Idx(valueAnalysisUtil.genTypedName(target, tirStmt,false))));
+            }
         }
-//        if(tirStmt instanceof MJCopyStmt){
-//
-//        }else{
-//            insts.add(new GetLocal( new Idx(new Opt<>(new Identifier(nodeName)), index)));
-//            insts.add(new SetLocal( new Idx(new Opt<>(new Identifier(nodeTargetName)), index)));
-//        }
-        return insts;
+        return instructions;
     }
     // TODO: Tree_expr opt
     private boolean isSlicingOperation(ASTNode tirStmt, TIRCommaSeparatedList indices) {
@@ -830,31 +968,14 @@ public class FunctionGenerator {
         return false;
     }
     private List<Instruction> genAssignLiteralStmt(TIRAssignLiteralStmt tirStmt) {
-        List<Instruction> inst = genExpr(tirStmt.getRHS(), tirStmt);
+        List<Instruction> inst = expressionGenerator.genExpr(tirStmt.getRHS(), tirStmt);
         String name = tirStmt.getLHS().getVarName();
         BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt, name);
         String newName = Util.getTypedName(name, val);
         inst.add(new SetLocal(new Idx(new Opt<>(new Identifier(newName)),findLocalsIndex(newName))));
         return inst;
     }
-    private List<Instruction> genExpr(ast.Expr expr, ASTNode stmt) {
-        if (expr instanceof ast.IntLiteralExpr)
-            return genIntLiteralExpr((ast.IntLiteralExpr) expr);
-        if (expr instanceof ast.FPLiteralExpr)
-            return genFPLiteralExpr((ast.FPLiteralExpr) expr);
-        if (expr instanceof ast.NameExpr)
-            return genNameExpr((ast.NameExpr) expr, stmt);
-        if (expr instanceof ast.StringLiteralExpr)
-            throw new UnsupportedOperationException("Strings are not supported by MatWably at the moment");
-        if (expr instanceof ast.ColonExpr)
-            throw new Error("Should have been generated at a higher level");
-        return new List<>();
-//        throw new UnsupportedOperationException(
-//                String.format("Expr node not supported. %d:%d: [%s] [%s]",
-//                        expr.getStartLine(), expr.getStartColumn(),
-//                        expr.getPrettyPrinted(), expr.getClass().getName())
-//        );
-    }
+
     private int findLocalsIndex(String name){
 //        this.parameters.size()
         for(int i = 0; i< this.parameters.getNumChild();i++){
@@ -871,40 +992,6 @@ public class FunctionGenerator {
             }
         }
         return -1;
-    }
-    // TODO: Tree_expr opt
-    private List<Instruction> genNameExpr(NameExpr expr, ASTNode stmt) {
-        // TODO(dherre3): Change this for globals
-        String name = expr.getName().getID();
-        int localIndex = findLocalsIndex(name);
-        BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, stmt, name);
-        if(localIndex == -1){
-            throw new Error(String.format("Wasm index for variable: %s not found", name));
-        }
-        return new List<>(new GetLocal(new Idx(new Opt<>(new Identifier(Util.getTypedName(name, val))),localIndex)));
-    }
-
-    private List<Instruction> genFPLiteralExpr(FPLiteralExpr expr) {
-        return new List<>(new ConstLiteral(new F64(), Double.parseDouble(expr.getValue().getText())));
-    }
-
-    private List<Instruction> genIntLiteralExpr(IntLiteralExpr expr) {
-        return new List<>(new ConstLiteral(new F64(), Integer.parseInt(expr.getValue().getText())));
-    }
-    public String genFunctionName() {
-        TIRFunction func = analysisFunction.getTree();
-        Args<AggrValue<BasicMatrixValue>> args =  analysisFunction.getArgs();
-        StringBuilder suffix = new StringBuilder(func.getName().getID()+"_");
-        for (Object arg : args) {
-            BasicMatrixValue bmv = (BasicMatrixValue) arg;
-            if (bmv.hasShape() && bmv.getShape().isScalar())
-            {
-                suffix.append("S");
-            }else{
-                suffix.append("M");
-            }
-        }
-        return suffix.toString();
     }
 
     private Type genSignature(){
@@ -932,16 +1019,19 @@ public class FunctionGenerator {
 
         List<ValueType> returnVals = new List<>();
         List<TypeUse> returnIds = new List<>();
+        // For return variable it should, if not defined in function, return a null array.
+        // When we generate call then, make this determination again for the output arguments to throw run-time error.
 
         for(Name name: func.getOutputParamList()){
-            BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, func, name.getID());
-            if(val == null){
+            if(!valueAnalysisUtil.hasBasicMatrixValue(name.getID(), func, false)){
                 // TODO(dherre3) Fix this, this is an error only if we query the function for the non-defined return parameter.
                 // TODO(dherre3) If we return i.e. [a,b,c] = ret1() and ret1() does not defined b, its an error, instead if [a] = ret1(), this is not an error.
                 throw new Error("Return variable: \""+ name.getID()+"\" is never defined in function context: "
                 + func.getName().getID());
             }
-            TypeUse typeUse = Ast.genTypeUse(Util.getTypedName(name.getID(),val), val);
+            // TODO:(dherre3) Refactor this!
+            TypeUse typeUse = new TypeUse(valueAnalysisUtil.genTypedName(name.getID(), func, false),
+                    (valueAnalysisUtil.isScalar(name.getID(),func, false))?new F64():new F32());
             ValueType valueType = typeUse.getType();
             returnVals.add(valueType);
             returnIds.add(typeUse);
@@ -951,13 +1041,9 @@ public class FunctionGenerator {
         this.parameters = result;
 
         // Setting output
-        Opt<ReturnType> returnType;
-        if(returnVals.getNumChild()>0){
-            returnType = new Opt<>(new ReturnType((returnVals.getNumChild()>1)?new List<>(new I32()): returnVals));
-        }else{
-            returnType = new Opt<>();
-        }
+        Opt<ReturnType> returnType = (returnVals.getNumChild()>0)?new Opt<>(
+                new ReturnType((returnVals.getNumChild()>1)?
+                        new List<>(new I32()): returnVals)):new Opt<>();
         return new Type(new Opt<>(), this.parameters,returnType);
     }
-
 }

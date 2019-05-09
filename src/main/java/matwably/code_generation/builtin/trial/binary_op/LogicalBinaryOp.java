@@ -7,9 +7,9 @@ import matwably.ast.F64;
 import matwably.ast.I32;
 import matwably.code_generation.MatWablyError;
 import natlab.tame.tir.TIRCommaSeparatedList;
+import natlab.toolkits.analysis.core.Def;
 
 public abstract class LogicalBinaryOp extends BinaryOp {
-
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -22,23 +22,30 @@ public abstract class LogicalBinaryOp extends BinaryOp {
     public LogicalBinaryOp(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
-
-    @Override
-    public void generateExpression() {
+    public void validateInput(){
+        if(targets.size() > 1) throw new MatWablyError.TooManyOutputArguments(callName, node);
         if(arguments.size()<2) throw new MatWablyError.NotEnoughInputArguments(callName,node);
         if(arguments.size()>2) throw new MatWablyError.TooManyInputArguments(callName,node);
         if(arguments.size()>2) throw new MatWablyError.TooManyInputArguments(callName,node);
-        boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node);
-        boolean arg2IsScalar = valueUtil.isScalar(arguments.getNameExpresion(1),node);
+    }
+    @Override
+    public void generateExpression() {
+        validateInput();
+        boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node,true);
+        boolean arg2IsScalar = valueUtil.isScalar(arguments.getNameExpresion(1),node,true);
 
         generateInputs();
         // Only scalars are supported with logical ops
         if(arg1IsScalar && arg2IsScalar){
             generateScalarCall();
-            // TODO: (treat logicals as i32 in wasm local generation), for this I must map every function with type statically
-            result.addInstruction(new Convert(new I32(),new F64(),  true));
         }else{
             throw new MatWablyError.UnsupportedBuiltinCall(callName,node);
         }
+        if(disallow_logicals||!matwably_analysis_set.getLogicalVariableUtil().
+                isDefinitionLogical(targets.getName(0).getID(), (Def)node)){
+            result.addInstruction(new Convert(new F64(),new I32(),  true));
+        }
     }
+
+
 }

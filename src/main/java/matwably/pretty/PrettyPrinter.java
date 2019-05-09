@@ -387,7 +387,7 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
     @Override
     public void visit(Floor inst) {
         sb.append(inst.getType().getTypeString());
-        sb.append(".floot");
+        sb.append(".floor");
     }
 
     @Override
@@ -457,7 +457,7 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
         sb.append(".convert");
         sb.append(inst.getFromType().match_number_type(
                 (IntValueType int_val)-> (inst.getSigned())?"_s/":"_u/",
-                (FloatValueType int_val)-> ""));
+                (FloatValueType int_val)-> "_s/"));
         sb.append(inst.getFromType().getTypeString());
     }
 
@@ -581,6 +581,9 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
     @Override
     public void visit(If inst) {
         sb.append("if ");
+        if(inst.hasLabel()){
+            printIndex(inst.getLabel());
+        }
         if (inst.hasReturnType()) {
             prettyReturnType(inst.getReturnType());
         }

@@ -1,32 +1,28 @@
 package matwably.code_generation.builtin.trial;
 
 
-import ast.Expr;
 import ast.NameExpr;
 import matwably.analysis.MatWablyFunctionInformation;
 import matwably.ast.*;
-import matwably.code_generation.NameExpressionGenerator;
+import matwably.code_generation.ExpressionGenerator;
 import matwably.code_generation.builtin.ResultWasmGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.Util;
 import matwably.util.ValueAnalysisUtil;
-import natlab.tame.builtin.Builtin;
 import natlab.tame.tir.TIRCommaSeparatedList;
-import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
-
-import static matwably.util.Util.getBasicMatrixValue;
+import natlab.toolkits.analysis.core.Def;
 
 /**
  * This class serves
  */
 public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGenerator> {
+    protected final boolean disallow_logicals;
     protected MatWablyFunctionInformation matwably_analysis_set;
     protected ValueAnalysisUtil valueUtil;
-    protected NameExpressionGenerator nameExpressionGenerator;
-    protected InterproceduralFunctionQuery functionQuery;
+    protected ExpressionGenerator expressionGenerator;
+    private InterproceduralFunctionQuery functionQuery;
     // booleans for the type of call
-    private boolean isSpecialized = false;
 
     /**
      *  Returns whether the function is specialized for re-naming purposes.
@@ -35,9 +31,13 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
      * @return Returns whether the function is specialized.
      */
     public boolean isSpecialized() {
-        return isSpecialized;
+        return false;
     }
 
+    @Override
+    public boolean isMatlabBuiltin() {
+        return super.isMatlabBuiltin() && !functionQuery.isUserDefinedFunction(callName);
+    }
 
     /**
      * Constructor for class MatWablyBuiltinGenerator
@@ -51,11 +51,12 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
                                     MatWablyFunctionInformation analyses) {
         super(node, arguments,targs,callName, analyses.getFunctionAnalysis(), analyses.getFunctionQuery());
         this.result = new ResultWasmGenerator();
-        this.nameExpressionGenerator = analyses.getNameExpressionGenerator();
+        this.expressionGenerator = analyses.getExpressionGenerator();
         this.generatedCallName = this.callName;
         this.matwably_analysis_set = analyses;
         this.valueUtil = analyses.getValueAnalysisUtil();
         this.functionQuery = analyses.getFunctionQuery();
+        this.disallow_logicals = analyses.getProgramOptions().disallow_logicals;
     }
     /**
      * Default generate input as it comes.
@@ -63,18 +64,15 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
     @Override
     public void generateInputs() {
         arguments.forEach((ast.Expr arg)->
-                result.addInstructions(this.nameExpressionGenerator.genNameExpr(((NameExpr) arg),this.node)));
+                result.addInstructions(this.expressionGenerator.genNameExpr(((NameExpr) arg),this.node)));
     }
+
     /**
      * Generator function, it only generates call if the call is not pure or there is more than one target.
      */
     public void generate() {
-        if (isPure() && returnsZeroTargets()) return;
-        if(functionQuery.isUserDefinedFunction(this.callName)){
-            super.generateExpression();
-        }else{
-            generateExpression();
-        }
+        if (!functionQuery.isUserDefinedFunction(callName) && isPure()&& returnsZeroTargets()) return;
+        generateExpression();
         generateSetToTarget();
 
     }
@@ -89,15 +87,10 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
         if(isSpecialized()||functionQuery.isUserDefinedFunction(this.callName)){
             StringBuilder acc = new StringBuilder(generatedFunctionName);
             acc.append("_");
-            arguments.stream()
-                    .forEach(( ast.Expr argExpr)->{
-                        ast.NameExpr nameExpr = (ast.NameExpr) argExpr;
-                        BasicMatrixValue bmv = getBasicMatrixValue(functionAnalysis, node,
-                                nameExpr.getName().getID());
-                        if (bmv.hasShape() && bmv.getShape().isScalar())
-                            acc.append("S");
-                        else
-                            acc.append("M");
+            arguments.getNameExpressions()
+                    .forEach(( NameExpr argExpr)->{
+                        if(valueUtil.isScalar(argExpr, node,true ))acc.append("S");
+                        else acc.append("M");
             });
             generatedCallName = acc.toString();
         }
@@ -116,23 +109,37 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
      * 3. If is a multi-target expression:
      *  a. If is an scalar vector, use `get_array_index_f64` directly.
      *  b. If is a combination: (i) if scalar, unbox, (ii) if vector, simply set.
+     *  TODO: Throw error for user defined functions that try to access an unitialized variable
+     *  TODO: Add logical targets
      */
     @Override
     void generateSetToTarget() {
         // Find out whether the function returns a result, if it does drop the target
         if(returnsZeroTargets()&&!expressionReturnsVoid()){
+            if(!expressionHasSpecializationForScalar()){
+                result.addInstructions(MatWablyArray.freeMachArray());
+            }
+            // Figure out whether expression returns a scalar
             result.addInstruction(new Drop());
         }else if(returnsSingleTarget()){
 
             String targetName = targets.getNameExpresion(0).getVarName();
-            if(returnsScalar()){
-                if(returnsBoxedScalar()){
-                    // If is boxed scalar, get from the expression generated by the built-in
-                    result.addInstructions(MatWablyArray.getArrayIndexF64( 0));
+            if(targetIsScalar()){
+                // If is boxed scalar, get from the expression generated by the built-in
+                if(targetIsBoxedScalar()){
+                    String res_name = Util.genTypedLocalI32();
+                    result.addInstructions(new TeeLocal(new Idx(res_name)));
+                    result.addInstructions(MatWablyArray.getArrayIndexF64(0));
                     result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalF64(targetName))));
+                    result.addInstructions(MatWablyArray.freeMachArray(res_name));
                 }else{
                     //  If is a scalar simple
-                    result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalF64(targetName))));
+                    if(matwably_analysis_set.getLogicalVariableUtil().
+                            isDefinitionLogical(targetName, (Def)node)){
+                        result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalI32(targetName))));
+                    }else{
+                        result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalF64(targetName))));
+                    }
                 }
             }else{
                 // returns matrix
@@ -141,39 +148,38 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
         }else if(returnsList()){
             String targetCall = Util.genTypedLocalI32();
             result.addLocal(new TypeUse(targetCall,new I32()));
-            result.addInstruction(new SetLocal(new Idx(targetCall)));
+            result.addInstruction(new TeeLocal(new Idx(targetCall)));
             int i = 0;
-            if(returnsScalarVector()) {
-                for (ast.Expr expr : targets) {
-                    NameExpr exprNamed = (NameExpr) expr;
-                    result.addInstruction(new GetLocal(new Idx(targetCall)));
-                    result.addInstruction(new ConstLiteral(new I32(), i));
-                    result.addInstruction(new Call(new Idx(new Opt<>(new Identifier("get_array_index_f64_no_check")), 0)));
-                    String arg_f64 = Util.getTypedLocalF64(exprNamed.getName().getID());
+            if(targetIsScalarVector()) {
+                for(NameExpr nameExpr: targets.getNameExpressions()){
+                    result.addInstructions(MatWablyArray.getArrayIndexF64(targetCall, i));
+                    String arg_f64 = Util.getTypedLocalF64(nameExpr.getName().getID());
                     result.addInstruction(new SetLocal(new Idx(arg_f64)));
                     i++;
                 }
             }else {
                 // Last case, combination between boxed scalars and vectors. If we can verify that the function does
                 // note return a boxed scalar, we simply return.
-                for (ast.Expr expr : targets) {
-                    NameExpr exprNamed = (NameExpr) expr;
-                    result.addInstruction(new GetLocal(new Idx(targetCall)));
-                    result.addInstruction(new ConstLiteral(new I32(), i));
-                    result.addInstruction(new Call(new Idx(new Opt<>(new Identifier("get_array_index_i32_no_check")), 0)));
-                    BasicMatrixValue bmv = getBasicMatrixValue(functionAnalysis , node,
-                            exprNamed.getName().getID());
-                    String arg_typed = Util.getTypedLocalI32(exprNamed.getName().getID());
-                    // If
-                    if (bmv.hasShape() && bmv.getShape().isScalar()) {
-                        result.addInstruction(new ConstLiteral(new I32(), 0));
-                        result.addInstruction(new Call(new Idx(new Opt<>(new Identifier("get_array_index_f64_no_check")), 0)));
-                        arg_typed = Util.getTypedLocalF64(exprNamed.getName().getID());
+                for (NameExpr expr : targets.getNameExpressions()) {
+                    result.addInstructions(MatWablyArray.getArrayIndexI32(targetCall, i));
+                    if(valueUtil.isScalar(expr,node, false)){
+                        String tmpI32 = Util.genTypedLocalI32();
+                        result.addLocal(new TypeUse(tmpI32, new I32()));
+                        String arg_typed = Util.getTypedLocalF64(expr.getName().getID());
+
+                        result.addInstruction(new TeeLocal(new Idx(tmpI32)));
+                        result.addInstructions(MatWablyArray.getArrayIndexF64(0));
+                        result.addInstruction(new SetLocal(new Idx(arg_typed)));
+
+                        result.addInstructions(MatWablyArray.freeMachArray(tmpI32));
+                    }else{
+                        String arg_typed = Util.getTypedLocalI32(expr.getName().getID());
+                        result.addInstruction(new SetLocal(new Idx(arg_typed)));
                     }
-                    result.addInstruction(new SetLocal(new Idx(arg_typed)));
                     i++;
                 }
             }
+            result.addInstructions(MatWablyArray.freeMachArray());
         }
     }
 
@@ -181,8 +187,9 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
      * Returns whether the return value is known to be a scalar, and the targets is 1.
      * @return
      */
-    public boolean returnsScalar(){
-        return targets.size() == 1 && valueUtil.isScalar(targets.getName(0).getID(),node, false);
+    public boolean targetIsScalar(){
+        return targets.size() == 1
+                && valueUtil.isScalar(targets.getName(0).getID(),node, false);
     }
 
     /**
@@ -194,17 +201,20 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
      * we can unbox it.
      * @return Whether the built-in expression returns boxed scalar.
      */
-    private  boolean returnsBoxedScalar(){
-        return returnsScalar() && !expressionHasSpecializationForScalar();
+    private  boolean targetIsBoxedScalar(){
+        return targetIsScalar() && !expressionHasSpecializationForScalar();
     }
 
     /**
-     * To be implemented by actual Builtin. Specifies whether the built-in expression returns boxed scalar.
+     * To be implemented by actual Builtin. False if the built-in expression returns boxed scalar.
      * Returns whether the expression always returns a matrix. i.e. whether the generated built-in call does
      * not have specialization for the scalar cases.
      * @return Specifies whether the built-in expression returns boxed scalar.
      */
     public abstract boolean expressionHasSpecializationForScalar();
+
+
+
     /**
      * Returns a vector of scalars values, that we know statically. Size() is an example of this
      * Note that this states whether it returns a scalarVector for a fact, not whether it is possible
@@ -212,43 +222,20 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
      * be recognized statically.
      * @return
      */
-    public boolean returnsScalarVector() {
+    public boolean targetIsScalarVector() {
         // At this level, we check value analysis for this.
-        return this.targets.stream().allMatch((Expr expr)->{
-            BasicMatrixValue val = Util.getBasicMatrixValue(functionAnalysis, node, ((NameExpr)expr).getName().getID());
-            return val.hasShape() && val.getShape().isScalar();
-        });
+        return this.targets.getNameExpressions().stream().
+                allMatch((NameExpr expr)-> valueUtil.isScalar(expr.getName().getID(),node,false));
     }
+
+
     /**
-     * Returns a vector of scalars values, that we know statically. Size() is an example of this
+     * Returns whether all the arguments are scalar
      * @return
      */
-    public boolean returnsMixedVectorAndScalar() {
-        //TODO Implement this
-        return true;
-    }
-
     public boolean argumentsAreScalar(){
-        return arguments.stream().allMatch((Expr expr)->
-                        expr instanceof NameExpr &&
-                                valueUtil.isScalar((NameExpr)expr, node));
+        return arguments.getNameExpressions().stream().allMatch((NameExpr expr)->
+                                valueUtil.isScalar(expr, node,true));
     }
 
-    /**
-     * Returns whether the function is a built-in and the result is known to be logical. In MatWably
-     * we currently only support logical scalars
-     * TODO: Check this when we generalize library to more than just scalar logical built-ins.
-     * @return Returns whether the underlying call results in a logical scalar
-     */
-    public boolean isLogical() {
-        // Check for user defined, if it finds it, is not logical
-        if(functionQuery.isUserDefinedFunction(this.callName)) return false;
-        // Traverse through class hierarchy with reflection, to check for logical property
-        Class<?> classObj = Builtin.getInstance(this.callName).getClass();
-        while(classObj!= null){
-            if(classObj.getName().contains("Logical")) return true;
-            classObj = classObj.getSuperclass();
-        }
-        return false;
-    }
 }

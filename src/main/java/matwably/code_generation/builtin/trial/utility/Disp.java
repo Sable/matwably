@@ -58,8 +58,8 @@ public class Disp extends MatWablyBuiltinGenerator {
             throw new MatWablyError.TooManyInputArguments(callName,node);
         }else{
             NameExpr arg = arguments.getNameExpresion(0);
-            result.addInstructions(nameExpressionGenerator.genNameExpr(arg,node));
-            String nameCall = (valueUtil.isScalar(arg,node))?"disp_S":"disp_M";
+            result.addInstructions(expressionGenerator.genNameExpr(arg,node));
+            String nameCall = (valueUtil.isScalar(arg,node,true))?"disp_S":"disp_M";
             result.addInstruction(new Call(new Idx(nameCall)));
         }
     }

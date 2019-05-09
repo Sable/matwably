@@ -1,8 +1,12 @@
 package matwably.analysis;
 
 import ast.Function;
-import matwably.code_generation.NameExpressionGenerator;
+import matwably.CommandLineOptions;
+import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
+import matwably.analysis.intermediate_variable.IntermediateVariableAnalysis;
+import matwably.code_generation.ExpressionGenerator;
 import matwably.util.InterproceduralFunctionQuery;
+import matwably.util.LogicalVariableUtil;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
@@ -15,13 +19,17 @@ import natlab.toolkits.analysis.core.ReachingDefs;
  */
 public class MatWablyFunctionInformation {
 
+
+    private final LogicalVariableUtil logical_var_util;
     private ast.Function function;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> functionAnalysis;
     private InterproceduralFunctionQuery functionQueryAnalysis;
-    private NameExpressionGenerator nameExpressionGenerator;
+    private ExpressionGenerator expressionGenerator;
     private ReachingDefs reachingDefs;
     private ValueAnalysisUtil valueAnalysisUtil;
-
+    private IntermediateVariableAnalysis intermediateVariableAnalysis;
+    private CommandLineOptions program_options;
+    private  AmbiguousVariableUtil amb_var_util;
 
     /**
      * Getter for valueAnalysisUtil
@@ -38,25 +46,48 @@ public class MatWablyFunctionInformation {
      * @param functionAnalysis IntraproceduralValueAnalysis for the function. May be remove later, ones ValueAnalysisUtility
      *                         replaces every use of it.
      * @param functionQueryAnalysis InterproceduralFunctionQuery is an API that allows functions to query program-wise
-     *                              information
+ *                              information
      * @param reachingDefs  Reaching Definitions analysis for the current program
      * @param valueAnalysisUtil Is a ValueAnalysisUtility that allows easy query of variables from IntraproceduralValueAnalysis.
-     * @param nameExpressionGenerator This is the expression generator for MatWably, is used throughout to generate expressions
-     *                                where necessary.
+     * @param expressionGenerator This is the expression generator for MatWably, is used throughout to generate expressions
+     * @param opts Command line options for the program
      */
     public MatWablyFunctionInformation(
-            ast.Function function,
+            Function function,
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> functionAnalysis,
             InterproceduralFunctionQuery functionQueryAnalysis,
             ReachingDefs reachingDefs,
-           ValueAnalysisUtil valueAnalysisUtil,
-           NameExpressionGenerator nameExpressionGenerator) {
+            ValueAnalysisUtil valueAnalysisUtil,
+            ExpressionGenerator expressionGenerator,
+            IntermediateVariableAnalysis intermediateVariableAnalysis,
+            AmbiguousVariableUtil amb_var_util,
+            LogicalVariableUtil logical_var_util,
+            CommandLineOptions opts) {
         this.function = function;
         this.functionAnalysis = functionAnalysis;
         this.functionQueryAnalysis = functionQueryAnalysis;
-        this.nameExpressionGenerator = nameExpressionGenerator;
+        this.expressionGenerator = expressionGenerator;
         this.reachingDefs = reachingDefs;
         this.valueAnalysisUtil = valueAnalysisUtil;
+        this.intermediateVariableAnalysis = intermediateVariableAnalysis;
+        this.amb_var_util = amb_var_util;
+        this.logical_var_util = logical_var_util;
+        this.program_options = opts;
+    }
+
+    /**
+     * Getter to obtain the LogicalVariableUtil helper class
+     * @return an instance of LogicalVariableUtil utility class
+     */
+    public LogicalVariableUtil getLogicalVariableUtil() {
+        return logical_var_util;
+    }
+    /**
+     * Getter for the IntermediateVariableAnalysis
+     * @return an instance of the analysis on the current function
+     */
+    public IntermediateVariableAnalysis getIntermediateVariableAnalysis() {
+        return intermediateVariableAnalysis;
     }
 
     /**
@@ -89,10 +120,22 @@ public class MatWablyFunctionInformation {
         return functionAnalysis;
     }
     /**
-     * Getter for NameExpressionGenerator analysis
-     * @return Getter for NameExpressionGenerator analysis
+     * Getter for ExpressionGenerator analysis
+     * @return Getter for ExpressionGenerator analysis
      */
-    public NameExpressionGenerator getNameExpressionGenerator() {
-        return nameExpressionGenerator;
+    public ExpressionGenerator getExpressionGenerator() {
+        return expressionGenerator;
+    }
+
+    /**
+     * Getter for program options
+     * @return Returns program options
+     */
+    public CommandLineOptions getProgramOptions() {
+        return program_options;
+    }
+
+    public AmbiguousVariableUtil getAmbiguousVariableUtil() {
+        return amb_var_util;
     }
 }

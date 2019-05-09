@@ -4,7 +4,7 @@ import ast.Expr;
 import ast.Name;
 import ast.NameExpr;
 import matwably.ast.*;
-import matwably.code_generation.NameExpressionGenerator;
+import matwably.code_generation.ExpressionGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.Util;
 import natlab.tame.builtin.Builtin;
@@ -32,11 +32,11 @@ public class BuiltinGenerator {
     private BuiltinSimplifier simplifier;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
-    private NameExpressionGenerator name_expr_generator;
+    private ExpressionGenerator name_expr_generator;
     public BuiltinGenerator(TIRNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
                             ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
                             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
-                            NameExpressionGenerator name_expr_generator) {
+                            ExpressionGenerator name_expr_generator) {
         this.node = node;
         this.arguments = arguments;
         this.targets = targs;
@@ -137,7 +137,7 @@ public class BuiltinGenerator {
             simplifier.node = node;
             simplifier.callName = callName;
             simplifier.targets = targets;
-            simplifier.nameExpressionGenerator = name_expr_generator;
+            simplifier.expressionGenerator = name_expr_generator;
             return simplifier;
         }
         return null;
@@ -153,7 +153,7 @@ public class BuiltinGenerator {
     }
     public static ResultWasmGenerator generate( TIRCallStmt tirFunction, ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
                                                IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
-                                               NameExpressionGenerator name_expr_generator ) {
+                                               ExpressionGenerator name_expr_generator ) {
         BuiltinGenerator generator = new BuiltinGenerator(tirFunction,tirFunction.getArguments(),
                 tirFunction.getTargets(),tirFunction.getFunctionName().getID(),programAnalysis,
                 analysis, name_expr_generator);

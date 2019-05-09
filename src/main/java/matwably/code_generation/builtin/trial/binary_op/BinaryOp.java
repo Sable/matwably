@@ -82,10 +82,10 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
     public void generateExpression(){
         if(arguments.size()<2) throw new MatWablyError.NotEnoughInputArguments(callName,node);
         if(arguments.size()>2) throw new MatWablyError.TooManyInputArguments(callName,node);
-        boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node);
-        boolean arg2IsScalar = valueUtil.isScalar(arguments.getNameExpresion(1),node);
-        Shape arg1Shape = valueUtil.getShape(arguments.getNameExpresion(0),node);
-        Shape arg2Shape = valueUtil.getShape(arguments.getNameExpresion(1),node);
+        boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node,true);
+        boolean arg2IsScalar = valueUtil.isScalar(arguments.getNameExpresion(1),node,true);
+        Shape arg1Shape = valueUtil.getShape(arguments.getNameExpresion(0),node,true);
+        Shape arg2Shape = valueUtil.getShape(arguments.getNameExpresion(1),node,true);
 
         generateInputs();
         if(arg1IsScalar && arg2IsScalar){
@@ -95,23 +95,23 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
             result.addInstruction(new ConstLiteral(new I32(),0));
             // Lets try to generate same size, broadcasting, SM, MS specializations when possible.
             if(arg1IsScalar){
-                result.addInstruction(new Call(new Idx(callName+"_SM")));
+                result.addInstruction(new Call(new Idx(generatedCallName+"_SM")));
             }else if(arg2IsScalar){
-                result.addInstruction(new Call(new Idx(callName+"_MS")));
+                result.addInstruction(new Call(new Idx(generatedCallName+"_MS")));
             }else if(arg1Shape != null && arg2Shape!=null){
                 int inputsAreBroadcastable = arg1Shape.isCompatible(arg2Shape);
                 if(arg1Shape.equals(arg2Shape)){
                     // generate call for same shape
-                    result.addInstruction(new Call(new Idx(callName+"_MM_samesize")));
+                    result.addInstruction(new Call(new Idx(generatedCallName+"_MM_samesize")));
                 }else if(inputsAreBroadcastable == 1){
-                    result.addInstruction(new Call(new Idx(callName+"_MM_broadcasting")));
+                    result.addInstruction(new Call(new Idx(generatedCallName+"_MM_broadcasting")));
                 }else if(inputsAreBroadcastable == 0){
-                    throw new MatWablyError.MatrixDimensionsMustAgree(callName, node);
+                    throw new MatWablyError.MatrixDimensionsMustAgree(generatedCallName, node);
                 }else{
-                    result.addInstruction(new Call(new Idx(callName+"_MM")));
+                    result.addInstruction(new Call(new Idx(generatedCallName+"_MM")));
                 }
             }else{
-                result.addInstruction(new Call(new Idx(callName+"_MM")));
+                result.addInstruction(new Call(new Idx(generatedCallName+"_MM")));
             }
         }
 

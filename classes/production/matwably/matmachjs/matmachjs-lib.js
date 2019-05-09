@@ -11,6 +11,14 @@ if(typeof console === "undefined" ) {
 }else if(typeof console.warn === "undefined"){
 	console.warn = print;
 }
+// Polyfill
+if(typeof performance === "undefined" ) {
+    performance = {};
+    performance.now = Date.now;
+}
+if(typeof performance.now === "undefined"){
+    performance.now = Date.now;
+}
 /**
  * MEMORY CONSTANTS
  */
@@ -86,8 +94,8 @@ STATICTOP = STATIC_BASE + STATICBUMP; // STATIC END
 
 staticAlloc(1224); // This manually adds the static offset occupied by my WebAssembly module string errors.
                     // Check the data segments in my `matmachjs.wat` module. 
-
 DYNAMICTOP_PTR = staticAlloc(4); // Allocate address to store DYNAMIC_PTR 
+
 STACK_BASE = STACKTOP = alignMemory(STATICTOP);
 STACK_MAX = STACK_BASE + TOTAL_STACK;
 DYNAMIC_BASE = alignMemory(STACK_MAX);
@@ -295,7 +303,7 @@ function enlargeMemory() {
  * @param {number} length 
  */
 function printArrayDouble(arr_ptr, length) {
-    let arr = new Float64Array(memory.buffer, arr_ptr, length);
+    let arr = new Float64Array(Module.wasmMemory.buffer, arr_ptr, length);
     console.log(arr);
 }
 /**

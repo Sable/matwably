@@ -100,7 +100,7 @@ public class Colon extends MatWablyBuiltinGenerator implements HasMatWablyBuilti
             if(argumentsAreScalar()){
                 // Input args
                 for(NameExpr arg: arguments.getNameExpressions())
-                    result.addInstructions(nameExpressionGenerator.genNameExpr(arg, node));
+                    result.addInstructions(expressionGenerator.genNameExpr(arg, node));
                 // Generate appropriate specialization
                 if(arguments.size() == 2){
                     result.addInstruction(new Call(new Idx("colon_two")));

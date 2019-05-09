@@ -11,8 +11,6 @@ import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 public abstract class  McLabBuiltinGenerator<Res> {
     protected ASTNode node;
     protected TIRCommaSeparatedList arguments;
-    protected IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> functionAnalysis;
-    protected InterproceduralFunctionQuery functionQuery;
     protected TIRCommaSeparatedList targets;
     protected String callName;
     protected String generatedCallName;
@@ -33,10 +31,8 @@ public abstract class  McLabBuiltinGenerator<Res> {
                                  InterproceduralFunctionQuery functionQuery){
         this.node = node;
         this.arguments = arguments;
-        this.functionAnalysis = analysis;
         this.targets = targs;
         this.callName = callName;
-        this.functionQuery = functionQuery;
         this.tamerBuiltin = Builtin.getInstance(callName);
     }
 
@@ -62,7 +58,7 @@ public abstract class  McLabBuiltinGenerator<Res> {
 
 
     public boolean isMatlabBuiltin() {
-        return Builtin.getInstance(this.callName)!=null && !functionQuery.isUserDefinedFunction(this.callName);
+        return Builtin.getInstance(this.callName)!=null;
     }
     public Res getResult(){
         return result;
@@ -85,8 +81,6 @@ public abstract class  McLabBuiltinGenerator<Res> {
      * @return Returns whether the function is a known as pure.
      */
     public boolean isPure() {
-        // Check if function is user defined, assume that is not pure.
-        if(functionQuery.isUserDefinedFunction(this.callName)) return false;
         // Traverse through class hierarchy with reflection, to check for pure class
         Class<?> classObj = Builtin.getInstance(this.callName).getClass();
         while(classObj!= null){

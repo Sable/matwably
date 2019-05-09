@@ -65,8 +65,8 @@ public class OperatorGenerator extends BuiltinSimplifier {
                     .getChild(0)).getName().getID()))));
             result.add(unaryOps.get(funcName));
         }else if(binaryOps.containsKey(funcName)){
-            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(0),(ast.ASTNode)this.node));
-            result.addAll(nameExpressionGenerator.genNameExpr((NameExpr)arguments.getChild(1),(ast.ASTNode)this.node));
+            result.addAll(expressionGenerator.genNameExpr((NameExpr)arguments.getChild(0),(ast.ASTNode)this.node));
+            result.addAll(expressionGenerator.genNameExpr((NameExpr)arguments.getChild(1),(ast.ASTNode)this.node));
 //            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(0)).getName().getID()))));
 //            result.add(new GetLocal(new Idx(Util.getTypedLocalF64(((NameExpr)arguments.getChild(1)).getName().getID()))));
             result.add(binaryOps.get(funcName));

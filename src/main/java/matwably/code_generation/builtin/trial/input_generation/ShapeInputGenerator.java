@@ -20,7 +20,7 @@ public class ShapeInputGenerator extends AbstractInputGenerator {
         // There are more than two arguments
         int i = 0;
         for(ast.NameExpr argExpr: arguments.getNameExpressions()){
-            if(this.valueAnalysisUtil.isScalar(argExpr,stmt)){
+            if(this.valueAnalysisUtil.isScalar(argExpr,stmt,true)){
                 result.addInstruction(new GetLocal(new Idx(input_arg)));
                 result.addInstruction(new ConstLiteral(new I32(), i));
                 result.addInstructions(name_expression_generator.genNameExpr(argExpr,stmt));

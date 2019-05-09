@@ -15,117 +15,101 @@
 package matwably.analysis;
 
 import ast.ASTNode;
-import ast.Expr;
 import ast.Name;
 import ast.NameExpr;
+import matwably.ast.F64;
+import matwably.ast.I32;
+import matwably.ast.Identifier;
 import matwably.ast.TypeUse;
-import matwably.util.Ast;
+import matwably.util.LogicalVariableUtil;
 import matwably.util.Util;
+import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
-import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.aggrvalue.AggrValue;
-import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
+import natlab.toolkits.analysis.core.Def;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 public class Locals {
-    public  HashMap<String, TypeUse> apply(TIRFunction func, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis){
-        LocalsFinder finder = new LocalsFinder(analysis);
+    public  HashMap<String, TypeUse> apply(TIRFunction func, ValueAnalysisUtil valueAnalysisUtil,
+                                           LogicalVariableUtil logicalVariableUtil, boolean disallow_logicals){
+        LocalsFinder finder = new LocalsFinder(valueAnalysisUtil, logicalVariableUtil,disallow_logicals);
         func.analyze(finder);
         return finder.names_mapping;
     }
+
+
     private static class LocalsFinder extends TIRAbstractNodeCaseHandler {
+        private final LogicalVariableUtil logicalVariableUtil;
+        private final boolean disallow_logicals;
         private HashMap<String,TypeUse> names_mapping = new HashMap<>();
-        private Set<String> names = new HashSet<>();
-        IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
+        ValueAnalysisUtil valueAnalysisUtil;
 
-        private LocalsFinder(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
+        LocalsFinder(ValueAnalysisUtil valueUtil, LogicalVariableUtil logicalVariableUtil, boolean disallow_logicals) {
             super();
-            this.analysis = analysis;
+            this.valueAnalysisUtil = valueUtil;
+            this.logicalVariableUtil = logicalVariableUtil;
+            this.disallow_logicals = disallow_logicals;
         }
 
-        @Override
-        public void caseTIRArrayGetStmt(TIRArrayGetStmt tirArrayGetStmt) {
-            addTargets(tirArrayGetStmt.getTargets(), tirArrayGetStmt);
-        }
-        @Override
-        public void caseTIRArraySetStmt(TIRArraySetStmt tirArraySetStmt){
-            String name = tirArraySetStmt.getArrayName().getID();
-            addDeclaration(tirArraySetStmt, name);
-
-        }
-        @Override
-        public void caseTIRCopyStmt(TIRCopyStmt tirCopyStmt) {
-            String name = tirCopyStmt.getLHS().getVarName();
-            addDeclaration(tirCopyStmt, name);
-        }
-        private String getTypedName(ASTNode node, String name){
-            BasicMatrixValue nodeVal = Util.getBasicMatrixValue(analysis, node, name);
-            return name +"_"+ ((nodeVal.getShape().isScalar())?"f64":"i32");
-        }
 
         /**
          * Adds declaration to WebAssembly local set
-         * @param node
-         * @param name
+         * @param node ast node associated with the declaration
+         * @param name  Name of variable to add
          */
-        private void addDeclaration(ASTNode node, String name){
-            BasicMatrixValue nodeVal = Util.getBasicMatrixValue(analysis, node, name);
-            String newName =  Util.getTypedName(name, nodeVal);
-            if(!names_mapping.containsKey(newName)){
-                TypeUse typeUse = Ast.genTypeUse(newName, nodeVal);
-                names_mapping.put(newName, typeUse);
+        private void addDeclaration(Name name, ASTNode node){
+            TypeUse typeUse = new TypeUse();
+            String identifier_name;
+            if(valueAnalysisUtil.isScalar(name.getID(), node, false)){
+                if(!disallow_logicals &&
+                        node instanceof Def &&
+                        this.logicalVariableUtil.
+                                isDefinitionLogical(name.getID(), (Def) node)){
+
+                    identifier_name = Util.getTypedLocalI32(name.getID());
+                    typeUse.setIdentifier(new Identifier(identifier_name));
+                    typeUse.setType(new I32());
+                }else{
+                    identifier_name = Util.getTypedLocalF64(name.getID());
+                    typeUse.setIdentifier(new Identifier(identifier_name));
+                    typeUse.setType(new F64());
+                }
+            }else{
+                identifier_name = Util.getTypedLocalI32(name.getID());
+                typeUse.setIdentifier(new Identifier(identifier_name));
+                typeUse.setType(new I32());
             }
-        }
-        private void addTargets(TIRCommaSeparatedList targets, ASTNode tirNode){
-            for(Expr expr : targets){
-                NameExpr exprName = (NameExpr) expr;
-                String name = exprName.getName().getID();
-                addDeclaration(tirNode, name);
-            }
-        }
-        @Override
-        public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt tirAssignLiteralStmt) {
-            String name = tirAssignLiteralStmt.getLHS().getVarName();
-            addDeclaration(tirAssignLiteralStmt, name);
-        }
 
-
-        @Override
-        public void caseTIRCallStmt(TIRCallStmt tirCallStmt) {
-            addTargets(tirCallStmt.getTargets(), tirCallStmt);
-        }
-
-
-
-        @Override
-        public void caseTIRIfStmt(TIRIfStmt tirIfStmt) {
-            caseASTNode(tirIfStmt.getIfStatements());
-            if(tirIfStmt.hasElseBlock()){
-                caseASTNode(tirIfStmt.getElseStatements());
+            if(!names_mapping.containsKey(identifier_name)){
+                names_mapping.put(identifier_name, typeUse);
             }
         }
 
         @Override
-        public void caseTIRAbstractAssignStmt(TIRAbstractAssignStmt stmt) {
-            for (String lhsName: stmt.getLValues())
-                addDeclaration(stmt, lhsName);
+        public void caseTIRAbstractAssignToVarStmt(TIRAbstractAssignToVarStmt tirAbstractAssignToVarStmt) {
+            addDeclaration(tirAbstractAssignToVarStmt.getTargetName(), tirAbstractAssignToVarStmt);
         }
 
         @Override
-        public void caseTIRForStmt(TIRForStmt stmt) {
-            addDeclaration(stmt, stmt.getLoopVarName().getID());
-            caseASTNode(stmt);
+        public void caseTIRAbstractAssignToListStmt(TIRAbstractAssignToListStmt tirAbstractAssignToListStmt) {
+            for(NameExpr name: tirAbstractAssignToListStmt.getTargets().getNameExpressions()){
+                addDeclaration(name.getName(), tirAbstractAssignToListStmt);
+            }
         }
+
+        @Override
+        public void caseTIRForStmt(TIRForStmt tirForStmt){
+            addDeclaration(tirForStmt.getLoopVarName(), tirForStmt);
+            caseASTNode(tirForStmt);
+        }
+
 
         @Override
         public void caseTIRFunction(TIRFunction function){
             for (Name expr : function.getInputParamList()) {
-                String newName = getTypedName(function, expr.getID());
-                names_mapping.remove(newName);
+                String typedName = valueAnalysisUtil.genTypedName(expr.getID(), function,true);
+                names_mapping.remove(typedName);
             }
             caseASTNode(function.getStmtList());
         }

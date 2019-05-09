@@ -31,6 +31,7 @@ public class Util {
                 .getOutFlowSets()
                 .get(tirNode)
                 .get(variable);
+
         if(val == null) return null;
         if (val.getSingleton() instanceof BasicMatrixValue)
             return (BasicMatrixValue) val.getSingleton();

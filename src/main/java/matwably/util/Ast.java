@@ -24,6 +24,7 @@ import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.toolkits.rewrite.TempFactory;
 
 public class Ast {
+
     /**
      * This function adds a list of
      * @param node
@@ -83,7 +84,18 @@ public class Ast {
         addLeftSiblings(node, assignments);
         return newStmtTarget;
     }
-
+    public static TypeUse genF64TypeUse(String name){
+        TypeUse typeUse = new TypeUse();
+        typeUse.setIdentifier(new Identifier(name));
+        typeUse.setType(new F64());
+        return typeUse;
+    }
+    public static TypeUse genI32TypeUse(String name){
+        TypeUse typeUse = new TypeUse();
+        typeUse.setIdentifier(new Identifier(name));
+        typeUse.setType(new I32());
+        return typeUse;
+    }
 
     public static TypeUse genTypeUse(String name, BasicMatrixValue val) {
         TypeUse typeUse;
@@ -100,6 +112,7 @@ public class Ast {
             throw new Error("No analysis for variable: "+ name+ " locals analysis could not be finished");
         }
     }
+
 
     public static ValueType getValueType(String name, BasicMatrixValue val){
         if( val != null ){

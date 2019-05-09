@@ -44,7 +44,6 @@ public class ResultWasmGenerator {
             this.call_instructions.add(instruction);
         }
     }
-
     public void addInstruction(Instruction inst)
     {
         call_instructions.add(inst);

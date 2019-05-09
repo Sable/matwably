@@ -33,6 +33,8 @@ public class VectorInputGenerator extends AbstractInputGenerator {
      */
     @Override
     public void generate() {
+        // TODO Add freeMacharray functions
+        // TODO Refactor once subsasgn and subsref are implemented
         String vectorInputI32 = result.generateVectorInputI32(arguments.size());
         // Go through each argument, if some are actual scalars
         int i = 0;
@@ -40,7 +42,7 @@ public class VectorInputGenerator extends AbstractInputGenerator {
             if(expr instanceof NameExpr){
                 NameExpr nameExpr = (NameExpr) expr;
                 // Scalar to boxed scalar.
-                if(valueAnalysisUtil.isScalar(nameExpr,stmt)){
+                if(valueAnalysisUtil.isScalar(nameExpr,stmt, true)){
                     String i32_boxed_scalar = result.generateBoxedScalar(this.name_expression_generator.genNameExpr(nameExpr, stmt));
                     result.addInstructions(MatWablyArray.setArrayIndexI32(vectorInputI32, i, new GetLocal(new Idx(i32_boxed_scalar))));
                 }else{
