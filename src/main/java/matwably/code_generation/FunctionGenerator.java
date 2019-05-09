@@ -15,7 +15,8 @@ import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.MatWablyFunctionInformation;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
-import matwably.analysis.intermediate_variable.IntermediateVariableAnalysis;
+import matwably.analysis.intermediate_variable.ModifiedArrayAnalysis;
+import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.analysis.memory_management.GarbageCollectionAnalysis;
 import matwably.ast.*;
 import matwably.code_generation.builtin.BuiltinGenerator;
@@ -58,7 +59,7 @@ public class FunctionGenerator {
     private HashMap<String, TypeUse> local_map;
     private Stack<LoopMetaInformation> loopStack = new Stack<>();
     private MatWablyBuiltinAnalysis builtin_analysis;
-    private IntermediateVariableAnalysis inter;
+    private TreeExpressionBuilderAnalysis inter = null;
     private ValueAnalysisUtil valueAnalysisUtil;
     private LogicalVariableUtil logicalVariableUtil;
 
@@ -138,18 +139,25 @@ public class FunctionGenerator {
                 valueAnalysisUtil);
         AmbiguousVariableUtil amb_var_util = new AmbiguousVariableUtil(amb_var);
         // Perform analysis
-        this.expressionGenerator = new ExpressionGenerator(valueAnalysisUtil,amb_var_util,this.logicalVariableUtil);
         // Run Literal elimination analysis
-        if(opts.variable_elimination){
-            this.inter = new IntermediateVariableAnalysis(
-                    this.analysisFunction.getTree(),
-                    interproceduralFunctionQuery );
-            this.inter.apply();
-            expressionGenerator.setNameExpressionTreeMap(this.inter.use_expr_map);
+        if(!opts.skip_variable_elimination){
+            ModifiedArrayAnalysis modArr = new ModifiedArrayAnalysis(matlabFunction);
+            modArr.analyze();
+            this.inter = new TreeExpressionBuilderAnalysis(
+                    this.analysisFunction.getTree(),defs,modArr);
+            this.inter.analyze();
+            this.expressionGenerator = new ExpressionGenerator(
+                    valueAnalysisUtil,amb_var_util,
+                    this.logicalVariableUtil,
+                    this.builtin_analysis,
+                    this.inter);
+        }else{
+            this.expressionGenerator = new ExpressionGenerator(
+                    valueAnalysisUtil,
+                    amb_var_util,
+                    this.logicalVariableUtil,
+                    this.builtin_analysis);
         }
-
-
-
 
 
 
@@ -298,8 +306,9 @@ public class FunctionGenerator {
     }
     // TODO(dherre3) Add logic for expression elimination
     private boolean shouldGenerateStmt(Stmt stmt) {
+        return !this.opts.skip_variable_elimination && this.inter.isStmtRedundant(stmt);
 //        return !(this.opts.variable_elimination && this.redundant_stmts != null && this.redundant_stmts.contains(stmt));
-        return true;
+//        return true;
     }
 
     /**
@@ -486,21 +495,21 @@ public class FunctionGenerator {
             String typedLow = Util.getTypedLocalF64(tirStmt.getLowerName().getID());
             String typedHigh = Util.getTypedLocalF64(tirStmt.getUpperName().getID());
             String typedInc = (tirStmt.hasIncr())?Util.getTypedLocalF64(tirStmt.getIncName().getID()):null;
-            if(opts.variable_elimination) {
-                if(this.inter.isEliminatedName(tirStmt.getLowerName())){
+            if(!opts.skip_variable_elimination) {
+                if(this.inter.isVariableEliminated(tirStmt.getLowerName())){
                     typedLow = Util.genTypedLocalF64();
                     locals.add(Ast.genF64TypeUse(typedLow));
                     res.addAll(expressionGenerator.genName(tirStmt.getLowerName(),tirStmt));
                     res.add(new SetLocal(new Idx(typedLow)));
                 }
-                if(this.inter.isEliminatedName(tirStmt.getUpperName())){
+                if(this.inter.isVariableEliminated(tirStmt.getUpperName())){
                     typedHigh = Util.genTypedLocalF64();
                     locals.add(Ast.genF64TypeUse(typedHigh));
                     res.addAll(expressionGenerator.genName(tirStmt.getUpperName(),tirStmt));
                     res.add(new SetLocal(new Idx(typedHigh)));
                 }
                 if(tirStmt.hasIncr() &&
-                        this.inter.isEliminatedName(tirStmt.getIncName())){
+                        this.inter.isVariableEliminated(tirStmt.getIncName())){
                     typedInc = Util.genTypedLocalF64();
                     locals.add(Ast.genF64TypeUse(typedInc));
                     res.addAll(expressionGenerator.genName(tirStmt.getIncName(),tirStmt));
@@ -564,21 +573,21 @@ public class FunctionGenerator {
                 locals.add(new TypeUse(typedInc, new F64()));
             }
         }
-        if(opts.variable_elimination) {
-            if(this.inter.isEliminatedName(tirStmt.getLowerName())){
+        if(!opts.skip_variable_elimination) {
+            if(this.inter.isVariableEliminated(tirStmt.getLowerName())){
                 typedLow = Util.genTypedLocalF64();
                 locals.add(Ast.genF64TypeUse(typedLow));
                 res.addAll(expressionGenerator.genName(tirStmt.getLowerName(),tirStmt));
                 res.add(new SetLocal(new Idx(typedLow)));
             }
-            if(this.inter.isEliminatedName(tirStmt.getUpperName())){
+            if(this.inter.isVariableEliminated(tirStmt.getUpperName())){
                 typedHigh = Util.genTypedLocalF64();
                 locals.add(Ast.genF64TypeUse(typedHigh));
                 res.addAll(expressionGenerator.genName(tirStmt.getUpperName(),tirStmt));
                 res.add(new SetLocal(new Idx(typedHigh)));
             }
             if(tirStmt.hasIncr() &&
-                    this.inter.isEliminatedName(tirStmt.getIncName())){
+                    this.inter.isVariableEliminated(tirStmt.getIncName())){
                 typedInc = Util.genTypedLocalF64();
                 locals.add(Ast.genF64TypeUse(typedInc));
                 res.addAll(expressionGenerator.genName(tirStmt.getIncName(),tirStmt));

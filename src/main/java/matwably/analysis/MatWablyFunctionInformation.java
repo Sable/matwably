@@ -3,7 +3,7 @@ package matwably.analysis;
 import ast.Function;
 import matwably.CommandLineOptions;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
-import matwably.analysis.intermediate_variable.IntermediateVariableAnalysis;
+import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.code_generation.ExpressionGenerator;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.LogicalVariableUtil;
@@ -27,7 +27,7 @@ public class MatWablyFunctionInformation {
     private ExpressionGenerator expressionGenerator;
     private ReachingDefs reachingDefs;
     private ValueAnalysisUtil valueAnalysisUtil;
-    private IntermediateVariableAnalysis intermediateVariableAnalysis;
+    private TreeExpressionBuilderAnalysis treeExpressionBuilderAnalysis;
     private CommandLineOptions program_options;
     private  AmbiguousVariableUtil amb_var_util;
 
@@ -59,7 +59,7 @@ public class MatWablyFunctionInformation {
             ReachingDefs reachingDefs,
             ValueAnalysisUtil valueAnalysisUtil,
             ExpressionGenerator expressionGenerator,
-            IntermediateVariableAnalysis intermediateVariableAnalysis,
+            TreeExpressionBuilderAnalysis treeExpressionBuilderAnalysis,
             AmbiguousVariableUtil amb_var_util,
             LogicalVariableUtil logical_var_util,
             CommandLineOptions opts) {
@@ -69,7 +69,7 @@ public class MatWablyFunctionInformation {
         this.expressionGenerator = expressionGenerator;
         this.reachingDefs = reachingDefs;
         this.valueAnalysisUtil = valueAnalysisUtil;
-        this.intermediateVariableAnalysis = intermediateVariableAnalysis;
+        this.treeExpressionBuilderAnalysis = treeExpressionBuilderAnalysis;
         this.amb_var_util = amb_var_util;
         this.logical_var_util = logical_var_util;
         this.program_options = opts;
@@ -83,11 +83,11 @@ public class MatWablyFunctionInformation {
         return logical_var_util;
     }
     /**
-     * Getter for the IntermediateVariableAnalysis
+     * Getter for the TreeExpressionBuilderAnalysis
      * @return an instance of the analysis on the current function
      */
-    public IntermediateVariableAnalysis getIntermediateVariableAnalysis() {
-        return intermediateVariableAnalysis;
+    public TreeExpressionBuilderAnalysis getTreeExpressionBuilderAnalysis() {
+        return treeExpressionBuilderAnalysis;
     }
 
     /**

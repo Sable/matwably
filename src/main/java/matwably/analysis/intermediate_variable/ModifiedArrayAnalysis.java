@@ -18,6 +18,7 @@ public class ModifiedArrayAnalysis extends TIRAbstractSimpleStructuralForwardAna
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         replaceDefinition(stmt.getTargetName().getID(), stmt);
+        outFlowSets.put(stmt, copy(currentOutSet));
     }
 
     @Override
@@ -26,24 +27,31 @@ public class ModifiedArrayAnalysis extends TIRAbstractSimpleStructuralForwardAna
         currentOutSet = copy(currentInSet);
         for(Name param: func.getInputParamList())  currentOutSet.put(param.getID(),param);
         caseASTNode(func);
+
     }
     @Override
     public void caseTIRArrayGetStmt(TIRArrayGetStmt stmt){
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         replaceListVariableDefinitions(stmt.getTargets(), stmt);
+        outFlowSets.put(stmt, copy(currentOutSet));
+
     }
     @Override
     public void caseTIRArraySetStmt(TIRArraySetStmt stmt){
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         currentOutSet.remove(stmt.getArrayName().getID());
+        outFlowSets.put(stmt, copy(currentOutSet));
+
     }
     @Override
     public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt stmt){
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         replaceDefinition(stmt.getTargetName().getID(), stmt);
+        outFlowSets.put(stmt, copy(currentOutSet));
+
     }
     @Override
     public void caseTIRCallStmt(TIRCallStmt stmt){
@@ -53,6 +61,7 @@ public class ModifiedArrayAnalysis extends TIRAbstractSimpleStructuralForwardAna
             NameExpr nameExpr = (NameExpr) expr;
             replaceDefinition(nameExpr.getName().getID(), stmt);
         }
+        outFlowSets.put(stmt, copy(currentOutSet));
     }
 
     @Override

@@ -29,7 +29,7 @@ import java.util.HashMap;
  * actully indices the array through the 2:10 expression.
  */
 public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
-    private HashMap<TIRNode, MatWablyBuiltinGenerator> callGeneratorMap = new HashMap<>();
+    private HashMap<ASTNode, MatWablyBuiltinGenerator> callGeneratorMap = new HashMap<>();
     private HashMap<Stmt, List<Instruction>> loopAllocationInstructions = new HashMap<>();
     private HashMap<Stmt, List<Instruction>> loopFreeingInstructions = new HashMap<>();
     private Stmt currentLoopStmt;
@@ -40,7 +40,7 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      * @param node TIRNode is one of TIRCallStmt or TIR[Get|Set]ArrayStmt
      * @return Returns the generator for the function call
      */
-    public MatWablyBuiltinGenerator getGenerator(TIRNode node){
+    public MatWablyBuiltinGenerator getGenerator(ASTNode node){
         return  callGeneratorMap.get(node);
     }
     //

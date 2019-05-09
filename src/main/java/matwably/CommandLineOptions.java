@@ -49,9 +49,9 @@ public final class CommandLineOptions {
     @Parameter(names = {"--disallow-free"}, description = "Takes away free calls from code, results in memory leakage")
     public boolean disallow_free = false;
 
-    @Parameter(names = {"--variable-elimination","-e"},
+    @Parameter(names = {"--skip-variable-elimination","-e"},
             description = "Option to turn on intermediate variable elimination")
-    public boolean variable_elimination = true;
+    public boolean  skip_variable_elimination = false;
 
     @Parameter(names = {"-o","--output-file"},description = "Outfile to place code")
     public String output_file;

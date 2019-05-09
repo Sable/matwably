@@ -2,12 +2,17 @@ package matwably.code_generation;
 
 import ast.ASTNode;
 import ast.*;
+import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
+import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.ast.*;
 import matwably.ast.List;
 import matwably.util.LogicalVariableUtil;
 import matwably.util.Util;
 import matwably.util.ValueAnalysisUtil;
+import natlab.tame.tir.TIRAssignLiteralStmt;
+import natlab.tame.tir.TIRCallStmt;
+import natlab.tame.tir.TIRCopyStmt;
 
 import java.util.HashMap;
 
@@ -20,18 +25,36 @@ import java.util.HashMap;
 public class ExpressionGenerator {
     private final AmbiguousVariableUtil ambVariableUtil;
     private final LogicalVariableUtil logicalVariableUtil;
+    private final TreeExpressionBuilderAnalysis expression_builder;
+    private final MatWablyBuiltinAnalysis builtinAnalysis;
     /**
      * Contains the map the NameExpr to expression map.
      */
-    private HashMap<Name, Expr> variable_expression_map = new HashMap<>();
+    private HashMap<Name, AssignStmt> variable_expression_map = new HashMap<>();
     private ValueAnalysisUtil valueAnalysisUtil;
     public ExpressionGenerator(ValueAnalysisUtil valueAnalysisUtil,
                                AmbiguousVariableUtil ambVariableUtil,
-                               LogicalVariableUtil logicalVariableUtil){
+                               LogicalVariableUtil logicalVariableUtil,
+                               MatWablyBuiltinAnalysis builtinAnalysis,
+                               TreeExpressionBuilderAnalysis expressionBuilderAnalysis){
         this.valueAnalysisUtil  = valueAnalysisUtil;
         this.ambVariableUtil = ambVariableUtil;
         this.logicalVariableUtil = logicalVariableUtil;
+        this.expression_builder = expressionBuilderAnalysis;
+        this.builtinAnalysis = builtinAnalysis;
+        this.variable_expression_map = expressionBuilderAnalysis.getUsesToExpressionMap();
     }
+    public ExpressionGenerator(ValueAnalysisUtil valueAnalysisUtil,
+                               AmbiguousVariableUtil ambVariableUtil,
+                               LogicalVariableUtil logicalVariableUtil,
+                               MatWablyBuiltinAnalysis builtinAnalysis){
+        this.valueAnalysisUtil  = valueAnalysisUtil;
+        this.ambVariableUtil = ambVariableUtil;
+        this.logicalVariableUtil = logicalVariableUtil;
+        this.builtinAnalysis = builtinAnalysis;
+        this.expression_builder = null;
+    }
+
     /**
      * Flag to indicate whether to build expression tree, or simple generate the NameExpr as is. i.e.
      * <pre>
@@ -41,15 +64,6 @@ public class ExpressionGenerator {
 
     private boolean build_expression_tree = false;
 
-    /**
-     * Sets the analysis for expression tree built
-     * @param inter_var Variable to expression map. This map is used to build up expressions again, and is produced by
-     *
-     */
-    public void setNameExpressionTreeMap(  HashMap<Name, Expr> inter_var ) {
-        this.variable_expression_map = inter_var;
-        this.build_expression_tree = true;
-    }
 
     public List<Instruction> genExpr(ast.Expr expr, ASTNode<?> stmt){
         if (expr instanceof NameExpr)
@@ -112,18 +126,16 @@ public class ExpressionGenerator {
 
         String typedName = (logicalVariableUtil.isUseLogical(name))? Util.getTypedLocalI32(name.getID()):
                 valueAnalysisUtil.genTypedName(name.getID(), stmt,true);
-        if (this.build_expression_tree && variable_expression_map.containsKey(name)) {
-            if (variable_expression_map.containsKey(name)) {
-                ast.Expr expr = variable_expression_map.get(name);
-                if (expr instanceof LiteralExpr) {
-                    return genExpr(expr, stmt);
-                } else if (expr instanceof NameExpr) {// Copy Statement
-                    return genNameExpr((NameExpr) expr, stmt);
-                }
-                return new List<>(new GetLocal(
-                        new Idx(typedName)));
-            }
+        if (expression_builder!=null && variable_expression_map.containsKey(name)) {
+            AssignStmt mapped_stmt = variable_expression_map.get(name);
+            if (stmt instanceof TIRAssignLiteralStmt) {
+                return genExpr(mapped_stmt.getRHS(), mapped_stmt);
+            } else if (mapped_stmt instanceof TIRCopyStmt) {// Copy Statement
+                return genName(((TIRCopyStmt) mapped_stmt).getSourceName(), mapped_stmt);
+            } else if(mapped_stmt instanceof TIRCallStmt) {
+//                MatWablyBuiltinGenerator generator = builtinAnalysis.getGenerator(stmt);
 
+            }
         }
 
         return new List<>( new GetLocal(new Idx(typedName)));
