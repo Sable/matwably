@@ -3,7 +3,7 @@ package matwably.code_generation.builtin.trial.input_generation;
 import ast.ASTNode;
 import matwably.analysis.MatWablyFunctionInformation;
 import matwably.code_generation.ExpressionGenerator;
-import matwably.code_generation.builtin.ResultWasmGenerator;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -13,7 +13,7 @@ public abstract class AbstractInputGenerator {
     TIRCommaSeparatedList arguments;
     TIRCommaSeparatedList targets;
     MatWablyFunctionInformation matwably_analysis_set;
-    ResultWasmGenerator result;
+    MatWablyBuiltinGeneratorResult result;
     ValueAnalysisUtil valueAnalysisUtil;
      boolean isInForm(){
          return false;
@@ -26,7 +26,7 @@ public abstract class AbstractInputGenerator {
 
     public AbstractInputGenerator(ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets,
                                MatWablyFunctionInformation functionInformation,
-                               ResultWasmGenerator result){
+                               MatWablyBuiltinGeneratorResult result){
         this.stmt = node;
         this.arguments = args;
         this.targets = targets;

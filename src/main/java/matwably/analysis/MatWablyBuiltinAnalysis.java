@@ -26,9 +26,10 @@ import java.util.HashMap;
  * re-build get/set statements and use a more optimal built-in implementation for array accessing. For instance,
  * if you use b = a(2:10,:), this will be translated into temp= colon(2,10);b = a(temp,:),we merely recognize that temp
  * is actually only part of the get expression, and instead of allocating an array, we use a get specialization that
- * actully indices the array through the 2:10 expression.
+ * actually indices the array through the 2:10 expression.
  */
 public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
+
     private HashMap<ASTNode, MatWablyBuiltinGenerator> callGeneratorMap = new HashMap<>();
     private HashMap<Stmt, List<Instruction>> loopAllocationInstructions = new HashMap<>();
     private HashMap<Stmt, List<Instruction>> loopFreeingInstructions = new HashMap<>();
@@ -73,7 +74,7 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
         System.out.println(callStmt.getFunctionName().getID());
         generator = MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),
                                 callStmt.getTargets(), callStmt.getFunctionName().getID(), functionInformation);
-        generator.generate();
+        generator.generateExpression();
         // Add free/alloc instructions to loop.
         addLoopInstructions(generator);
         // Put the built-in generator in map for later use

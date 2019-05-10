@@ -4,7 +4,7 @@ import ast.ColonExpr;
 import ast.NameExpr;
 import matwably.analysis.MatWablyFunctionInformation;
 import matwably.ast.*;
-import matwably.code_generation.builtin.ResultWasmGenerator;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.Util;
 import natlab.tame.tir.TIRArrayGetStmt;
@@ -16,7 +16,7 @@ import natlab.tame.valueanalysis.components.shape.DimValue;
 public class VectorInputGenerator extends AbstractInputGenerator {
 
 
-    public VectorInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation, ResultWasmGenerator result) {
+    public VectorInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation, MatWablyBuiltinGeneratorResult result) {
         super(node, args, targets, functionInformation, result);
     }
 

@@ -11,11 +11,11 @@ public abstract class BuiltinInputHandler {
     TIRCommaSeparatedList arguments;
     IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> valueAnalysis;
 
-    public void setResult(ResultWasmGenerator result) {
+    public void setResult(MatWablyBuiltinGeneratorResult result) {
         this.result = result;
     }
 
-    ResultWasmGenerator result;
+    MatWablyBuiltinGeneratorResult result;
     abstract boolean isInForm();
     abstract void generate();
     public TIRNode getStmt() {

@@ -2,12 +2,12 @@ package matwably.code_generation.builtin.trial.input_generation;
 
 import matwably.analysis.MatWablyFunctionInformation;
 import matwably.ast.*;
-import matwably.code_generation.builtin.ResultWasmGenerator;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public class ShapeInputGenerator extends AbstractInputGenerator {
 
-    public ShapeInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation, ResultWasmGenerator result) {
+    public ShapeInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation, MatWablyBuiltinGeneratorResult result) {
         super(node, args, targets, functionInformation, result);
     }
 

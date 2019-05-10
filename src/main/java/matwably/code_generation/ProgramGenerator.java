@@ -18,16 +18,28 @@ import java.util.Set;
 
 import static matwably.util.FileUtility.readStreamIntoString;
 
+/**
+ * Program generator for the MatWably compiler, takes as input the InterproceduralValueAnalysis
+ * result.
+ */
 public class ProgramGenerator {
-
-    ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
-    CommandLineOptions opts;
-    InterproceduralFunctionQuery interproceduralFunctionQuery;
+    /**
+     * Reference to the ValueAnalysis result for the Matlab program
+     */
+    private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
+    /**
+     * Command line options for the compiler
+     */
+    private CommandLineOptions opts;
+    /**
+     * InterproceduralFunctionQuery object field
+     */
+    private InterproceduralFunctionQuery interproceduralFunctionQuery;
 
     /**
      * Base constructor for the program generator.
-     * @param funcAnalysis
-     * @param opts
+     * @param funcAnalysis InterproceruralValueAnalysis use to specialize the compiler
+     * @param opts Command line options for the compiler.
      */
     public ProgramGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis,
                             CommandLineOptions opts) {
@@ -36,23 +48,32 @@ public class ProgramGenerator {
         this.opts = opts;
     }
 
+    /**
+     * Method to generate the WebAssembly module given the results for the InterproceduralValueAnalysis.
+     * @return Returns the resulting wasm program module.
+     */
     public Module genProgram(){
-        // Iterate and
-        int numFunctions = analysis.getNodeList().size();
-        Module module = new Module();
+        
+        int functionNumber = analysis.getNodeList().size();
+
+        Module wasmModule = new Module();
         try{
+            // Hard codes the built-ins by using a hack, ideally the built-in wat file should be parsed and
+            // translated into the internal WasmIR. For now, we simply hack this
+            //TODO Finish with the beaver front-end to construct the built-ins in WasmIR.
             String builtInDeclations =
                     readStreamIntoString(Main.class.
                             getResourceAsStream("/matmachjs/matmachjs.wat"));
-            module.addImportedWat(new ImportedWat(builtInDeclations));
+            wasmModule.addImportedWat(new ImportedWat(builtInDeclations));
         }catch(IOException ex){
             throw new Error("MatMachJS library .wat file is missing from resources"+
                     ((opts.verbose)?ex.getMessage():""));
         }
 
-        Set<String> generated = new HashSet<>();
-        // Running analysis on functions.
-        for (int i = 0; i < numFunctions; ++i) {
+        // Running generation of functions inside module.
+        Set<String> generatedSoFar = new HashSet<>();
+        for (int i = 0; i < functionNumber; ++i) {
+
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>>  funcAnalysis =
                     analysis.getNodeList().get(i).getAnalysis();
 
@@ -60,22 +81,20 @@ public class ProgramGenerator {
                         interproceduralFunctionQuery, opts);
             // Get function name
             String gen_function_name = gen.genFunctionName();
-            if (!generated.contains(gen_function_name)) {
+            if (!generatedSoFar.contains(gen_function_name)) {
                 gen.generate();
-                Function func_wasm =gen.getAst();
-                module.addFunctions(func_wasm);
-                module.addExport(FunctionExport.generate(func_wasm));
-                generated.add(gen_function_name);
+                Function func_wasm = gen.getAst();
+                wasmModule.addFunctions(func_wasm);
+                wasmModule.addExport(FunctionExport.generate(func_wasm));
+                generatedSoFar.add(gen_function_name);
                 if(opts.verbose){
                     log(funcAnalysis.getTree().getPrettyPrinted());
                     log("Generated: " + func_wasm.getIdentifier().getName());
                 }
             }
         }
-
-        return module;
+        return wasmModule;
     }
-
     private void log(Object object) {
         System.out.println(object);
     }

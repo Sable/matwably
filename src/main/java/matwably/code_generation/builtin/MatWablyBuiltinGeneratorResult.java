@@ -7,16 +7,55 @@ import matwably.util.Util;
 import java.util.Arrays;
 import java.util.HashSet;
 
-public class ResultWasmGenerator {
+public class MatWablyBuiltinGeneratorResult {
 
     private HashSet<TypeUse> locals_instructions = new HashSet<>();
     private List<Instruction> call_instructions = new List<>();
     private List<Instruction> free_input_vec_instructions = new List<>();
     private List<Instruction> alloc_input_vec_instructions = new List<>();
 
-    public ResultWasmGenerator() { }
 
-    public ResultWasmGenerator(HashSet<TypeUse> locals, List<Instruction> stmts) {
+    public static MatWablyBuiltinGeneratorResult merge(MatWablyBuiltinGeneratorResult m1, MatWablyBuiltinGeneratorResult m2){
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+
+        result.locals_instructions.addAll(m1.locals_instructions);
+        result.locals_instructions.addAll(m2.locals_instructions);
+
+        result.alloc_input_vec_instructions.addAll(m1.alloc_input_vec_instructions);
+        result.alloc_input_vec_instructions.addAll(m2.alloc_input_vec_instructions);
+
+        result.call_instructions.addAll(m1.call_instructions);
+        result.call_instructions.addAll(m2.call_instructions);
+
+        result.free_input_vec_instructions.addAll(m1.free_input_vec_instructions);
+        result.free_input_vec_instructions.addAll(m2.free_input_vec_instructions);
+        return result;
+    }
+    public void add(MatWablyBuiltinGeneratorResult m1){
+        this.locals_instructions.addAll(m1.locals_instructions);
+        this.alloc_input_vec_instructions.addAll(m1.alloc_input_vec_instructions);
+        this.call_instructions.addAll(m1.call_instructions);
+        this.free_input_vec_instructions.addAll(m1.free_input_vec_instructions);
+    }
+
+
+    public MatWablyBuiltinGeneratorResult copy(){
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+        result.locals_instructions.addAll(this.locals_instructions);
+
+        result.alloc_input_vec_instructions.addAll(this.alloc_input_vec_instructions);
+
+        result.call_instructions.addAll(this.call_instructions);
+
+        result.free_input_vec_instructions.addAll(this.free_input_vec_instructions);
+
+        return result;
+    }
+
+
+    public MatWablyBuiltinGeneratorResult() { }
+
+    public MatWablyBuiltinGeneratorResult(HashSet<TypeUse> locals, List<Instruction> stmts) {
         this.locals_instructions = locals;
         this.call_instructions = stmts;
     }
@@ -27,7 +66,7 @@ public class ResultWasmGenerator {
     public List<Instruction> getAlloc_input_vec_instructions() {
         return alloc_input_vec_instructions;
     }
-    public ResultWasmGenerator(List<Instruction> stmts) {
+    public MatWablyBuiltinGeneratorResult(List<Instruction> stmts) {
         this.call_instructions = stmts;
     }
     public HashSet<TypeUse> getLocals() {

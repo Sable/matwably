@@ -44,17 +44,17 @@ public class BuiltinGenerator {
         this.generatedCallName = callName;
         this.analysis = analysisFunction;
         this.programAnalysis =programAnalysis;
-        this.result = new ResultWasmGenerator();
+        this.result = new MatWablyBuiltinGeneratorResult();
         this.name_expr_generator = name_expr_generator;
         this.simplifier = getSimplification();
 
     }
 
-    public ResultWasmGenerator getResult() {
+    public MatWablyBuiltinGeneratorResult getResult() {
         return result;
     }
 
-    private ResultWasmGenerator result;
+    private MatWablyBuiltinGeneratorResult result;
 
     private static HashMap<String, String> ALIAS_WASM = new HashMap<>();
     private static HashMap<String, BuiltinSimplifier> SIMPLIFIABLE = new HashMap<>();
@@ -151,9 +151,9 @@ public class BuiltinGenerator {
             this.generateCall();
         }
     }
-    public static ResultWasmGenerator generate( TIRCallStmt tirFunction, ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
-                                               IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
-                                               ExpressionGenerator name_expr_generator ) {
+    public static MatWablyBuiltinGeneratorResult generate(TIRCallStmt tirFunction, ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis,
+                                                          IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
+                                                          ExpressionGenerator name_expr_generator ) {
         BuiltinGenerator generator = new BuiltinGenerator(tirFunction,tirFunction.getArguments(),
                 tirFunction.getTargets(),tirFunction.getFunctionName().getID(),programAnalysis,
                 analysis, name_expr_generator);

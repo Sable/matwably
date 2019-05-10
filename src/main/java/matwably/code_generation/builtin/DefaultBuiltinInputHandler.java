@@ -16,7 +16,7 @@ public class DefaultBuiltinInputHandler extends BuiltinInputHandler {
 
     public DefaultBuiltinInputHandler(TIRNode stmt, TIRCommaSeparatedList args,
                                        IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> valueAnalysis
-        ,ResultWasmGenerator result)
+        ,MatWablyBuiltinGeneratorResult result)
     {
         this.arguments = args;
         this.stmt = stmt;
@@ -25,7 +25,7 @@ public class DefaultBuiltinInputHandler extends BuiltinInputHandler {
     }
     public static BuiltinInputHandler getInstance(TIRNode stmt, TIRCommaSeparatedList args,
                                               IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> valueAnalysis
-    , ResultWasmGenerator result) {
+    , MatWablyBuiltinGeneratorResult result) {
 
             return new DefaultBuiltinInputHandler(stmt,args,valueAnalysis, result);
     }

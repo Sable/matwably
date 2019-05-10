@@ -9,6 +9,7 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
 public abstract class  McLabBuiltinGenerator<Res> {
+    private final InterproceduralFunctionQuery functionQuery;
     protected ASTNode node;
     protected TIRCommaSeparatedList arguments;
     protected TIRCommaSeparatedList targets;
@@ -19,12 +20,12 @@ public abstract class  McLabBuiltinGenerator<Res> {
 
     /**
      *
-     * @param node
-     * @param arguments
-     * @param targs
-     * @param callName
-     * @param analysis
-     * @param functionQuery
+     * @param node  ASTNode making the call, could either be TIRCallStmt, or TIRArrayGetStmt
+     * @param arguments  Argument list of NameExpressions
+     * @param targs Target List of NameExpressions
+     * @param callName Name of call
+     * @param analysis  IntraproceduralValueAnalysis performed on TameIR
+     * @param functionQuery InterproceduralFunctionQuery based on the ValueAnalysis
      */
     public McLabBuiltinGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
                                  IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
@@ -34,6 +35,7 @@ public abstract class  McLabBuiltinGenerator<Res> {
         this.targets = targs;
         this.callName = callName;
         this.tamerBuiltin = Builtin.getInstance(callName);
+        this.functionQuery = functionQuery;
     }
 
     public abstract boolean isSpecialized();
@@ -68,6 +70,7 @@ public abstract class  McLabBuiltinGenerator<Res> {
      * Generator function, it only generates call if the call is not pure or there is more than one target.
      */
     public void generate(){
+        if (!functionQuery.isUserDefinedFunction(callName) && isPure()&& returnsZeroTargets()) return;
         generateExpression();
         generateSetToTarget();
     }
@@ -75,12 +78,15 @@ public abstract class  McLabBuiltinGenerator<Res> {
         this.generateInputs();
         this.generateCall();
     }
+
+
+
     /**
      * Returns whether the function is a known as pure, note that if it returns false, it may still be the case that is
      * this is for cases of user defined functions.
      * @return Returns whether the function is a known as pure.
      */
-    public boolean isPure() {
+    boolean isPure() {
         // Traverse through class hierarchy with reflection, to check for pure class
         Class<?> classObj = Builtin.getInstance(this.callName).getClass();
         while(classObj!= null){
@@ -92,7 +98,9 @@ public abstract class  McLabBuiltinGenerator<Res> {
     public String getGeneratedBuiltinName(){
         return  (generatedCallName != null)?generatedCallName: callName;
     }
-
+    /**
+     * Default generate input as it comes.
+     */
     abstract void generateInputs();
 
     abstract void generateCall();

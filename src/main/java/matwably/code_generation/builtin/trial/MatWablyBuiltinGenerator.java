@@ -5,7 +5,7 @@ import ast.NameExpr;
 import matwably.analysis.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.ExpressionGenerator;
-import matwably.code_generation.builtin.ResultWasmGenerator;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.Util;
@@ -14,9 +14,11 @@ import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.toolkits.analysis.core.Def;
 
 /**
- * This class serves
+ * This class serves as a generator class for the built-ins supported by the MatWably,
+ * its built around the scalar vs array specialization. It inherets from the McLabBuiltinGenerator,
+ * which other backends may use for their own generation.
  */
-public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<ResultWasmGenerator> {
+public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<MatWablyBuiltinGeneratorResult> {
     protected final boolean disallow_logicals;
     protected MatWablyFunctionInformation matwably_analysis_set;
     protected ValueAnalysisUtil valueUtil;
@@ -50,7 +52,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
     public MatWablyBuiltinGenerator(ast.ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName,
                                     MatWablyFunctionInformation analyses) {
         super(node, arguments,targs,callName, analyses.getFunctionAnalysis(), analyses.getFunctionQuery());
-        this.result = new ResultWasmGenerator();
+        this.result = new MatWablyBuiltinGeneratorResult();
         this.expressionGenerator = analyses.getExpressionGenerator();
         this.generatedCallName = this.callName;
         this.matwably_analysis_set = analyses;
@@ -68,22 +70,12 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
     }
 
     /**
-     * Generator function, it only generates call if the call is not pure or there is more than one target.
-     */
-    public void generate() {
-        if (!functionQuery.isUserDefinedFunction(callName) && isPure()&& returnsZeroTargets()) return;
-        generateExpression();
-        generateSetToTarget();
-
-    }
-    /**
-     * Determines whether the
+     * Default call generator, if the subclass does not overwrite, it creates the function call
+     * by appending S (scalar), M (array) for the specialized arguments.
      */
     @Override
     public void generateCall() {
-
         String generatedFunctionName =  getGeneratedBuiltinName();
-
         if(isSpecialized()||functionQuery.isUserDefinedFunction(this.callName)){
             StringBuilder acc = new StringBuilder(generatedFunctionName);
             acc.append("_");
@@ -110,17 +102,16 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
      *  a. If is an scalar vector, use `get_array_index_f64` directly.
      *  b. If is a combination: (i) if scalar, unbox, (ii) if vector, simply set.
      *  TODO: Throw error for user defined functions that try to access an unitialized variable
-     *  TODO: Add logical targets
      */
     @Override
     void generateSetToTarget() {
         // Find out whether the function returns a result, if it does drop the target
         if(returnsZeroTargets()&&!expressionReturnsVoid()){
-            if(!expressionHasSpecializationForScalar()){
+            if(!expressionHasSpecializationForScalar())
                 result.addInstructions(MatWablyArray.freeMachArray());
-            }
-            // Figure out whether expression returns a scalar
             result.addInstruction(new Drop());
+            // Cases where we have a function call return a value. In MatWably, we may never have multiple return
+            // values due to the _wasm_ restrictions, therefore, we have to just drop a single value.
         }else if(returnsSingleTarget()){
 
             String targetName = targets.getNameExpresion(0).getVarName();
@@ -185,7 +176,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
 
     /**
      * Returns whether the return value is known to be a scalar, and the targets is 1.
-     * @return
+     * @return Returns whether the return value is known to be a scalar
      */
     public boolean targetIsScalar(){
         return targets.size() == 1
@@ -216,11 +207,11 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
 
 
     /**
-     * Returns a vector of scalars values, that we know statically. Size() is an example of this
+     * Returns whether the targets are a vector of scalars values, that we know statically. Size() is an example of this
      * Note that this states whether it returns a scalarVector for a fact, not whether it is possible
-     * to return a scalarVector, it may still be possible. In this case, we have a boxed scalar that cannot
+     * to return a scalarVector, it may still be possible, we may have scalars that cannot
      * be recognized statically.
-     * @return
+     * @return Returns whether the targets are a vector of scalars values
      */
     public boolean targetIsScalarVector() {
         // At this level, we check value analysis for this.
@@ -230,8 +221,8 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Res
 
 
     /**
-     * Returns whether all the arguments are scalar
-     * @return
+     * Returns whether all the arguments are statically known scalar
+     * @return Returns whether all the arguments are scalar
      */
     public boolean argumentsAreScalar(){
         return arguments.getNameExpressions().stream().allMatch((NameExpr expr)->

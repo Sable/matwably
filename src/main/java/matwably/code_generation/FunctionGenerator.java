@@ -20,7 +20,7 @@ import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.analysis.memory_management.GarbageCollectionAnalysis;
 import matwably.ast.*;
 import matwably.code_generation.builtin.BuiltinGenerator;
-import matwably.code_generation.builtin.ResultWasmGenerator;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.code_generation.wasm.SwitchStatement;
@@ -325,20 +325,20 @@ public class FunctionGenerator {
             MatWablyBuiltinGenerator generator = builtin_analysis.getGenerator((TIRCallStmt) tirStmt);
 
 //            generator.generate();
-            ResultWasmGenerator resultWasmGenerator = generator.getResult();
-            //            ResultWasmGenerator resultWasmGenerator = BuiltinGenerator.
+            MatWablyBuiltinGeneratorResult matWablyBuiltinGeneratorResult = generator.getResult();
+            //            MatWablyBuiltinGeneratorResult matWablyBuiltinGeneratorResult = BuiltinGenerator.
 //                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,expressionGenerator);
-            locals.addAll(resultWasmGenerator.getLocals());
+            locals.addAll(matWablyBuiltinGeneratorResult.getLocals());
             if (this.loopStack.isEmpty())
-                res.addAll(resultWasmGenerator.getAlloc_input_vec_instructions());
+                res.addAll(matWablyBuiltinGeneratorResult.getAlloc_input_vec_instructions());
 
-            res.addAll(resultWasmGenerator.getInstructions());
+            res.addAll(matWablyBuiltinGeneratorResult.getInstructions());
 
             if (this.loopStack.isEmpty())
-                res.addAll(resultWasmGenerator.getFree_input_vec_instructions());
+                res.addAll(matWablyBuiltinGeneratorResult.getFree_input_vec_instructions());
 
 //            TIRCallStmt callStmt = (TIRCallStmt)tirStmt;
-//            ResultWasmGenerator callGenerator =
+//            MatWablyBuiltinGeneratorResult callGenerator =
 //                    MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),callStmt.getTargets(),
 //                            callStmt.getFunctionName().getID(), interproceduralFunctionQuery, analysisFunction, expressionGenerator)
 //                        .generate();
@@ -793,7 +793,7 @@ public class FunctionGenerator {
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
                     null,"set",programAnalysis,
                     analysisFunction, expressionGenerator);
-            ResultWasmGenerator result =  generator.getResult();
+            MatWablyBuiltinGeneratorResult result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(typedArr)));
             // Generate inputs
             generator.generateInputs();
@@ -850,7 +850,7 @@ public class FunctionGenerator {
                     tirStmt.getTargets(),"get",programAnalysis,
                     analysisFunction, expressionGenerator);
 
-            ResultWasmGenerator result =  generator.getResult();
+            MatWablyBuiltinGeneratorResult result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getArrayName().getID()))));
             // Generate inputs
             generator.generateInputs();
