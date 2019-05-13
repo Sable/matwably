@@ -1,19 +1,28 @@
 package matwably.util;
 
 import ast.ASTNode;
+import ast.Function;
+import ast.Name;
 import ast.NameExpr;
 import matjuice.transformer.MJCopyStmt;
+import matwably.analysis.intermediate_variable.UseDefDefUseChain;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueSet;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.Shape;
+import natlab.toolkits.analysis.core.Def;
+import natlab.utils.NodeFinder;
+
+import java.util.Set;
 
 public class ValueAnalysisUtil {
+    private final UseDefDefUseChain udChain;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
 
-    public ValueAnalysisUtil(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction) {
+    public ValueAnalysisUtil(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction, UseDefDefUseChain udChain) {
         this.analysisFunction = analysisFunction;
+        this.udChain = udChain;
     }
 
     public boolean isScalar(String name, ASTNode node, boolean isRHS) {
@@ -120,16 +129,40 @@ public class ValueAnalysisUtil {
 
 
     /**
-     * Returns the BasicMatrixValue from value analysis.
-     *
+     * Returns the BasicMatrixValue from value analysis. If it a MJCopyStmt, it goes to Source in the statement
+     * to get the value. Patch since ValueAnalysis is performed before the insertion of the MJCopyStmt's
      * @param name  String name to analyze
      * @param node  TIRNode node where there NameExpression happes
      * @param isRHS whether we want to analyze the inFlow or OutFlow. i.e. parameters or. arguments to calls.
      * @return Returns the matrix value for the
      */
     private BasicMatrixValue getMatrixValue(String name, ASTNode node, boolean isRHS) {
-        ValueSet<AggrValue<BasicMatrixValue>> val = null;
-        if(!(node instanceof MJCopyStmt)){
+        ValueSet<AggrValue<BasicMatrixValue>> val;
+        if(node instanceof MJCopyStmt)
+        {
+            MJCopyStmt stmt = (MJCopyStmt)node;
+            // If only one definition, return that one. If all scalar, return one scalar def, if not return null
+            Set<Def> defs = this.udChain.getDefs(stmt.getSourceName());
+            if(defs.size() == 1){
+                ASTNode defNode = (ASTNode) defs.toArray()[0];
+                // If is Name it's an argument in the function, therefore the correct node is actually
+                // the function itself.
+                if(defNode instanceof Name){
+                    defNode = NodeFinder.findParent(Function.class, defNode);
+                }
+                return getMatrixValue(stmt.getSourceName().getID(), defNode, false);
+            }else{
+                boolean allScalar = defs.stream().allMatch((Def def) ->
+                        this.isScalar(stmt.getSourceName().getID(),
+                                (ASTNode) def, false));
+                if(allScalar&&defs.size() > 0){
+                    return getMatrixValue(stmt.getSourceName().getID(), (ASTNode) defs.toArray()[0], false);
+                }else{
+                    return null;
+                }
+            }
+
+        }else {
             if (isRHS ) {
                 val = analysisFunction
                         .getInFlowSets()

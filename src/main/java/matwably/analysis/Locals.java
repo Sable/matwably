@@ -52,7 +52,6 @@ public class Locals {
             this.disallow_logicals = disallow_logicals;
         }
 
-
         /**
          * Adds declaration to WebAssembly local set
          * @param node ast node associated with the declaration
@@ -61,7 +60,7 @@ public class Locals {
         private void addDeclaration(Name name, ASTNode node){
             TypeUse typeUse = new TypeUse();
             String identifier_name;
-            if(valueAnalysisUtil.isScalar(name.getID(), node, false)){
+            if(valueAnalysisUtil.isScalar(name.getID(), node, false)) {
                 if(!disallow_logicals &&
                         node instanceof Def &&
                         this.logicalVariableUtil.

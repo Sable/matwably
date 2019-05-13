@@ -62,6 +62,7 @@ public class FunctionGenerator {
     private TreeExpressionBuilderAnalysis elim_var_analysis = null;
     private ValueAnalysisUtil valueAnalysisUtil;
     private LogicalVariableUtil logicalVariableUtil;
+    private UseDefDefUseChain udChain;
 
     /**
      * Returns the ast of the generated function
@@ -102,12 +103,11 @@ public class FunctionGenerator {
         this.analysisFunction = analysisFunction;
         this.matlabFunction = analysisFunction.getTree();
         this.interproceduralFunctionQuery = functionQuery;
-        this.valueAnalysisUtil = new ValueAnalysisUtil(this.analysisFunction);
         this.output_parameters = new List<>();
         this.parameters = new List<>();
         this.locals = new List<>();
         this.functionAnalyses = new MatWablyFunctionInformation(analysisFunction.getTree(),
-                analysisFunction, functionQuery, valueAnalysisUtil, opts);
+                analysisFunction, functionQuery, opts);
     }
     public String genFunctionName() {
         TIRFunction func = analysisFunction.getTree();
@@ -129,11 +129,21 @@ public class FunctionGenerator {
         // Add copy of parameters
         Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(matlabFunction);
         ParameterCopyTransformer.apply(matlabFunction, writtenParams);
+        // Perform copy insertion
+        if(!opts.omit_copy_insertion) {
+            performCopyInsertion();
+        }
+
 
         // Run reaching definition and add it to set of analysis
         ReachingDefinitions defs = new ReachingDefinitions(this.matlabFunction);
         defs.analyze();
-        defs.getDefs().stream().map(Name::getID).forEach(System.out::println);
+        this.udChain = defs.getUseDefDefUseChain();
+        // Requires chain for
+        this.valueAnalysisUtil = new ValueAnalysisUtil(this.analysisFunction, this.udChain);
+
+        this.functionAnalyses.setValueAnalysisUtil(valueAnalysisUtil);
+
 
         ReachingDefs defss = new ReachingDefs(this.matlabFunction);
         defss.analyze();
@@ -187,10 +197,7 @@ public class FunctionGenerator {
         }
 
 
-        // Perform copy insertion
-        if(!opts.omit_copy_insertion) {
-            performCopyInsertion();
-        }
+
     }
     /**
      * Function generator method, takes a tamer function as input
@@ -371,9 +378,17 @@ public class FunctionGenerator {
      */
     private List<Instruction> genMJCopyStmt(TIRCopyStmt tirStmt) {
         List<Instruction> res = new List<>();
-        res.addAll(expressionGenerator.genNameExpr((NameExpr)tirStmt.getRHS(), tirStmt));
-        res.addAll(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
-        res.addAll(new SetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getTargetName().getID()))));
+        if(valueAnalysisUtil.isScalar(tirStmt.getSourceName().getID(), tirStmt, false)){
+            // Only generate if scalars are different names, otherwise computation does nothing
+            if(!tirStmt.getSourceName().getID().equals(tirStmt.getTargetName().getID())){
+                res.addAll(new GetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getSourceName().getID()))));
+                res.addAll(new SetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getTargetName().getID()))));
+            }
+        }else{
+            res.addAll(expressionGenerator.genNameExpr((NameExpr)tirStmt.getRHS(), tirStmt));
+            res.addAll(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
+            res.addAll(new SetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getTargetName().getID()))));
+        }
         return res;
     }
     private List<Instruction> genCondition(Stmt tirStmt, Name name){
@@ -503,10 +518,11 @@ public class FunctionGenerator {
                     res.add(new SetLocal(new Idx(typedInc)));
                 }
             }
-            return genStaticLoop(tirStmt, direction,
+            res.addAll(genStaticLoop(tirStmt, direction,
                     typedLow,
                     typedHigh,
-                    typedInc);
+                    typedInc));
+            return res;
         }else if(direction == LoopDirection.NonMoving){
             res.addAll(genNonMovingForloop(tirStmt));
         }else if(direction == LoopDirection.Unknown){
@@ -713,13 +729,12 @@ public class FunctionGenerator {
     }
 
 
-
+    // TODO Fix this
     private List<Instruction> genSetArrayStmt(TIRArraySetStmt tirStmt){
         String val = tirStmt.getValueName().getID();
         String typedArr = Util.getTypedLocalI32(tirStmt.getArrayName().getID());
         BasicMatrixValue bmv = Util.getBasicMatrixValue(analysisFunction, tirStmt, val);
         List<Instruction> res = new List<>();
-
 
         if(isSlicingOperation(tirStmt, tirStmt.getIndices())){
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
@@ -774,7 +789,8 @@ public class FunctionGenerator {
     private List<Instruction> genGetArrayStmt(TIRArrayGetStmt tirStmt) {
         List<Instruction> res = new List<>();
         BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt, tirStmt.getArrayName().getID());
-        if(val.hasShape()&&val.getShape().isScalar()){
+
+        if(valueAnalysisUtil.isScalar(tirStmt.getArrayName().getID(), tirStmt, true)){
             res.addAll(new GetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getArrayName().getID()))));
         }
         if(isSlicingOperation(tirStmt,tirStmt.getIndices())){

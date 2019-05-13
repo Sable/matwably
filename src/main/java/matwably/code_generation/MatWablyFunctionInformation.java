@@ -10,6 +10,7 @@ import matwably.analysis.memory_management.GarbageCollectionAnalysis;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.LogicalVariableUtil;
 import matwably.util.ValueAnalysisUtil;
+import natlab.tame.tir.TIRFunction;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
@@ -95,10 +96,15 @@ public class MatWablyFunctionInformation {
         this.logical_var_util = logical_var_util;
         this.program_options = opts;
     }
-    public MatWablyFunctionInformation(){
-
+    public MatWablyFunctionInformation(TIRFunction tree, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction, InterproceduralFunctionQuery functionQuery, MatWablyCommandLineOptions opts){
+        this.function = tree;
+        this.functionAnalysis = analysisFunction;
+        this.functionQueryAnalysis = functionQuery;
+        this.program_options = opts;
     }
-
+    public void setValueAnalysisUtil(ValueAnalysisUtil valueAnalysisUtil){
+        this.valueAnalysisUtil = valueAnalysisUtil;
+    }
     public MatWablyBuiltinAnalysis getBuiltinAnalysis() {
         return builtinAnalysis;
     }
