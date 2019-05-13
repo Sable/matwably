@@ -1,6 +1,6 @@
 package matwably.code_generation;
 
-import matwably.CommandLineOptions;
+import matwably.MatWablyCommandLineOptions;
 import matwably.Main;
 import matwably.ast.Function;
 import matwably.ast.ImportedWat;
@@ -20,7 +20,7 @@ import static matwably.util.FileUtility.readStreamIntoString;
 
 /**
  * Program generator for the MatWably compiler, takes as input the InterproceduralValueAnalysis
- * result.
+ * to produce a WebAssembly module.
  */
 public class ProgramGenerator {
     /**
@@ -30,7 +30,7 @@ public class ProgramGenerator {
     /**
      * Command line options for the compiler
      */
-    private CommandLineOptions opts;
+    private MatWablyCommandLineOptions opts;
     /**
      * InterproceduralFunctionQuery object field
      */
@@ -42,7 +42,7 @@ public class ProgramGenerator {
      * @param opts Command line options for the compiler.
      */
     public ProgramGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis,
-                            CommandLineOptions opts) {
+                            MatWablyCommandLineOptions opts) {
         this.analysis = funcAnalysis;
         this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(analysis);
         this.opts = opts;

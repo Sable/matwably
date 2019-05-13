@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.properties;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.ConstLiteral;
 import matwably.ast.F64;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public class Numel extends Property{
@@ -21,7 +22,9 @@ public class Numel extends Property{
     }
 
     @Override
-    public void generateScalarExpression() {
+    public MatWablyBuiltinGeneratorResult generateScalarExpression() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new ConstLiteral(new F64(),1));
+        return result;
     }
 }

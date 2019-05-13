@@ -1,8 +1,9 @@
 package matwably.code_generation.builtin.trial.properties;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -51,14 +52,16 @@ public abstract class Property extends MatWablyBuiltinGenerator {
         if(arguments.size() < 1) throw new MatWablyError.NotEnoughInputArguments(callName,node);
     }
 
-    public abstract void generateScalarExpression();
+    public abstract MatWablyBuiltinGeneratorResult generateScalarExpression();
 
-    public void generateExpression(){
+    public MatWablyBuiltinGeneratorResult generateExpression(){
         validateInput();
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
-            generateScalarExpression();
+            result.add(generateScalarExpression());
         }else{
-            super.generateExpression();
+            result.add(super.generateExpression());
         }
+        return result;
     }
 }

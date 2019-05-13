@@ -6240,28 +6240,30 @@ return)
 (func $ones_S (result f64)
     f64.const 1
 )
-(export "length" (func $length))
-(func $length (param $arr_ptr i32) (result f64)
-    (local $new_ptr i32)(local $i i32)(local $dim_number i32) (local $dim_ptr i32)
+(export "length" (func $length_M))
+(func $length_M (param $arr_ptr i32) (result f64)
+    (local $data_ptr i32)(local $i i32)(local $ndim i32) (local $dim_ptr i32)
     (local $max f64)(local $temp f64)
     get_local $arr_ptr
-    call $is_null
+    call $is_array
+    i32.eqz
     if
         i32.const 6
         call $throwError 
     end
-        (set_local $dim_number (call $mxarray_core_get_number_of_dimensions (get_local $arr_ptr )))
-    (set_local $dim_ptr (call $mxarray_core_get_dimensions_ptr (get_local $arr_ptr )))
-    loop
-        block
-        (i32.ge_s (get_local $i)(get_local $dim_number))
-        br_if 0
-            (tee_local $temp (f64.load offset=0 align=8 (i32.add (get_local $dim_ptr)(i32.mul (get_local $i)(i32.const 8)))))
+    (set_local $ndim (i32.load offset=12 align=4 (get_local $arr_ptr)))
+    (set_local $dim_ptr (i32.load offset=16 align=4 (get_local $arr_ptr)))
+    (i32.lt_s (get_local $i)(get_local $ndim))
+    if
+        (set_local $data_ptr (i32.load offset=8 align=4 (get_local $arr_ptr)))
+        loop
             get_local $max
+            (f64.load offset=0 align=8 
+                (i32.add (get_local $dim_ptr)
+                (i32.shl (get_local $i)(i32.const 3)))) 
             f64.max
             set_local $max
-            (set_local $i (i32.add (get_local $i)(i32.const 1))) ;; Increase loop counter
-        br 1
+            (br_if 0 (i32.lt_s (get_local $i)(get_local $ndim)))
         end
     end
     get_local $max
@@ -10036,6 +10038,7 @@ return)
 (func $le_MM (param $m1_ptr i32)(param $m2_ptr i32) (result i32)
     (return (call $pairwise (get_local $m1_ptr)(get_local $m2_ptr)(i32.const 12)))
 )
+;; (func $)
 
     (export "lt_SM" (func $lt_SM))
 (func $lt_SM (param $x f64)(param $arr_ptr i32)(param $res_ptr i32) (result i32)
@@ -11376,13 +11379,13 @@ return)
     i32.const 0
     i32.gt_s
     if
-        loop                 
+        loop               
             get_local $arr_ptr
             get_local $step
             i32.add
             f64.load offset=0 align=8
-            i32.trunc_s/f64
-            i32.eqz
+            f64.const 0
+            f64.eq
             if
                 i32.const 0
                 return
@@ -11850,13 +11853,9 @@ return)
 )    
 (func $logical1_S (param $a_f64 f64)
 	(local $mc_t1_i32 i32)(local $mc_t2_f64 f64)
-	f64.const 3.0
-	set_local $mc_t2_f64
 	get_local $a_f64
-	get_local $mc_t2_f64
+	f64.const 3.0
 	f64.lt
-	set_local $mc_t1_i32
-	get_local $mc_t1_i32
 	if 
 		get_local $a_f64
 		call $disp_S

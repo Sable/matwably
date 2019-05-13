@@ -2,7 +2,7 @@ package matwably.code_generation.builtin.trial.concatanation;
 
 import ast.ASTNode;
 import ast.NameExpr;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 

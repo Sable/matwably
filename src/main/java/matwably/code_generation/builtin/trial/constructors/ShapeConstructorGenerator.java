@@ -2,12 +2,15 @@ package matwably.code_generation.builtin.trial.constructors;
 
 import ast.ASTNode;
 import ast.NameExpr;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import matwably.code_generation.builtin.trial.input_generation.ShapeInputGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
-
+/**
+ * TODO Javadoc
+ */
 public abstract class ShapeConstructorGenerator extends MatWablyBuiltinGenerator implements ShapeConstructor {
     /**
      * ShapeConstructor constructor method
@@ -45,7 +48,8 @@ public abstract class ShapeConstructorGenerator extends MatWablyBuiltinGenerator
     /**
      * TODO Add generation explanation
      */
-    public void generateExpression() {
+    public MatWablyBuiltinGeneratorResult generateExpression() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         int sizeArgs = arguments.size();
 
         if(sizeArgs == 0 ){
@@ -59,7 +63,9 @@ public abstract class ShapeConstructorGenerator extends MatWablyBuiltinGenerator
                     result.addInstructions(new ConstLiteral(new F64(), valueConstant));
                     result.addInstructions(new ConstLiteral(new F64(), valueConstant));
                 }else{
-                    if(!expressionGenerator.isSimpleExpression(nameExpr,node)){
+                    // Since we are duplicating the arg, if its a complicated expr. We may use a local instead, to
+                    // store the result of the computation once.
+                    if(!expressionGenerator.isSimpleExpression(nameExpr.getName())){
                         String scalar_arg = result.generateF64Local();
                         result.addInstructions(
                                 expressionGenerator.genNameExpr(nameExpr, node)
@@ -70,11 +76,11 @@ public abstract class ShapeConstructorGenerator extends MatWablyBuiltinGenerator
                         result.addInstructions(expressionGenerator.genNameExpr(nameExpr, node));
                     }
                 }
-                this.result.addInstruction(new Call(new Idx(this.get2DConstructorName())));
+                result.addInstruction(new Call(new Idx(this.get2DConstructorName())));
 
             }else { // Could add further error here for incorrect programs and invalid inputs.
                 result.addInstructions( expressionGenerator.genNameExpr(nameExpr,node));
-                this.generateCall();
+                result.add(this.generateCall());
             }
         }else if(sizeArgs == 2) {
             NameExpr arg1 = arguments.getNameExpresion(0);
@@ -98,29 +104,14 @@ public abstract class ShapeConstructorGenerator extends MatWablyBuiltinGenerator
                     result.addInstruction(new Call(new Idx("check_boxed_scalar_value")));
                 }
             }
-            this.result.addInstruction(new Call(new Idx(this.get2DConstructorName())));
+            result.addInstruction(new Call(new Idx(this.get2DConstructorName())));
         }else{
             ShapeInputGenerator shapeInputGenerator = new ShapeInputGenerator(node, arguments,
-                    targets, matwably_analysis_set,result);
-            shapeInputGenerator.generate();
-//            String input_arg = result.generateVectorInputF64(sizeArgs,true);
-//            // There are more than two arguments
-//            int i = 0;
-//            for(ast.NameExpr argExpr: arguments.getNameExpressions()){
-//                if(this.valueUtil.isScalar(argExpr,node)){
-//                    result.addInstruction(new GetLocal(new Idx(input_arg)));
-//                    result.addInstruction(new ConstLiteral(new I32(), i));
-//                    result.addInstructions(expressionGenerator.genNameExpr(argExpr,node));
-//                }else{
-//                    result.addInstructions(expressionGenerator.genNameExpr(argExpr,node));
-//                    result.addInstruction(new Call(new Idx("check_boxed_scalar_value")));
-//                }
-//                result.addInstruction(new Call(new Idx("set_array_index_f64_no_check")));
-//                i++;
-//            }
-//            result.addInstruction(new GetLocal(new Idx(input_arg)));
-            this.generateCall();
+                    targets, matwably_analysis_set);
+            result.add(shapeInputGenerator.generate());
+            result.add(this.generateCall());
         }
+        return result;
 
     }
 }

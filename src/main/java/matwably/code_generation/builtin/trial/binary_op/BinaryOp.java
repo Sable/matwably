@@ -1,12 +1,13 @@
 package matwably.code_generation.builtin.trial.binary_op;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.ConstLiteral;
 import matwably.ast.I32;
 import matwably.ast.Idx;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
@@ -42,7 +43,7 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
      * e.g. if the operation is binary addition,
      * this function adds the instruction `f64.add` to the return object
      */
-    public abstract void generateScalarCall();
+    public abstract MatWablyBuiltinGeneratorResult generateScalarCall();
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -79,7 +80,9 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
     public boolean expressionReturnsVoid() {
         return false;
     }
-    public void generateExpression(){
+
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         if(arguments.size()<2) throw new MatWablyError.NotEnoughInputArguments(callName,node);
         if(arguments.size()>2) throw new MatWablyError.TooManyInputArguments(callName,node);
         boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node,true);
@@ -87,9 +90,9 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
         Shape arg1Shape = valueUtil.getShape(arguments.getNameExpresion(0),node,true);
         Shape arg2Shape = valueUtil.getShape(arguments.getNameExpresion(1),node,true);
 
-        generateInputs();
+        result.add(generateInputs());
         if(arg1IsScalar && arg2IsScalar){
-            generateScalarCall();
+            result.add(generateScalarCall());
         }else{
             // Generate extra res_ptr for matrix results
             result.addInstruction(new ConstLiteral(new I32(),0));
@@ -114,6 +117,6 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
                 result.addInstruction(new Call(new Idx(generatedCallName+"_MM")));
             }
         }
-
+        return result;
     }
 }

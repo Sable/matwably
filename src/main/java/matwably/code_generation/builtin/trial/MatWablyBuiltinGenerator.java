@@ -2,7 +2,7 @@ package matwably.code_generation.builtin.trial;
 
 
 import ast.NameExpr;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.ExpressionGenerator;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
@@ -19,13 +19,16 @@ import natlab.toolkits.analysis.core.Def;
  * which other backends may use for their own generation.
  */
 public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<MatWablyBuiltinGeneratorResult> {
+    /**
+     * Disallow logicals option
+     */
     protected final boolean disallow_logicals;
-    protected MatWablyFunctionInformation matwably_analysis_set;
-    protected ValueAnalysisUtil valueUtil;
-    protected ExpressionGenerator expressionGenerator;
-    private InterproceduralFunctionQuery functionQuery;
-    // booleans for the type of call
-
+    protected final MatWablyFunctionInformation matwably_analysis_set;
+    protected final ValueAnalysisUtil valueUtil;
+    protected final ExpressionGenerator expressionGenerator;
+    protected final InterproceduralFunctionQuery functionQuery;
+    protected MatWablyBuiltinGeneratorResult resultExpression = null;
+    protected MatWablyBuiltinGeneratorResult resultTarget = null;
     /**
      *  Returns whether the function is specialized for re-naming purposes.
      *  If we implement classes for all the generated built-in this function will get deprecated.
@@ -64,9 +67,18 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
      * Default generate input as it comes.
      */
     @Override
-    public void generateInputs() {
+    public MatWablyBuiltinGeneratorResult generateInputs() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         arguments.forEach((ast.Expr arg)->
                 result.addInstructions(this.expressionGenerator.genNameExpr(((NameExpr) arg),this.node)));
+        return result;
+    }
+
+    public MatWablyBuiltinGeneratorResult getGeneratedExpressionResult() {
+        return (resultExpression == null)?generateExpression():resultExpression;
+    }
+    public MatWablyBuiltinGeneratorResult getGeneratedSetToTargetResult() {
+        return (resultTarget == null)?generateExpression():resultTarget;
     }
 
     /**
@@ -74,7 +86,8 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
      * by appending S (scalar), M (array) for the specialized arguments.
      */
     @Override
-    public void generateCall() {
+    public MatWablyBuiltinGeneratorResult generateCall() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         String generatedFunctionName =  getGeneratedBuiltinName();
         if(isSpecialized()||functionQuery.isUserDefinedFunction(this.callName)){
             StringBuilder acc = new StringBuilder(generatedFunctionName);
@@ -89,8 +102,26 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
 
         result.addInstruction(new Call(
                 new Idx(new Opt<>(new Identifier(generatedCallName)),0)));
+        return result;
     }
 
+    /**
+     * Generator function, it only generates call if the call is not pure or there is more than one target.
+     */
+    public MatWablyBuiltinGeneratorResult generate(){
+        if (!functionQuery.isUserDefinedFunction(callName)
+                && isPure()&& returnsZeroTargets())
+            return new MatWablyBuiltinGeneratorResult();
+        resultExpression = generateExpression();
+        resultTarget = generateSetToTarget();
+        result = MatWablyBuiltinGeneratorResult.merge(resultExpression,resultTarget);
+        return result;
+    }
+
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        return generateInputs()
+                .add(generateCall());
+    }
     /**
      * Generation strategy for setting to target.
      * 1. If zero targets and the expression does not return void. Add the drop instruction.
@@ -104,7 +135,8 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
      *  TODO: Throw error for user defined functions that try to access an unitialized variable
      */
     @Override
-    void generateSetToTarget() {
+    public MatWablyBuiltinGeneratorResult generateSetToTarget() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         // Find out whether the function returns a result, if it does drop the target
         if(returnsZeroTargets()&&!expressionReturnsVoid()){
             if(!expressionHasSpecializationForScalar())
@@ -124,7 +156,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
                     result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalF64(targetName))));
                     result.addInstructions(MatWablyArray.freeMachArray(res_name));
                 }else{
-                    //  If is a scalar simple
+                    //  Check if its a scalar
                     if(matwably_analysis_set.getLogicalVariableUtil().
                             isDefinitionLogical(targetName, (Def)node)){
                         result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalI32(targetName))));
@@ -172,6 +204,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
             }
             result.addInstructions(MatWablyArray.freeMachArray());
         }
+        return result;
     }
 
     /**

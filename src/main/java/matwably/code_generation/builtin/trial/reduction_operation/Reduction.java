@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.reduction_operation;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -51,7 +52,7 @@ public class Reduction extends MatWablyBuiltinGenerator{
     public boolean expressionReturnsVoid() {
         return false;
     }
-    public void checkInput(){
+    public void validateInput(){
         if(arguments.size() < 1) throw new MatWablyError.NotEnoughInputArguments(callName, node);
         if(arguments.size() > 2) throw new MatWablyError.TooManyInputArguments(callName, node);
         if(arguments.size()== 2 &&
@@ -64,8 +65,10 @@ public class Reduction extends MatWablyBuiltinGenerator{
         return true;
     }
     @Override
-    public void generateExpression(){
-        checkInput();
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        validateInput();
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+
         result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(0),node));
         if(arguments.size() == 2)
             result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(1),node));
@@ -88,16 +91,12 @@ public class Reduction extends MatWablyBuiltinGenerator{
                 result.addInstruction(new If(new Opt<>(),new Opt<>(),
                         new List<>(new ConstLiteral(new I32(), 15),
                                 new Call(new Idx("throwError"))),new List<>()));
-
-
             }
-
         }else{
             // Extra argument for the omitnan!!
             result.addInstruction(new ConstLiteral(new I32(),0));
-            generateCall();
+            result.add(generateCall());
         }
-
+        return result;
     }
-
 }

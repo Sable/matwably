@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.binary_op.numerical;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.F64;
 import matwably.ast.Sub;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.binary_op.BinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -27,7 +28,9 @@ public class Minus extends BinaryOp {
      * this function adds the instruction `f64.add` to the return object
      */
     @Override
-    public void generateScalarCall() {
+    public MatWablyBuiltinGeneratorResult generateScalarCall() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new Sub(new F64()));
+        return result;
     }
 }

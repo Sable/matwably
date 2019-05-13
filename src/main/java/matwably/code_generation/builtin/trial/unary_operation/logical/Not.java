@@ -1,10 +1,11 @@
 package matwably.code_generation.builtin.trial.unary_operation.logical;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.ConstLiteral;
 import matwably.ast.Eq;
 import matwably.ast.F64;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.unary_operation.LogicalUnaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -25,10 +26,13 @@ public class Not extends LogicalUnaryOp {
      * To be implemented by child classes, this function generates the scalar instruction or scalar call
      * e.g. if the operation is binary addition,
      * this function adds the instruction `f64.add` to the return object
+     * TODO Check if we can avoid this f64 comparison with an i32 eqz
      */
     @Override
-    public void generateScalarCall() {
+    public MatWablyBuiltinGeneratorResult generateScalarCall() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstructions(new ConstLiteral(new F64(), 0), new Eq(new F64()));
+        return result;
     }
 
 }

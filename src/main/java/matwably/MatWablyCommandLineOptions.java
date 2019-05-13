@@ -7,9 +7,14 @@ import natlab.toolkits.filehandling.GenericFile;
 
 import java.io.File;
 import java.util.ArrayList;
+//TODO javadoc for this class
 
+/**
+ * Command line options class for the MatWably compiler, based on
+ * {@link JCommander}
+ */
 @Parameters(separators = "=")
-public final class CommandLineOptions {
+public final class MatWablyCommandLineOptions {
     @Parameter(description = "The list of files to process")
     public ArrayList<String> input_files = new ArrayList<String>();
     @Parameter(names = {"-h","--help"}, hidden = true)
@@ -21,10 +26,11 @@ public final class CommandLineOptions {
     @Parameter(names = {"--opt-peephole"},
             description = "Option to turn on peephole optimizer, default is on")
     public boolean peephole = false;
+
     // TODO: Add this capability to the main file.
-    @Parameter(names = {"--old-builtins"},
+    @Parameter(names = {"--legacy-builtins"},
             description = "Option to use old built-in generation")
-    public boolean old_builtin = false;
+    public boolean legacy_builtins = false;
 
     @Parameter(names = {"--inline-wasm"},
             description = "Option to in-line wasm code in a JavaScript UInt8Array instead of using I/O")
@@ -59,15 +65,15 @@ public final class CommandLineOptions {
     // TODO Check args for entry function are empty
     @Parameter(names = {"-a","--args"},
             description = "Arguments for entry function, e.g."+"'[\"DOUBLE&1*1&REAL\",\"DOUBLE&1*1&REAL\"]'\n"+
-            "\t\t\t\t\t   Representing two parameters, both, double, 1-by-1, real Matlab matrices")
+            "\t\t\t\t\t   Representing two parameters, both, double, 1-by-1, real Matlab matrices", required = true)
     public String args = "";
 
     @Parameter(names={ "--time" }, arity=1, description="time compilation time")
     public boolean timeCompilation = false;
     /**
-     * Parses the entry function parameters
-     * @param commander
-     * @return
+     * Parses the entry function parameters and prints usage if it gails.
+     * @param commander {@link JCommander} object
+     * @return An array of formatted string arguments.
      */
     public String[] getEntryFunctionArgs( JCommander commander)
     {
@@ -83,9 +89,8 @@ public final class CommandLineOptions {
     }
 
     /**
-     * Processes the matlab input files and creates generic matlab files
-     * @return Returns a Generic MatLab file using natlab.toolkits.filehandling
-     * @see natlab.toolkits.filehandling.GenericFile
+     * Processes the matlab input files and creates {@link GenericFile}
+     * @return Returns a Generic MatLab file {@link GenericFile}
      */
     public GenericFile getGenericFile()
     {

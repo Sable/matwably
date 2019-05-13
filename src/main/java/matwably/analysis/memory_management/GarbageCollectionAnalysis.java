@@ -4,7 +4,7 @@ import ast.ASTNode;
 import ast.Name;
 import ast.NameExpr;
 import matjuice.transformer.MJCopyStmt;
-import matwably.CommandLineOptions;
+import matwably.MatWablyCommandLineOptions;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
@@ -23,7 +23,7 @@ import static natlab.tame.builtin.shapeprop.mathmode.ast.MathModeExprEvaluator.D
 public class GarbageCollectionAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<ReferenceCountMap> {
     private final ValueAnalysisUtil valueAnalysisUtil;
     private final InterproceduralFunctionQuery functionQuery;
-    private final CommandLineOptions opts;
+    private final MatWablyCommandLineOptions opts;
     private final TIRFunction function;
 
     /**
@@ -35,7 +35,7 @@ public class GarbageCollectionAnalysis extends TIRAbstractSimpleStructuralForwar
     public GarbageCollectionAnalysis(TIRFunction astNode,
                                      ValueAnalysisUtil valueAnalysisUtil,
                                      InterproceduralFunctionQuery functionQuery,
-                                     CommandLineOptions opts) {
+                                     MatWablyCommandLineOptions opts) {
         super(astNode);
         this.function = astNode;
         this.valueAnalysisUtil = valueAnalysisUtil;

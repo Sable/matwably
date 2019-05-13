@@ -41,7 +41,6 @@ public class DefaultBuiltinInputHandler extends BuiltinInputHandler {
             String name = ((NameExpr) arg).getName().getID();
             BasicMatrixValue val = Util.getBasicMatrixValue(valueAnalysis, (ASTNode) stmt, name);
 
-            System.out.println(val);
             if(!val.hasShape()){
                 throw new Error("This does not have shape");
             }

@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.constant;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.Idx;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public class E extends Constant {
@@ -21,9 +22,11 @@ public class E extends Constant {
     }
 
     @Override
-    public void generateConstant()
+    public MatWablyBuiltinGeneratorResult generateConstant()
     {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new Call(new Idx("e")));
+        return result;
     }
 
 

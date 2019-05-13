@@ -1,10 +1,12 @@
-package matwably.analysis;
+package matwably.code_generation;
 
 import ast.Function;
-import matwably.CommandLineOptions;
+import matwably.MatWablyCommandLineOptions;
+import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
+import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
-import matwably.code_generation.ExpressionGenerator;
+import matwably.analysis.memory_management.GarbageCollectionAnalysis;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.LogicalVariableUtil;
 import matwably.util.ValueAnalysisUtil;
@@ -20,16 +22,35 @@ import natlab.toolkits.analysis.core.ReachingDefs;
 public class MatWablyFunctionInformation {
 
 
-    private final LogicalVariableUtil logical_var_util;
     private ast.Function function;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> functionAnalysis;
     private InterproceduralFunctionQuery functionQueryAnalysis;
-    private ExpressionGenerator expressionGenerator;
-    private ReachingDefs reachingDefs;
     private ValueAnalysisUtil valueAnalysisUtil;
+    private MatWablyCommandLineOptions program_options;
+
+    private ExpressionGenerator expressionGenerator;
+    private LogicalVariableUtil logical_var_util;
+    private ReachingDefs reachingDefs;
+
+
+    private ReachingDefinitions reachingDefinitions;
     private TreeExpressionBuilderAnalysis treeExpressionBuilderAnalysis;
-    private CommandLineOptions program_options;
-    private  AmbiguousVariableUtil amb_var_util;
+    private AmbiguousVariableUtil amb_var_util;
+    private MatWablyBuiltinAnalysis builtinAnalysis;
+    private GarbageCollectionAnalysis garbageCollectionAnalysis;
+
+
+    public MatWablyFunctionInformation(Function tree,
+                                       IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
+                                       InterproceduralFunctionQuery functionQuery,
+                                       ValueAnalysisUtil valueAnalysisUtil,
+                                       MatWablyCommandLineOptions opts) {
+        this.function = tree;
+        this.functionAnalysis = analysisFunction;
+        this.functionQueryAnalysis = functionQuery;
+        this.valueAnalysisUtil = valueAnalysisUtil;
+        this.program_options = opts;
+    }
 
     /**
      * Getter for valueAnalysisUtil
@@ -62,7 +83,7 @@ public class MatWablyFunctionInformation {
             TreeExpressionBuilderAnalysis treeExpressionBuilderAnalysis,
             AmbiguousVariableUtil amb_var_util,
             LogicalVariableUtil logical_var_util,
-            CommandLineOptions opts) {
+            MatWablyCommandLineOptions opts) {
         this.function = function;
         this.functionAnalysis = functionAnalysis;
         this.functionQueryAnalysis = functionQueryAnalysis;
@@ -74,7 +95,13 @@ public class MatWablyFunctionInformation {
         this.logical_var_util = logical_var_util;
         this.program_options = opts;
     }
+    public MatWablyFunctionInformation(){
 
+    }
+
+    public MatWablyBuiltinAnalysis getBuiltinAnalysis() {
+        return builtinAnalysis;
+    }
     /**
      * Getter to obtain the LogicalVariableUtil helper class
      * @return an instance of LogicalVariableUtil utility class
@@ -131,11 +158,55 @@ public class MatWablyFunctionInformation {
      * Getter for program options
      * @return Returns program options
      */
-    public CommandLineOptions getProgramOptions() {
+    public MatWablyCommandLineOptions getProgramOptions() {
         return program_options;
     }
 
-    public AmbiguousVariableUtil getAmbiguousVariableUtil() {
+    public AmbiguousVariableUtil getAmbiguousVariableUtil()
+    {
         return amb_var_util;
+    }
+
+    public void setLogicalVariableUtil(LogicalVariableUtil logical_var_util) {
+        this.logical_var_util = logical_var_util;
+    }
+
+    public void setExpressionGenerator(ExpressionGenerator expressionGenerator) {
+        this.expressionGenerator = expressionGenerator;
+    }
+
+    public void setReachingDefinitions(ReachingDefinitions reachingDefs) {
+        this.reachingDefinitions = reachingDefs;
+    }
+
+    /**
+     * @deprecated
+     * @param reachingDefs ReachingDefinitions from McSAF
+     */
+    public void setReachingDefs(ReachingDefs reachingDefs) {
+        this.reachingDefs = reachingDefs;
+    }
+
+    public void setTreeExpressionBuilderAnalysis(TreeExpressionBuilderAnalysis treeExpressionBuilderAnalysis) {
+        this.treeExpressionBuilderAnalysis = treeExpressionBuilderAnalysis;
+    }
+
+    public void setAmbigousVariableUtil(AmbiguousVariableUtil amb_var_util) {
+        this.amb_var_util = amb_var_util;
+    }
+    public void setBuiltinAnalysis(MatWablyBuiltinAnalysis builtinAnalysis) {
+        this.builtinAnalysis = builtinAnalysis;
+    }
+
+    public GarbageCollectionAnalysis getGarbageCollectionAnalysis() {
+        return garbageCollectionAnalysis;
+    }
+
+    public void setGarbageCollectionAnalysis(GarbageCollectionAnalysis garbageCollectionAnalysis) {
+        this.garbageCollectionAnalysis = garbageCollectionAnalysis;
+    }
+
+    public ReachingDefinitions getReachingDefinitions() {
+        return reachingDefinitions;
     }
 }

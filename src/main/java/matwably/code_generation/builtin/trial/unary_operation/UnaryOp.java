@@ -1,8 +1,9 @@
 package matwably.code_generation.builtin.trial.unary_operation;
 
 import ast.ASTNode;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.MatWablyError;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -17,7 +18,7 @@ public abstract class UnaryOp  extends MatWablyBuiltinGenerator {
      * e.g. if the operation is binary addition,
      * this function adds the instruction `f64.add` to the return object
      */
-    public abstract void generateScalarCall();
+    public abstract MatWablyBuiltinGeneratorResult generateScalarCall();
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -54,15 +55,18 @@ public abstract class UnaryOp  extends MatWablyBuiltinGenerator {
     public boolean expressionReturnsVoid() {
         return false;
     }
-    public void generateExpression(){
+    public MatWablyBuiltinGeneratorResult generateExpression(){
         if(arguments.size()<1) throw new MatWablyError.NotEnoughInputArguments(callName,node);
         if(arguments.size()>1) throw new MatWablyError.TooManyInputArguments(callName,node);
-        generateInputs();
-        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
-            generateScalarCall();
-        }else{
-            generateCall();
-        }
 
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+
+        result.add(generateInputs());
+        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
+            result.add(generateScalarCall());
+        }else{
+            result.add(generateCall());
+        }
+        return result;
     }
 }

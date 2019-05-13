@@ -1,10 +1,11 @@
 package matwably.code_generation.builtin.trial.constant;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.ConstLiteral;
 import matwably.ast.F64;
 import matwably.ast.I32;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.toolkits.analysis.core.Def;
 
@@ -23,13 +24,15 @@ public class True  extends Constant {
     }
 
     @Override
-    public void generateConstant() {
+    public MatWablyBuiltinGeneratorResult generateConstant() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         if(disallow_logicals ||!matwably_analysis_set.getLogicalVariableUtil().
                 isDefinitionLogical(targets.getName(0).getID(), (Def)node)){
             result.addInstruction(new ConstLiteral(new F64(), 1));
         }else{
             result.addInstruction(new ConstLiteral(new I32(), 1));
         }
+        return result;
     }
 
 

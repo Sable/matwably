@@ -3,10 +3,11 @@ package matwably.code_generation.builtin.trial.concatanation;
 
 import ast.ASTNode;
 import ast.NameExpr;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.GetLocal;
 import matwably.ast.Idx;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.input_generation.VectorInputGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import natlab.tame.tir.TIRCommaSeparatedList;
@@ -45,7 +46,8 @@ public class Horzcat extends AbstractConcat {
      * If all arguments are known scalars, we may simply create a row vector
      */
     @Override
-    public void generateExpression() {
+    public MatWablyBuiltinGeneratorResult generateExpression() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         if(arguments.size()>0){
             if(arguments.size() == 1) {
                 // Specialization for potential scalar
@@ -63,12 +65,13 @@ public class Horzcat extends AbstractConcat {
                 result.addInstruction(new GetLocal(new Idx(f64_input_vec)));
 
             }else{
-                VectorInputGenerator input_generator = new VectorInputGenerator(node, arguments, targets, matwably_analysis_set, result);
-                input_generator.generate();
+                VectorInputGenerator input_generator = new VectorInputGenerator(node, arguments, targets, matwably_analysis_set);
+                result.add(input_generator.generate());
                 result.addInstruction(new Call(new Idx("horzcat")));
             }
         }else{
-            this.result.addInstructions(MatWablyArray.createEmptyArray(2));
+            result.addInstructions(MatWablyArray.createEmptyArray(2));
         }
+        return result;
     }
 }

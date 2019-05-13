@@ -2,6 +2,7 @@ package matwably.util;
 
 import ast.Function;
 import ast.Name;
+import natlab.tame.builtin.Builtin;
 import natlab.tame.interproceduralAnalysis.InterproceduralAnalysisNode;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
@@ -17,5 +18,15 @@ public class InterproceduralFunctionQuery {
         return programAnalysis.getNodeList().stream().map(InterproceduralAnalysisNode::getAnalysis)
                 .map(IntraproceduralValueAnalysis::getTree).map(Function::getName).map(Name::getID)
                 .anyMatch((String str)->str.equals(name));
+    }
+    public boolean isCallPure(String name){
+        // Traverse through class hierarchy with reflection, to check for pure class
+        if(isUserDefinedFunction(name))return false;
+        Class<?> classObj = Builtin.getInstance(name).getClass();
+        while(classObj!= null){
+            if(classObj.getName().contains("Pure")) return true;
+            classObj = classObj.getSuperclass();
+        }
+        return false;
     }
 }

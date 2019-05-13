@@ -1,10 +1,11 @@
 package matwably.code_generation.builtin.trial;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.MatWablyError;
 import matwably.code_generation.builtin.trial.binary_op.logical.*;
 import matwably.code_generation.builtin.trial.binary_op.numerical.*;
+import matwably.code_generation.builtin.trial.concatanation.Cat;
 import matwably.code_generation.builtin.trial.concatanation.Horzcat;
 import matwably.code_generation.builtin.trial.concatanation.Vertcat;
 import matwably.code_generation.builtin.trial.constant.E;
@@ -39,13 +40,14 @@ public class MatWablyBuiltinGeneratorFactory {
          matwablyGeneratorMap.put("randi", RandiGenerator.class);
          matwablyGeneratorMap.put("eye", EyeGenerator.class);
          matwablyGeneratorMap.put("horzcat", Horzcat.class);
+         matwablyGeneratorMap.put("cat", Cat.class);
          matwablyGeneratorMap.put("vertcat", Vertcat.class);
          matwablyGeneratorMap.put("colon", Colon.class);
 
          //Utility
          matwablyGeneratorMap.put("disp", Disp.class);
-         matwablyGeneratorMap.put("tic", Toc.class);
-         matwablyGeneratorMap.put("toc", Tic.class);
+         matwablyGeneratorMap.put("tic", Tic.class);
+         matwablyGeneratorMap.put("toc", Toc.class);
 
          // Numerical Binary Operators
          matwablyGeneratorMap.put("uminus", Uminus.class);

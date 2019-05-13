@@ -64,7 +64,6 @@ public class VectorBuiltinInputHandler extends BuiltinInputHandler {
 
                 java.util.List<DimValue> dimValues = bmv.getShape().getDimensions();
                 DimValue val;
-                // TODO (dherre3) Find dimensions dynamically
                 List<Instruction> dynamicSize = new List<>();
                 if(arguments.size() == 1){
                     val = dimValues.stream().reduce(new DimValue(1,1+""),

@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.binary_op.numerical;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Div;
 import matwably.ast.F64;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.binary_op.BinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -27,7 +28,9 @@ public class Rdivide extends BinaryOp {
      * this function adds the instruction `f64.add` to the return object
      */
     @Override
-    public void generateScalarCall() {
+    public MatWablyBuiltinGeneratorResult generateScalarCall() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new Div(new F64(), false));
+        return result;
     }
 }

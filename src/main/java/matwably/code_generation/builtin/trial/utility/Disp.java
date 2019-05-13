@@ -3,9 +3,10 @@ package matwably.code_generation.builtin.trial.utility;
 import ast.ASTNode;
 import ast.NameExpr;
 import matwably.code_generation.MatWablyError;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.Idx;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -51,16 +52,16 @@ public class Disp extends MatWablyBuiltinGenerator {
      * call the appropriate specialization.
      */
     @Override
-    public void generateExpression() {
-        if(arguments.size()== 0){
+    public MatWablyBuiltinGeneratorResult generateExpression() {
+        if(arguments.size()== 0)
             throw new MatWablyError.NotEnoughInputArguments(callName,node);
-        }else if(arguments.size() > 1){
+        if(arguments.size() > 1)
             throw new MatWablyError.TooManyInputArguments(callName,node);
-        }else{
-            NameExpr arg = arguments.getNameExpresion(0);
-            result.addInstructions(expressionGenerator.genNameExpr(arg,node));
-            String nameCall = (valueUtil.isScalar(arg,node,true))?"disp_S":"disp_M";
-            result.addInstruction(new Call(new Idx(nameCall)));
-        }
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+        NameExpr arg = arguments.getNameExpresion(0);
+        result.addInstructions(expressionGenerator.genNameExpr(arg,node));
+        String nameCall = (valueUtil.isScalar(arg,node,true))?"disp_S":"disp_M";
+        result.addInstruction(new Call(new Idx(nameCall)));
+        return result;
     }
 }

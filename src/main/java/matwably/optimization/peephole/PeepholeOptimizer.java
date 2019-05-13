@@ -33,7 +33,6 @@ public class PeepholeOptimizer {
         frequencies = new int[patterns.size()];
     }
     public void optimize(){
-        System.out.println(wasm_module.hasFunctions());
         if(wasm_module.hasFunctions()){
         boolean changed = true;
             while(changed){

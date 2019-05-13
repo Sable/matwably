@@ -11851,101 +11851,35 @@ return)
 
     (call $elementwise_mapping (get_local $arr_ptr)(i32.const 35)(get_local $res_ptr ))
 )    
-(func $drv_bubble_S (param $size_f64 f64)
-	(local $mc_t0_f64 f64)(local $mc_t1_f64 f64)(local $t_f64 f64)(local $y_i32 i32)(local $A_i32 i32)(local $i_f64 f64)(local $mc_t2_f64 f64)(local $mc_t4_f64 f64)(local $mc_t22_f64 f64)
-	f64.const 300.0
-	set_local $mc_t0_f64
-	f64.const 1.0
-	set_local $mc_t1_f64
-	get_local $mc_t0_f64
-	get_local $mc_t1_f64
-	call $rand_2D
-	set_local $A_i32
-	f64.const 10000.0
-	set_local $mc_t2_f64
-	get_local $mc_t2_f64
-	get_local $A_i32
-	i32.const 0
-	call $times_SM
-	set_local $A_i32
-	call $tic
-	drop 
-	f64.const 1.0
-	set_local $mc_t4_f64
-	get_local $mc_t22_f64
-	set_local $i_f64
-	get_local $i_f64
-	get_local $size_f64
-	f64.le
-	if $block_mc_t24
-		loop $loop_mc_t23
-			get_local $A_i32
-			call $bubble_M
-			set_local $y_i32
-			f64.const 1.0
-			get_local $i_f64
-			f64.add
-			set_local $i_f64
-			get_local $i_f64
-			get_local $size_f64
-			f64.le
-			br_if $loop_mc_t23
-		end
-
-	end
-
-	call $toc
-	set_local $t_f64
-	get_local $t_f64
-	call $disp_S
-)
 (func $bubble_M (param $A_i32 i32)(result i32)
-	(local $mc_t10_f64 f64)(local $mc_t13_f64 f64)(local $x_i32 i32)(local $mc_t15_f64 f64)(local $n_f64 f64)(local $mc_t8_f64 f64)(local $A_i32 i32)(local $mc_t18_f64 f64)(local $mc_t11_f64 f64)(local $mc_t20_f64 f64)(local $j_f64 f64)(local $temp_f64 f64)(local $mc_t6_f64 f64)(local $mc_t19_i32 i32)(local $mc_t16_f64 f64)(local $mc_t14_f64 f64)(local $mc_t12_f64 f64)(local $mc_t17_f64 f64)(local $i_f64 f64)(local $mc_t9_f64 f64)(local $mc_t7_f64 f64)(local $mc_t21_f64 f64)(local $mc_t25_f64 f64)(local $mc_t28_f64 f64)
+	(local $mc_t10_f64 f64)(local $mc_t13_f64 f64)(local $x_i32 i32)(local $mc_t15_f64 f64)(local $n_f64 f64)(local $mc_t8_f64 f64)(local $A_i32 i32)(local $mc_t18_f64 f64)(local $mc_t11_f64 f64)(local $mc_t20_f64 f64)(local $j_f64 f64)(local $temp_f64 f64)(local $mc_t6_f64 f64)(local $mc_t19_i32 i32)(local $mc_t16_f64 f64)(local $mc_t14_f64 f64)(local $mc_t12_f64 f64)(local $mc_t17_f64 f64)(local $i_f64 f64)(local $mc_t9_f64 f64)(local $mc_t7_f64 f64)(local $mc_t21_f64 f64)(local $mc_t22_f64 f64)(local $mc_t23_f64 f64)(local $mc_t26_f64 f64)(local $mc_t27_f64 f64)
 	get_local $A_i32
 	call $clone
 	set_local $A_i32
 	get_local $A_i32
 	call $length_M
 	set_local $n_f64
-	f64.const 1.0
-	set_local $mc_t14_f64
-	get_local $n_f64
-	get_local $mc_t14_f64
-	f64.sub
-	set_local $mc_t13_f64
-	f64.const 1.0
-	set_local $mc_t21_f64
-	get_local $mc_t25_f64
+	get_local $mc_t22_f64
 	set_local $j_f64
 	get_local $j_f64
-	get_local $mc_t13_f64
+	get_local $mc_t23_f64
 	f64.le
-	if $block_mc_t27
-		loop $loop_mc_t26
-			f64.const 1.0
-			set_local $mc_t15_f64
-			get_local $n_f64
-			get_local $mc_t15_f64
-			f64.sub
-			set_local $mc_t12_f64
-			f64.const 1.0
-			set_local $mc_t20_f64
-			get_local $mc_t28_f64
+	if $block_mc_t25
+		loop $loop_mc_t24
+			get_local $mc_t26_f64
 			set_local $i_f64
 			get_local $i_f64
-			get_local $mc_t12_f64
+			get_local $mc_t27_f64
 			f64.le
-			if $block_mc_t30
-				loop $loop_mc_t29
+			if $block_mc_t29
+				loop $loop_mc_t28
 					get_local $A_i32
 					get_local $i_f64
 					i32.trunc_s/f64
 					call $get_array_index_f64
 					set_local $mc_t7_f64
-					f64.const 1.0
-					set_local $mc_t16_f64
 					get_local $i_f64
-					get_local $mc_t16_f64
+					f64.const 1.0
 					f64.add
 					set_local $mc_t10_f64
 					get_local $A_i32
@@ -11956,18 +11890,14 @@ return)
 					get_local $mc_t7_f64
 					get_local $mc_t8_f64
 					f64.gt
-					set_local $mc_t19_i32
-					get_local $mc_t19_i32
 					if 
 						get_local $A_i32
 						get_local $i_f64
 						i32.trunc_s/f64
 						call $get_array_index_f64
 						set_local $temp_f64
-						f64.const 1.0
-						set_local $mc_t17_f64
 						get_local $i_f64
-						get_local $mc_t17_f64
+						f64.const 1.0
 						f64.add
 						set_local $mc_t11_f64
 						get_local $A_i32
@@ -11980,12 +11910,6 @@ return)
 						i32.trunc_s/f64
 						get_local $mc_t6_f64
 						call $set_array_index_f64
-						f64.const 1.0
-						set_local $mc_t18_f64
-						get_local $i_f64
-						get_local $mc_t18_f64
-						f64.add
-						set_local $mc_t9_f64
 						get_local $A_i32
 						get_local $mc_t9_f64
 						i32.trunc_s/f64
@@ -11998,9 +11922,9 @@ return)
 					f64.add
 					set_local $i_f64
 					get_local $i_f64
-					get_local $mc_t12_f64
+					get_local $mc_t27_f64
 					f64.le
-					br_if $loop_mc_t29
+					br_if $loop_mc_t28
 				end
 
 			end
@@ -12010,9 +11934,9 @@ return)
 			f64.add
 			set_local $j_f64
 			get_local $j_f64
-			get_local $mc_t13_f64
+			get_local $mc_t23_f64
 			f64.le
-			br_if $loop_mc_t26
+			br_if $loop_mc_t24
 		end
 
 	end
@@ -12021,5 +11945,43 @@ return)
 	set_local $x_i32
 	get_local $x_i32
 )
-(export "drv_bubble_S" (func $drv_bubble_S ) )
+(func $drv_bubble_S (param $size_f64 f64)
+	(local $mc_t0_f64 f64)(local $mc_t1_f64 f64)(local $t_f64 f64)(local $y_i32 i32)(local $A_i32 i32)(local $i_f64 f64)(local $mc_t2_f64 f64)(local $mc_t4_f64 f64)(local $mc_t30_f64 f64)
+	f64.const 300.0
+	f64.const 1.0
+	call $rand_2D
+	set_local $A_i32
+	call $tic
+	drop 
+	get_local $mc_t30_f64
+	set_local $i_f64
+	get_local $i_f64
+	get_local $size_f64
+	f64.le
+	if $block_mc_t32
+		loop $loop_mc_t31
+			f64.const 10000.0
+			get_local $A_i32
+			i32.const 0
+			call $times_SM
+			call $bubble_M
+			set_local $y_i32
+			f64.const 1.0
+			get_local $i_f64
+			f64.add
+			set_local $i_f64
+			get_local $i_f64
+			get_local $size_f64
+			f64.le
+			br_if $loop_mc_t31
+		end
+
+	end
+
+	call $toc
+	set_local $t_f64
+	get_local $t_f64
+	call $disp_S
+)
 (export "bubble_M" (func $bubble_M ) )
+(export "drv_bubble_S" (func $drv_bubble_S ) )

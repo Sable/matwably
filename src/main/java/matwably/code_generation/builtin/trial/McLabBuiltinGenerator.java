@@ -8,7 +8,7 @@ import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
-public abstract class  McLabBuiltinGenerator<Res> {
+public abstract class  McLabBuiltinGenerator<Res extends McLabBuiltinGenerationResult> {
     private final InterproceduralFunctionQuery functionQuery;
     protected ASTNode node;
     protected TIRCommaSeparatedList arguments;
@@ -62,22 +62,13 @@ public abstract class  McLabBuiltinGenerator<Res> {
     public boolean isMatlabBuiltin() {
         return Builtin.getInstance(this.callName)!=null;
     }
-    public Res getResult(){
+    public Res getResult()
+    {
+        if(result == null) return generate();
         return result;
     }
 
-    /**
-     * Generator function, it only generates call if the call is not pure or there is more than one target.
-     */
-    public void generate(){
-        if (!functionQuery.isUserDefinedFunction(callName) && isPure()&& returnsZeroTargets()) return;
-        generateExpression();
-        generateSetToTarget();
-    }
-    public void generateExpression(){
-        this.generateInputs();
-        this.generateCall();
-    }
+
 
 
 
@@ -98,14 +89,26 @@ public abstract class  McLabBuiltinGenerator<Res> {
     public String getGeneratedBuiltinName(){
         return  (generatedCallName != null)?generatedCallName: callName;
     }
+
+    /**
+     * Generator function, it only generates call if the call is not pure or there is more than one target.
+     * @return Generator result
+     */
+    public abstract Res generate();
+
+    /**
+     * Generates expression
+     * @return Generator result
+     */
+    public abstract Res generateExpression();
     /**
      * Default generate input as it comes.
      */
-    abstract void generateInputs();
+    public abstract Res generateInputs();
 
-    abstract void generateCall();
+    public abstract Res generateCall();
 
-    abstract void generateSetToTarget();
+    public abstract Res generateSetToTarget();
 
 
 

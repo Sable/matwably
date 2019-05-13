@@ -1,18 +1,20 @@
 package matwably.code_generation.builtin;
 
 import matwably.ast.*;
+import matwably.code_generation.builtin.trial.McLabBuiltinGenerationResult;
 import matwably.code_generation.wasm.MatWablyArray;
 import matwably.util.Util;
 
 import java.util.Arrays;
 import java.util.HashSet;
 
-public class MatWablyBuiltinGeneratorResult {
+public class MatWablyBuiltinGeneratorResult implements McLabBuiltinGenerationResult<MatWablyBuiltinGeneratorResult>{
 
     private HashSet<TypeUse> locals_instructions = new HashSet<>();
     private List<Instruction> call_instructions = new List<>();
     private List<Instruction> free_input_vec_instructions = new List<>();
     private List<Instruction> alloc_input_vec_instructions = new List<>();
+
 
 
     public static MatWablyBuiltinGeneratorResult merge(MatWablyBuiltinGeneratorResult m1, MatWablyBuiltinGeneratorResult m2){
@@ -31,14 +33,26 @@ public class MatWablyBuiltinGeneratorResult {
         result.free_input_vec_instructions.addAll(m2.free_input_vec_instructions);
         return result;
     }
-    public void add(MatWablyBuiltinGeneratorResult m1){
+
+    @Override
+    public MatWablyBuiltinGeneratorResult add(MatWablyBuiltinGeneratorResult m1) {
         this.locals_instructions.addAll(m1.locals_instructions);
         this.alloc_input_vec_instructions.addAll(m1.alloc_input_vec_instructions);
         this.call_instructions.addAll(m1.call_instructions);
         this.free_input_vec_instructions.addAll(m1.free_input_vec_instructions);
+        return this;
     }
 
-
+    public void mergeAllocationInstructions(){
+        List<Instruction> result = new List<>();
+        result.addAll(this.alloc_input_vec_instructions);
+        result.addAll(this.call_instructions);
+        result.addAll(this.free_input_vec_instructions);
+        call_instructions = result;
+        alloc_input_vec_instructions = new List<>();
+        free_input_vec_instructions = new List<>();
+    }
+    @Override
     public MatWablyBuiltinGeneratorResult copy(){
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.locals_instructions.addAll(this.locals_instructions);

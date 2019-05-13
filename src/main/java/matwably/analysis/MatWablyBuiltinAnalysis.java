@@ -2,15 +2,22 @@
 package matwably.analysis;
 
 import ast.ASTNode;
+import ast.Function;
 import ast.Stmt;
+import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.ast.Instruction;
 import matwably.ast.List;
+import matwably.ast.TypeUse;
+import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGeneratorFactory;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Stack;
 
 /**
  * @author dherre3
@@ -30,10 +37,14 @@ import java.util.HashMap;
  */
 public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
 
+    private final TreeExpressionBuilderAnalysis expr_elim_analysis;
+    private final boolean skip_variable_elim;
+    private final Function matlabFunction;
+    private HashSet<TypeUse> locals = new HashSet<>();
     private HashMap<ASTNode, MatWablyBuiltinGenerator> callGeneratorMap = new HashMap<>();
     private HashMap<Stmt, List<Instruction>> loopAllocationInstructions = new HashMap<>();
     private HashMap<Stmt, List<Instruction>> loopFreeingInstructions = new HashMap<>();
-    private Stmt currentLoopStmt;
+    private Stack<Stmt> currentLoopStack = new Stack<>();
     private MatWablyFunctionInformation functionInformation;
 
     /**
@@ -58,9 +69,18 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
     public MatWablyBuiltinAnalysis(MatWablyFunctionInformation functionInformation){
         if(functionInformation == null) throw new Error("Must have analyses to generate builtin");
         this.functionInformation = functionInformation;
+        this.matlabFunction = functionInformation.getFunction();
+        this.expr_elim_analysis = functionInformation.getTreeExpressionBuilderAnalysis();
+        this.skip_variable_elim = functionInformation.getProgramOptions().skip_variable_elimination;
+
+
     }
+
+    /**
+     * Run analysis
+     */
     public void analyze(){
-        functionInformation.getFunction().analyze(this);
+        this.matlabFunction.analyze(this);
     }
 
     /**
@@ -71,12 +91,18 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
     @Override
     public void caseTIRCallStmt(TIRCallStmt callStmt) {
         MatWablyBuiltinGenerator generator;
-        System.out.println(callStmt.getFunctionName().getID());
         generator = MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),
                                 callStmt.getTargets(), callStmt.getFunctionName().getID(), functionInformation);
-        generator.generateExpression();
-        // Add free/alloc instructions to loop.
-        addLoopInstructions(generator);
+        MatWablyBuiltinGeneratorResult result;
+        if(!this.skip_variable_elim && this.expr_elim_analysis.isStmtRedundant(callStmt)){
+            result = generator.generateExpression();
+            this.locals.addAll(result.getLocals());
+        }else{
+            result = generator.generate();
+            // Add free/alloc instructions to loop.
+
+        }
+        addLoopInstructions(result);
         // Put the built-in generator in map for later use
         callGeneratorMap.put(callStmt, generator);
     }
@@ -93,7 +119,7 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
 //        generator = MatWablyBuiltinGeneratorFactory.getGenerator(setStmt, setStmt.getIndices(),
 //                null, "subsasgn", functionInformation);
 //        if(generator != null){
-//            callGeneratorMap.put(setStmt, generator);
+//            callGeneratorMap.addDef(setStmt, generator);
 //            addLoopInstructions(generator);
 //        }
     }
@@ -117,7 +143,7 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
 //        generator = MatWablyBuiltinGeneratorFactory.getGenerator(getStmt, getStmt.getIndices(),
 //                null, "subsref", functionInformation);
 //
-//        callGeneratorMap.put(getStmt, generator);
+//        callGeneratorMap.addDef(getStmt, generator);
 //        addLoopInstructions(generator);
     }
 
@@ -127,8 +153,11 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      */
     @Override
     public void caseTIRWhileStmt(TIRWhileStmt whileStmt){
-        initializeLoopInstructions(whileStmt);
+        currentLoopStack.push(whileStmt);
+        loopAllocationInstructions.put(whileStmt, new List<>());
+        loopFreeingInstructions.put(whileStmt, new List<>());
         this.caseWhileStmt(whileStmt);
+        currentLoopStack.pop();
     }
     /**
      * For stmt. used to set the current loop and initialize the set for the input vectors.
@@ -136,28 +165,26 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      */
     @Override
     public void caseTIRForStmt(TIRForStmt forStmt){
-        initializeLoopInstructions(forStmt);
-        this.caseForStmt(forStmt);
+        currentLoopStack.push(forStmt);
+        loopAllocationInstructions.put(forStmt, new List<>());
+        loopFreeingInstructions.put(forStmt, new List<>());
+        super.caseForStmt(forStmt);
+        currentLoopStack.pop();
     }
 
-    /**
-     *  Set current loop and initialize loop allocation mappings
-     * @param stmt Statement to initialize
-     */
-    private void initializeLoopInstructions(Stmt stmt){
-        currentLoopStmt = stmt;
-        loopAllocationInstructions.put(currentLoopStmt, new List<>());
-        loopFreeingInstructions.put(currentLoopStmt, new List<>());
-    }
 
     /**
      * Map generator allocation instructions to loop maps.
-     * @param generator
+     * @param result {@link MatWablyBuiltinGenerator} result
      */
-    private void addLoopInstructions(MatWablyBuiltinGenerator generator){
-        if(currentLoopStmt != null){
-            loopAllocationInstructions.get(currentLoopStmt).addAll(generator.getResult().getAlloc_input_vec_instructions());
-            loopFreeingInstructions.get(currentLoopStmt).addAll(generator.getResult().getFree_input_vec_instructions());
+    private void addLoopInstructions(MatWablyBuiltinGeneratorResult result){
+
+        if(!this.currentLoopStack.isEmpty()){
+            Stmt currentLoopStmt = this.currentLoopStack.peek();
+            this.loopAllocationInstructions.get(currentLoopStmt).addAll(result.getAlloc_input_vec_instructions());
+            this.loopFreeingInstructions.get(currentLoopStmt).addAll(result.getFree_input_vec_instructions());
+        }else{
+            result.mergeAllocationInstructions();
         }
     }
 

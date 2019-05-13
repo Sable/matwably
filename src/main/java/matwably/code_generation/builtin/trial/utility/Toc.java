@@ -1,8 +1,11 @@
 package matwably.code_generation.builtin.trial.utility;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.ast.Call;
+import matwably.ast.Idx;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -48,8 +51,22 @@ public class Toc  extends MatWablyBuiltinGenerator {
     public boolean isSpecialized() {
         return false;
     }
-    public void generateInputs(){
-        if(arguments.size() > 0) throw new MatWablyError.TooManyInputArguments(callName, node);
+
+    /**
+     * Simply generate the call for toc
+     * @return MatWablyBuiltinGeneratorResult generation result
+     */
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        if(arguments.size() > 1) throw new MatWablyError.TooManyInputArguments(callName, node);
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+        if(arguments.size() == 1){
+            result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(0),node));
+            if(!valueUtil.isScalar(arguments.getNameExpresion(0), node,true)){
+                result.addInstruction(new Call(new Idx("check_boxed_scalar")));
+            }
+        }
+        result.addInstruction(new Call(new Idx("toc")));
+        return result;
     }
 }
 

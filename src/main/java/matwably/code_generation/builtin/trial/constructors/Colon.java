@@ -2,20 +2,21 @@ package matwably.code_generation.builtin.trial.constructors;
 
 import ast.ASTNode;
 import ast.NameExpr;
-import matwably.code_generation.MatWablyError;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.ConstLiteral;
 import matwably.ast.F64;
 import matwably.ast.Idx;
-import matwably.code_generation.builtin.trial.HasMatWablyBuiltinAnalysis;
+import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import matwably.code_generation.builtin.trial.input_generation.VectorInputGenerator;
 import matwably.code_generation.wasm.MatWablyArray;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
-public class Colon extends MatWablyBuiltinGenerator implements HasMatWablyBuiltinAnalysis {
+public class Colon extends MatWablyBuiltinGenerator {
+
     // For later use when generating subsref
     private boolean is_scalar = false;
     private int low = 0;
@@ -49,15 +50,6 @@ public class Colon extends MatWablyBuiltinGenerator implements HasMatWablyBuilti
     }
 
     /**
-     * This function performs analysis over inputs, and sets the limits if statically possible. This is later use
-     * to efficiently generate `subsasgn` and ` subsref`
-     * TODO: Implement analyze for this function
-     */
-    public void analyze(){
-
-    }
-
-    /**
      * Function used to query whether the builtin function returns void
      * This is to be replaced by ValueAnalysis ShapePropagation, once we have a good way to determine when
      * a expression returns something.
@@ -76,7 +68,8 @@ public class Colon extends MatWablyBuiltinGenerator implements HasMatWablyBuilti
     public boolean expressionReturnsVoid() {
         return false;
     }
-    public void generateExpression(){
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         // Throw static errors when possible
         if(arguments.size() < 2) throw new MatWablyError.NotEnoughInputArguments(callName,node);
         if(arguments.size() > 3) throw new MatWablyError.TooManyInputArguments(callName,node);
@@ -90,7 +83,7 @@ public class Colon extends MatWablyBuiltinGenerator implements HasMatWablyBuilti
                 Double val = valueUtil.getDoubleConstant(arguments.getNameExpresion(0),node);
                 if(val!=null){
                     result.addInstruction(new ConstLiteral(new F64(), val));
-                    return;
+                    return result;
                 }
             }
         }
@@ -109,13 +102,15 @@ public class Colon extends MatWablyBuiltinGenerator implements HasMatWablyBuilti
                 }
             }else{
                 // We call a general implementation when we have to give up
-                VectorInputGenerator vectorInputGenerator = new VectorInputGenerator(node,arguments, targets,matwably_analysis_set,result);
-                vectorInputGenerator.generate();
+                VectorInputGenerator vectorInputGenerator = new VectorInputGenerator(node,arguments, targets,matwably_analysis_set);
+                result.add(vectorInputGenerator.generate());
                 result.addInstruction(new Call(new Idx("colon")));
             }
         }else{
             // Generate empty vector since we know for a fact that the number of elements returned is 0
             result.addInstructions(MatWablyArray.createI32Vector(0));
         }
+        return result;
     }
+
 }

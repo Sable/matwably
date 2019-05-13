@@ -10,6 +10,9 @@ import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
+/**
+ * TODO JAVADOC
+ */
 public class LoopMetaInformation {
     private LoopDirection direction;
     private Idx startLoop;

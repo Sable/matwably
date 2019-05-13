@@ -1,7 +1,7 @@
 package matwably.code_generation.builtin.trial.input_generation;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.ExpressionGenerator;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.util.ValueAnalysisUtil;
@@ -18,21 +18,19 @@ public abstract class AbstractInputGenerator {
      boolean isInForm(){
          return false;
      }
-    abstract void generate();
+    abstract MatWablyBuiltinGeneratorResult generate();
 
     public ASTNode getStmt() {
         return stmt;
     }
 
     public AbstractInputGenerator(ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets,
-                               MatWablyFunctionInformation functionInformation,
-                               MatWablyBuiltinGeneratorResult result){
+                               MatWablyFunctionInformation functionInformation){
         this.stmt = node;
         this.arguments = args;
         this.targets = targets;
         this.matwably_analysis_set = functionInformation;
         this.valueAnalysisUtil = functionInformation.getValueAnalysisUtil();
         this.name_expression_generator = functionInformation.getExpressionGenerator();
-        this.result = result;
     }
 }

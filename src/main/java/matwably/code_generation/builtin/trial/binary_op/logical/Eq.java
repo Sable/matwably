@@ -1,8 +1,9 @@
 package matwably.code_generation.builtin.trial.binary_op.logical;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.F64;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.binary_op.LogicalBinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -28,7 +29,9 @@ public class Eq  extends LogicalBinaryOp {
      * this function adds the instruction `f64.add` to the return object
      */
     @Override
-    public void generateScalarCall() {
+    public MatWablyBuiltinGeneratorResult generateScalarCall() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new matwably.ast.Eq(new F64()));
+        return result;
     }
 }

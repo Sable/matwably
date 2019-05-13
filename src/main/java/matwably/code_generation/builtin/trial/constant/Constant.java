@@ -1,8 +1,9 @@
 package matwably.code_generation.builtin.trial.constant;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -35,11 +36,11 @@ public abstract class Constant extends MatWablyBuiltinGenerator{
         return arguments.size() == 0;
     }
 
-    public abstract void generateConstant();
+    public abstract MatWablyBuiltinGeneratorResult generateConstant();
     @Override
-    public void generateExpression() {
+    public MatWablyBuiltinGeneratorResult generateExpression() {
         if(arguments.size()!= 0) throw new MatWablyError("Unsupported matrix call for constant:"+ callName +" in MatWably",node);
-        generateConstant();
+        return generateConstant();
     }
     /**
      * Function used to query whether the builtin function returns void

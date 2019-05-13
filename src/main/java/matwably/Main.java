@@ -40,7 +40,7 @@ public class Main {
     public static void main(String[] argv)
     {
         // Parse command line options
-        CommandLineOptions opts = new CommandLineOptions();
+        MatWablyCommandLineOptions opts = new MatWablyCommandLineOptions();
         JCommander optParse = null;
         try{
             optParse = new JCommander(opts, argv);

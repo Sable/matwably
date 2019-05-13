@@ -1,11 +1,12 @@
 package matwably.code_generation.builtin.trial.properties;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.ConstLiteral;
 import matwably.ast.Convert;
 import matwably.ast.F64;
 import matwably.ast.I32;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 import natlab.toolkits.analysis.core.Def;
@@ -25,18 +26,19 @@ public abstract class LogicalProperty extends Property {
     }
 
     @Override
-    public void generateScalarExpression() {
-        generateLogicalScalarExpression();
+    public MatWablyBuiltinGeneratorResult generateScalarExpression() {
+        return generateLogicalScalarExpression();
     }
 
 
     /**
      * Generated method for the built-in
      */
-    public void generate(){
+    public MatWablyBuiltinGeneratorResult generateExpression(){
         validateInput();
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         if(valueUtil.isScalar(arguments.getNameExpresion(0), node,true)){
-            generateLogicalScalarExpression();
+            result.add(generateLogicalScalarExpression());
         }else{
             Shape shape = valueUtil.getShape(arguments.getNameExpresion(0), node, false);
             if(shape != null){
@@ -46,7 +48,7 @@ public abstract class LogicalProperty extends Property {
                     result.addInstruction(new ConstLiteral(new I32(), 0));
                 }
             }else{
-               super.generateExpression();
+               result.add(super.generateExpression());
             }
         }
         if(disallow_logicals ||!matwably_analysis_set.getLogicalVariableUtil().
@@ -54,6 +56,7 @@ public abstract class LogicalProperty extends Property {
             result.addInstruction(new Convert(new F64(),new I32(),  true));
         }
 
+        return result;
     }
 
     /**
@@ -66,5 +69,5 @@ public abstract class LogicalProperty extends Property {
     /**
      * Logical flag indicating whether the property is true for a scalar
      */
-    protected abstract void generateLogicalScalarExpression();
+    protected abstract MatWablyBuiltinGeneratorResult generateLogicalScalarExpression();
 }

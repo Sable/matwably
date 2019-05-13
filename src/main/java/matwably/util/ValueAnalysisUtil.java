@@ -136,7 +136,6 @@ public class ValueAnalysisUtil {
                         .get(node)
                         .get(name);
             } else {
-                System.out.println(name+","+node.getPrettyPrinted()+","+isRHS);
                 val = analysisFunction
                         .getOutFlowSets()
                         .get(node)

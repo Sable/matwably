@@ -1,7 +1,8 @@
 package matwably.code_generation.builtin.trial.unary_operation.numeric;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.unary_operation.UnaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -25,10 +26,10 @@ public class Uplus extends UnaryOp {
      * this function adds the instruction `f64.add` to the return object
      */
     @Override
-    public void generateScalarCall() {
-        // Do nothing!
+    public MatWablyBuiltinGeneratorResult generateScalarCall() {
+        return new MatWablyBuiltinGeneratorResult();
     }
-    public void generateExpression(){
-        generateInputs();
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        return generateInputs();
     }
 }

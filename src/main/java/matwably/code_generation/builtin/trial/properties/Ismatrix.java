@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.properties;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.ConstLiteral;
 import matwably.ast.I32;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
@@ -34,7 +35,9 @@ public class Ismatrix extends LogicalProperty {
      * Logical flag indicating whether the property is true for a scalar
      */
     @Override
-    protected void generateLogicalScalarExpression() {
+    protected MatWablyBuiltinGeneratorResult generateLogicalScalarExpression() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new ConstLiteral(new I32(), 1));
+        return result;
     }
 }

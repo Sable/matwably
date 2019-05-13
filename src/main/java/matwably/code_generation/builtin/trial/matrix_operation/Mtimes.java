@@ -1,12 +1,13 @@
 package matwably.code_generation.builtin.trial.matrix_operation;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.ConstLiteral;
 import matwably.ast.F64;
 import matwably.ast.I32;
 import matwably.ast.Mul;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -48,7 +49,8 @@ public class Mtimes extends MatWablyBuiltinGenerator {
         return false;
     }
 
-    public void generateExpression(){
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         if(arguments.size()>2) throw new MatWablyError.TooManyInputArguments(callName, node);
         if(arguments.size()<2) throw new MatWablyError.NotEnoughInputArguments(callName, node);
         if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)
@@ -57,11 +59,11 @@ public class Mtimes extends MatWablyBuiltinGenerator {
             result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(1), node));
             result.addInstruction(new Mul(new F64()));
         }else{
-            super.generateInputs();
+            result.add(super.generateInputs());
             result.addInstruction(new ConstLiteral(new I32(),0));
-            super.generateCall();
-//            super.generateExpression();
+            result.add(super.generateCall());
         }
+        return result;
     }
 
     @Override

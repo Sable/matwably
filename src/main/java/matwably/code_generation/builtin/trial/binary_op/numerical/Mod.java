@@ -1,8 +1,9 @@
 package matwably.code_generation.builtin.trial.binary_op.numerical;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.binary_op.BinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -27,7 +28,7 @@ public class Mod extends BinaryOp {
      *
      */
     @Override
-    public void generateScalarCall() {
+    public  MatWablyBuiltinGeneratorResult generateScalarCall() {
         /*
         *    get_local 0
              get_local 1
@@ -38,10 +39,11 @@ public class Mod extends BinaryOp {
              f64.mul
              f64.sub
          */
-        generateInputs();
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstructions(new Div(new F64(),false),
                 new Floor(new F64()),
                 new Mul(new F64()),
                 new Sub(new F64()));
+        return result;
     }
 }

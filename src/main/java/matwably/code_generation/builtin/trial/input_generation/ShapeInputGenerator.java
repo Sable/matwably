@@ -1,21 +1,22 @@
 package matwably.code_generation.builtin.trial.input_generation;
 
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public class ShapeInputGenerator extends AbstractInputGenerator {
 
-    public ShapeInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation, MatWablyBuiltinGeneratorResult result) {
-        super(node, args, targets, functionInformation, result);
+    public ShapeInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation) {
+        super(node, args, targets, functionInformation );
     }
 
     /**
      * Turns scalars into vectors to represent a shape
      */
     @Override
-    public void generate() {
+    public MatWablyBuiltinGeneratorResult generate() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         String input_arg = result.generateVectorInputF64(arguments.size(),true);
         // There are more than two arguments
         int i = 0;
@@ -32,5 +33,6 @@ public class ShapeInputGenerator extends AbstractInputGenerator {
             i++;
         }
         result.addInstruction(new GetLocal(new Idx(input_arg)));
+        return result;
     }
 }

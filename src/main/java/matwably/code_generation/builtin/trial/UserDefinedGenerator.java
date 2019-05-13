@@ -1,7 +1,7 @@
 package matwably.code_generation.builtin.trial;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public class UserDefinedGenerator extends MatWablyBuiltinGenerator {

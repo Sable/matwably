@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.properties;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -45,10 +46,12 @@ public class Size extends MatWablyBuiltinGenerator {
         return false;
     }
 
-    public void generateExpression(){
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+
         if(arguments.size() > 2 ) throw new MatWablyError.TooManyInputArguments(callName, node);
         if(arguments.size() == 0) throw  new MatWablyError.NotEnoughInputArguments(callName, node);
 
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         // Getting the length of a particular dimension
         if(arguments.size() == 2){
             if(targets.size() > 1) throw new MatWablyError.TooManyOutputArguments(callName, node);
@@ -74,16 +77,14 @@ public class Size extends MatWablyBuiltinGenerator {
             result.addInstructions(
                     expressionGenerator
                             .genExpr(arguments.getNameExpresion(0),node));
-            System.out.println(targets.size());
             result.addInstruction(new ConstLiteral(new I32(), targets.size()));
-            // TODO test wasm function
             if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
                 result.addInstruction(new Call(new Idx("size_S")));
             }else{
                 result.addInstruction(new Call(new Idx("size_M")));
             }
         }
-
+        return result;
     }
 
 }

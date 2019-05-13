@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial.unary_operation.numeric;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.Idx;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.unary_operation.UnaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -27,8 +28,10 @@ public class Cos extends UnaryOp {
      * this function adds the instruction `f64.add` to the return object
      */
     @Override
-    public void generateScalarCall() {
+    public MatWablyBuiltinGeneratorResult generateScalarCall() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new Call(new Idx("cos_S")));
+        return result;
 
     }
 }

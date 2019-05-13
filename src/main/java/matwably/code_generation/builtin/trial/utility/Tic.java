@@ -1,8 +1,11 @@
 package matwably.code_generation.builtin.trial.utility;
 
 import ast.ASTNode;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.ast.Call;
+import matwably.ast.Idx;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -48,7 +51,10 @@ public class Tic extends MatWablyBuiltinGenerator {
     public boolean isSpecialized() {
         return false;
     }
-    public void generateInputs(){
+    public MatWablyBuiltinGeneratorResult generateExpression(){
         if(arguments.size() > 0) throw new MatWablyError.TooManyInputArguments(callName, node);
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+        result.addInstruction(new Call(new Idx("tic")));
+        return result;
     }
 }

@@ -2,7 +2,7 @@ package matwably.code_generation.builtin.trial.input_generation;
 
 import ast.ColonExpr;
 import ast.NameExpr;
-import matwably.analysis.MatWablyFunctionInformation;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.wasm.MatWablyArray;
@@ -16,8 +16,8 @@ import natlab.tame.valueanalysis.components.shape.DimValue;
 public class VectorInputGenerator extends AbstractInputGenerator {
 
 
-    public VectorInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation, MatWablyBuiltinGeneratorResult result) {
-        super(node, args, targets, functionInformation, result);
+    public VectorInputGenerator(ast.ASTNode node, TIRCommaSeparatedList args, TIRCommaSeparatedList targets, MatWablyFunctionInformation functionInformation) {
+        super(node, args, targets, functionInformation);
     }
 
     @Override
@@ -32,8 +32,8 @@ public class VectorInputGenerator extends AbstractInputGenerator {
      * There are two types of Expressions in TameIR, NameExpr and ColonExpr.
      */
     @Override
-    public void generate() {
-        // TODO Add freeMacharray functions
+    public MatWablyBuiltinGeneratorResult generate() {
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         // TODO Refactor once subsasgn and subsref are implemented
         String vectorInputI32 = result.generateVectorInputI32(arguments.size());
         // Go through each argument, if some are actual scalars
@@ -44,10 +44,12 @@ public class VectorInputGenerator extends AbstractInputGenerator {
                 // Scalar to boxed scalar.
                 if(valueAnalysisUtil.isScalar(nameExpr,stmt, true)){
                     String i32_boxed_scalar = result.generateBoxedScalar(this.name_expression_generator.genNameExpr(nameExpr, stmt));
-                    result.addInstructions(MatWablyArray.setArrayIndexI32(vectorInputI32, i, new GetLocal(new Idx(i32_boxed_scalar))));
+                    result.addInstructions(MatWablyArray.setArrayIndexI32(vectorInputI32, i,
+                            new GetLocal(new Idx(i32_boxed_scalar))));
                 }else{
                     // Vector instructions
-                    result.addInstructions(MatWablyArray.setArrayIndexI32(vectorInputI32, i, name_expression_generator.genNameExpr(nameExpr,stmt)));
+                    result.addInstructions(MatWablyArray.setArrayIndexI32(vectorInputI32, i,
+                            name_expression_generator.genNameExpr(nameExpr,stmt)));
                 }
             }else if(expr instanceof ColonExpr){
                 String arrayName = (stmt instanceof TIRArrayGetStmt)?
@@ -114,6 +116,7 @@ public class VectorInputGenerator extends AbstractInputGenerator {
             i++;
         }
         result.addInstruction(new GetLocal(new Idx(vectorInputI32)));
+        return result;
 
     }
 }
