@@ -13,7 +13,7 @@ import natlab.tame.tir.TIRCommaSeparatedList;
 /**
  * Generator for `cat` built-in
  */
-public class Cat extends AbstractConcat {
+public class Cat extends Concat {
 
 
     /**

@@ -5362,9 +5362,8 @@ return)
     get_local $i
     i32.lt_s
     if
-        ;; TODO(dherre3): Grow array to require size
-        ;; i32.const 10
-        ;; call $throwError
+         i32.const 10
+         call $throwError
     end
     (set_local $i (i32.sub (get_local $i)(i32.const 1)))
     get_local $i
@@ -5460,7 +5459,6 @@ return)
     if
         i32.const 3
         call $throwError
-        ;; TODO(dherre3): Grow array to require size
     end
     (set_local $i (i32.sub (get_local $i)(i32.const 1)))
     get_local $i
@@ -5950,9 +5948,8 @@ return)
     get_local $i
     i32.lt_s
     if
-        ;; TODO(dherre3): Grow array to require size
-        ;; i32.const 10
-        ;; call $throwError
+        i32.const 10
+        call $throwError
     end
     (set_local $i (i32.sub (get_local $i)(i32.const 1)))
     get_local $i
@@ -6229,7 +6226,13 @@ return)
 
 (export "isscalar" (func $isscalar))
 (func $isscalar (param $arr_ptr i32) (result i32)
-(;TODO(dherre3): Check for null;)
+
+    get_local $arr_ptr
+    i32.eqz
+    if
+        (call $throwError 
+            (i32.const 4))
+    end
     get_local $arr_ptr
     i32.load offset=4 align=4
     i32.const 1
@@ -6969,7 +6972,11 @@ return)
     get_local $offset
 )
 
+(func $get_expr_f64 (param $arr_ptr i32)(param $expr i32)(result i32)
 
+
+
+)
 (export "get_f64" (func $get_f64))
 (func $get_f64 (param $array_ptr i32)(param $indices i32)(result i32)
     (local $shape_ptr i32)(local $res_ptr i32)(local $dim_ptr i32)
@@ -7139,14 +7146,23 @@ return)
 (func $create_meta_input_vec (param $type i32)(param $number i32)(param $is_vec_input i32)(result i32)
     (local $input_vec i32)
     (;
-        Layout: type:1byte,is_4:1byte,empty_byte,empty_byte,num:number,data.
+        Layout: type:4 bytes
         Controls meta-information for matwably (Modified: 15/03/19)
-        type:
-            0: Input/outputs
-            1: Colon
-            2: MachArray
-            3: Scalar
+        TypeAttribute:-> Class, bytes, number_type, referenceCount
+        Class:
+            0: MachArray
+            1: Scalar
+            2: Colon
+            3: Input/Output
     ;)
+    get_local $type
+    i32.eqz
+    if
+        ;; TODO Throw appropriate error
+        (call $throwError (i32.const 25)) ;; Cannot instantiate a MachArray this way.
+    end
+
+
     get_local $is_vec_input
     if (result i32)
         get_local $number

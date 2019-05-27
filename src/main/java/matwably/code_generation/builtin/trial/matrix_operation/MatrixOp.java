@@ -2,9 +2,10 @@ package matwably.code_generation.builtin.trial.matrix_operation;
 
 import ast.ASTNode;
 import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Mldivide extends BinaryMatrixOp {
+public abstract class MatrixOp extends MatWablyBuiltinGenerator{
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -14,8 +15,8 @@ public class Mldivide extends BinaryMatrixOp {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Mldivide(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public MatrixOp(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
-        generatedCallName = "ldivide";
     }
+
 }

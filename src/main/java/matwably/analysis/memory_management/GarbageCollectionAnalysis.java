@@ -5,6 +5,7 @@ import ast.Name;
 import ast.NameExpr;
 import matjuice.transformer.MJCopyStmt;
 import matwably.MatWablyCommandLineOptions;
+import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
@@ -12,9 +13,8 @@ import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralForwardAnalysis;
 
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static natlab.tame.builtin.shapeprop.mathmode.ast.MathModeExprEvaluator.Debug;
-
+// Allocate A site, use throughout expression evaluation
+// B = 3*A + 10*B
 /**
  *  Depends on ValueAnalysis
  *
@@ -24,24 +24,29 @@ public class GarbageCollectionAnalysis extends TIRAbstractSimpleStructuralForwar
     private final ValueAnalysisUtil valueAnalysisUtil;
     private final InterproceduralFunctionQuery functionQuery;
     private final MatWablyCommandLineOptions opts;
+    private final ReachingDefinitions reachingDefinitions;
     private final TIRFunction function;
+    public static boolean Debug = false;
 
     /**
      * Base constructor for the analysis
      * @param astNode Function node
      * @param valueAnalysisUtil ValueAnalysisUtility
      * @param functionQuery Interprocedural Query Analysis
+     * @param reachingDefinitions ReachingDefinitions object for the function
      */
     public GarbageCollectionAnalysis(TIRFunction astNode,
                                      ValueAnalysisUtil valueAnalysisUtil,
                                      InterproceduralFunctionQuery functionQuery,
-                                     MatWablyCommandLineOptions opts) {
+                                     MatWablyCommandLineOptions opts, ReachingDefinitions reachingDefinitions) {
         super(astNode);
+
         this.function = astNode;
         this.valueAnalysisUtil = valueAnalysisUtil;
         this.functionQuery = functionQuery;
         this.opts = opts;
-//        Debug = true;
+        this.reachingDefinitions = reachingDefinitions;
+        Debug = true;
     }
 
     @Override
@@ -138,6 +143,25 @@ public class GarbageCollectionAnalysis extends TIRAbstractSimpleStructuralForwar
         }
         outFlowSets.put(tirNode, copy(currentOutSet));
         if(Debug) log(tirNode);
+    }
+
+    /**
+     * Get set of definitions for each name if the definition is a parameter in the
+     * function, we add a dynamic check for external, if its external, we do not free it.
+     * If is not a parameter, and is pointing to a site either dynamically or statically,
+     * the global statement automatically frees the memory, from then on in the program,
+     * the variable becomes and stays dynamic.
+     * @param tirGlobalStmt TameIR Global statement.
+     */
+    @Override
+    public void caseTIRGlobalStmt(TIRGlobalStmt tirGlobalStmt) {
+        inFlowSets.put(tirGlobalStmt, copy(currentInSet));
+        currentOutSet = copy(currentInSet);
+        for(Name name : tirGlobalStmt.getNames()){
+            // Get set of definitions for each name, if
+
+        }
+        outFlowSets.put(tirGlobalStmt, copy(currentOutSet));
     }
 
     public void caseTIRCallStmt(TIRCallStmt tirNode){

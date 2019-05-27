@@ -44,11 +44,15 @@ public abstract class LogicalBinaryOp extends BinaryOp {
         }else{
             throw new MatWablyError.UnsupportedBuiltinCall(callName,node);
         }
+        promoteIfAmbiguousLogical(result);
+        return result;
+    }
+
+     protected void promoteIfAmbiguousLogical(MatWablyBuiltinGeneratorResult result) {
         if(disallow_logicals||!matwably_analysis_set.getLogicalVariableUtil().
                 isDefinitionLogical(targets.getName(0).getID(), (Def)node)){
             result.addInstruction(new Convert(new F64(),new I32(),  true));
         }
-        return result;
     }
 
 

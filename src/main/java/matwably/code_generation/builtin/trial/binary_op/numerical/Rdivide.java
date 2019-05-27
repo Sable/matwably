@@ -1,14 +1,14 @@
 package matwably.code_generation.builtin.trial.binary_op.numerical;
 
 import ast.ASTNode;
-import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Div;
 import matwably.ast.F64;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.binary_op.BinaryOp;
+import matwably.code_generation.builtin.trial.binary_op.NumericBinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Rdivide extends BinaryOp {
+public class Rdivide extends NumericBinaryOp {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *

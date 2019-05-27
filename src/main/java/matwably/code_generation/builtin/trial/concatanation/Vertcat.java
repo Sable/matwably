@@ -11,7 +11,7 @@ import matwably.code_generation.builtin.trial.input_generation.VectorInputGenera
 import matwably.code_generation.wasm.MatWablyArray;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Vertcat extends AbstractConcat {
+public class Vertcat extends Concat {
 
 
     /**

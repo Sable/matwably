@@ -1,4 +1,4 @@
-package matwably.code_generation.builtin.trial.properties;
+package matwably.code_generation.builtin.trial.matrix_query;
 
 import ast.ASTNode;
 import matwably.code_generation.MatWablyFunctionInformation;
@@ -8,7 +8,7 @@ import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
-public class Isrow extends LogicalProperty {
+public class Ismatrix extends LogicalProperty {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -18,19 +18,18 @@ public class Isrow extends LogicalProperty {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Isrow(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public Ismatrix(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
 
     /**
-     * boolean indicating whether the matrix property is true
-     *
+     * Boolean indicating whether the matrix property is true
      * @param shape Shape for the target variable
      * @return boolean indicating whether the inputs matrix property is true
      */
     @Override
     protected boolean shapeHasProperty(Shape shape) {
-        return shape!=null && shape.isRowVector();
+        return shape!=null && shape.isMatrix();
     }
     /**
      * Logical flag indicating whether the property is true for a scalar
@@ -41,5 +40,4 @@ public class Isrow extends LogicalProperty {
         result.addInstruction(new ConstLiteral(new I32(), 1));
         return result;
     }
-
 }

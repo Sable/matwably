@@ -1,8 +1,10 @@
 package matwably.code_generation.builtin.trial.unary_operation;
 
 import ast.ASTNode;
-import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.ast.Call;
+import matwably.ast.Idx;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
@@ -18,7 +20,12 @@ public abstract class UnaryOp  extends MatWablyBuiltinGenerator {
      * e.g. if the operation is binary addition,
      * this function adds the instruction `f64.add` to the return object
      */
-    public abstract MatWablyBuiltinGeneratorResult generateScalarCall();
+    public  MatWablyBuiltinGeneratorResult generateScalarCall(){
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+        result.addInstruction(new Call(new Idx(generatedCallName+"_SS")));
+        return result;
+    }
+
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *

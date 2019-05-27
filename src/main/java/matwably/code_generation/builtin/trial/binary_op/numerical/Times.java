@@ -1,14 +1,14 @@
 package matwably.code_generation.builtin.trial.binary_op.numerical;
 
 import ast.ASTNode;
-import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.F64;
 import matwably.ast.Mul;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.binary_op.BinaryOp;
+import matwably.code_generation.builtin.trial.binary_op.NumericBinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Times extends BinaryOp {
+public class Times extends NumericBinaryOp {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *

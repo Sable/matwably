@@ -1,13 +1,11 @@
 package matwably.analysis.intermediate_variable;
 
-import ast.ASTNode;
-import ast.AssignStmt;
-import ast.Name;
-import ast.NameExpr;
+import ast.*;
 import com.google.common.collect.Sets;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralForwardAnalysis;
 import natlab.toolkits.analysis.core.Def;
+import natlab.utils.NodeFinder;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,6 +49,23 @@ public class ReachingDefinitions extends TIRAbstractSimpleStructuralForwardAnaly
                     initialMap.put(param.getID(), Sets.<Def>newHashSet(param));
                 });
     }
+    public boolean isNameGlobalDefinition(Name name){
+        if(!defs.contains(name)) return false;
+        GlobalStmt stmt = NodeFinder.findParent(GlobalStmt.class, name);
+        return stmt != null;
+    }
+    public boolean isNameArgumentDefinition(Name name){
+        if(!defs.contains(name)) return false;
+        TIRFunction stmt = NodeFinder.findParent(TIRFunction.class, name);
+        return stmt.getInputParamList().stream().anyMatch((Name param)-> param == name);
+    }
+
+    public boolean isNameAssignStmtDefinition(Name name){
+        if(!defs.contains(name)) return false;
+        AssignStmt stmt = NodeFinder.findParent(AssignStmt.class, name);
+        return stmt!= null;
+    }
+
 
     public boolean isDef(Name name){
         return defs.contains(name);

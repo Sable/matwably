@@ -1,4 +1,4 @@
-package matwably.code_generation.builtin.trial.properties;
+package matwably.code_generation.builtin.trial.matrix_query;
 
 import ast.ASTNode;
 import matwably.code_generation.MatWablyFunctionInformation;
@@ -8,7 +8,7 @@ import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
-public class Isvector extends LogicalProperty {
+public class Isrow extends LogicalProperty {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -18,7 +18,7 @@ public class Isvector extends LogicalProperty {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Isvector(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public Isrow(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
 
@@ -30,9 +30,8 @@ public class Isvector extends LogicalProperty {
      */
     @Override
     protected boolean shapeHasProperty(Shape shape) {
-        return shape!=null && shape.isVector();
+        return shape!=null && shape.isRowVector();
     }
-
     /**
      * Logical flag indicating whether the property is true for a scalar
      */

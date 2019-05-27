@@ -1,15 +1,12 @@
-package matwably.code_generation.builtin.trial.matrix_operation;
+package matwably.code_generation.builtin.trial.matrix_query;
 
 import ast.ASTNode;
-import matwably.ast.ConstLiteral;
-import matwably.ast.F64;
-import matwably.ast.I32;
-import matwably.ast.Mul;
+import matwably.code_generation.MatWablyError;
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Mtimes extends BinaryMatrixOp {
+public abstract class Property extends MatrixQuery {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -19,10 +16,13 @@ public class Mtimes extends BinaryMatrixOp {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Mtimes(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public Property(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
-
+    @Override
+    public boolean isSpecialized() {
+        return true;
+    }
     /**
      * To be implemented by actual Builtin. Specifies whether the built-in expression returns boxed scalar.
      * Returns whether the expression always returns a matrix. i.e. whether the generated built-in call does
@@ -46,34 +46,21 @@ public class Mtimes extends BinaryMatrixOp {
     public boolean expressionReturnsVoid() {
         return false;
     }
+    protected void validateInput(){
+        if(arguments.size() > 1) throw new MatWablyError.TooManyInputArguments(callName,node);
+        if(arguments.size() < 1) throw new MatWablyError.NotEnoughInputArguments(callName,node);
+    }
+
+    public abstract MatWablyBuiltinGeneratorResult generateScalarExpression();
 
     public MatWablyBuiltinGeneratorResult generateExpression(){
-        super.validateInput();
+        validateInput();
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)
-                &&valueUtil.isScalar(arguments.getNameExpresion(1),node,true)){
-            result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(0), node));
-            result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(1), node));
-            result.addInstruction(new Mul(new F64()));
+        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
+            result.add(generateScalarExpression());
         }else{
-            result.add(super.generateInputs());
-            result.addInstruction(new ConstLiteral(new I32(),0));
-            result.add(super.generateCall());
+            result.add(super.generateExpression());
         }
         return result;
-    }
-
-    @Override
-    public String getGeneratedBuiltinName() {
-        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)
-                || valueUtil.isScalar(arguments.getNameExpresion(1),node,true)){
-            return "times";
-        }
-        return callName;
-    }
-
-    @Override
-    public boolean isSpecialized() {
-        return true;
     }
 }

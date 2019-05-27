@@ -12,7 +12,7 @@ import matwably.code_generation.builtin.trial.input_generation.VectorInputGenera
 import matwably.code_generation.wasm.MatWablyArray;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Horzcat extends AbstractConcat {
+public class Horzcat extends Concat {
 
     /**
      * Constructor for class MatWablyBuiltinGenerator

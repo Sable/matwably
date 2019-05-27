@@ -1,14 +1,13 @@
-package matwably.code_generation.builtin.trial.properties;
+package matwably.code_generation.builtin.trial.matrix_query;
 
 import ast.ASTNode;
-import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Size extends MatWablyBuiltinGenerator {
+public class Size extends MatrixQuery {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *

@@ -1,10 +1,12 @@
-package matwably.code_generation.builtin.trial;
+package matwably.code_generation.builtin.trial.matrix_operation;
 
 import ast.ASTNode;
+import matwably.code_generation.MatWablyError;
 import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class UserDefinedGenerator extends MatWablyBuiltinGenerator {
+public class BinaryMatrixOp extends MatrixOp {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -14,12 +16,17 @@ public class UserDefinedGenerator extends MatWablyBuiltinGenerator {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public UserDefinedGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public BinaryMatrixOp(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
 
+    @Override
+    public boolean isSpecialized() {
+        return true;
+    }
+
     /**
-     * To be implemented by actual Builtin. Specifies whether the built-in expression returns boxed scalar.
+     * To be implemented by actual Builtin. False if the built-in expression returns boxed scalar.
      * Returns whether the expression always returns a matrix. i.e. whether the generated built-in call does
      * not have specialization for the scalar cases.
      *
@@ -27,7 +34,7 @@ public class UserDefinedGenerator extends MatWablyBuiltinGenerator {
      */
     @Override
     public boolean expressionHasSpecializationForScalar() {
-        return true;
+        return false;
     }
 
     /**
@@ -40,5 +47,18 @@ public class UserDefinedGenerator extends MatWablyBuiltinGenerator {
     @Override
     public boolean expressionReturnsVoid() {
         return false;
+    }
+    public void validateInput(){
+        if(arguments.size() > 2) throw new MatWablyError.TooManyInputArguments(callName, node);
+        if(arguments.size() < 2) throw new MatWablyError.NotEnoughInputArguments(callName, node);
+    }
+    public MatWablyBuiltinGeneratorResult generateExpression(){
+        validateInput();
+        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)||
+            valueUtil.isScalar(arguments.getNameExpresion(1),node,true)) {
+            return super.generateExpression();
+        }else{
+            throw new MatWablyError.UnsupportedBuiltinCallWithArguments(callName, node, arguments);
+        }
     }
 }

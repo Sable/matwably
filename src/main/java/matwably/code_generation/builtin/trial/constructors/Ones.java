@@ -7,17 +7,13 @@ import matwably.ast.F64;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class EyeGenerator extends ShapeConstructorGenerator {
+public class Ones extends ShapeConstructor {
 
 
-    public EyeGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
+    public Ones(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
         super(node, arguments, targs, callName, functionInfo);
     }
 
-    @Override
-    public String get2DConstructorName() {
-        return "eye_2D";
-    }
 
     @Override
     public MatWablyBuiltinGeneratorResult generateScalarExpression() {
@@ -26,3 +22,4 @@ public class EyeGenerator extends ShapeConstructorGenerator {
         return result;
     }
 }
+

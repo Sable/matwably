@@ -16,7 +16,7 @@ import natlab.tame.tir.TIRCommaSeparatedList;
  * Any other version of the reduction operation is not taken care of by `ValueAnalysis`.
  */
 
-public class Reduction extends MatWablyBuiltinGenerator{
+public class NumericReduction extends MatWablyBuiltinGenerator{
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -26,7 +26,7 @@ public class Reduction extends MatWablyBuiltinGenerator{
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Reduction(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public NumericReduction(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
 

@@ -7,23 +7,18 @@ import matwably.ast.F64;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class OnesGenerator extends ShapeConstructorGenerator {
+public class Zeros extends ShapeConstructor {
 
-
-    public OnesGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
+    public Zeros(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
         super(node, arguments, targs, callName, functionInfo);
     }
 
-    @Override
-    public String get2DConstructorName() {
-        return "ones_2D";
-    }
 
     @Override
     public MatWablyBuiltinGeneratorResult generateScalarExpression() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-        result.addInstruction(new ConstLiteral(new F64(), 1));
+        result.addInstruction(new ConstLiteral(new F64(), 0));
         return result;
     }
-}
 
+}

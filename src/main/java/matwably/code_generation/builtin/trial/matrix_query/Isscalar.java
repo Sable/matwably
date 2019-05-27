@@ -1,4 +1,4 @@
-package matwably.code_generation.builtin.trial.properties;
+package matwably.code_generation.builtin.trial.matrix_query;
 
 import ast.ASTNode;
 import matwably.code_generation.MatWablyFunctionInformation;

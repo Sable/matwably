@@ -42,9 +42,6 @@ public class ReferenceCountMap {
      */
     private HashSet<String> static_freeing_memory_sites = new HashSet<>(); //Set of memory sites to free at given stmt.
 
-
-
-
     /**
      * Set of dynamic statements to increase the count at run-time for given site
      */

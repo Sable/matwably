@@ -10,11 +10,11 @@ import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
 
-public class RandiGenerator extends ShapeConstructorGenerator  {
+public class Randi extends ShapeConstructor {
 
 
     /**
-     * ShapeConstructor constructor method
+     * IShapeConstructor constructor method
      *
      * @param node         TIRNode to generate
      * @param arguments    Arguments to node
@@ -22,13 +22,8 @@ public class RandiGenerator extends ShapeConstructorGenerator  {
      * @param callName     Call name
      * @param functionInfo Series of MatWably Analysis
      */
-    public RandiGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
+    public Randi(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
         super(node, arguments, targs, callName, functionInfo);
-    }
-
-    @Override
-    public String get2DConstructorName() {
-        return "randi_2D";
     }
 
     @Override

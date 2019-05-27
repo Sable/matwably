@@ -1,15 +1,14 @@
-package matwably.code_generation.builtin.trial.matrix_operation;
+package matwably.code_generation.builtin.trial.matrix_query;
 
 import ast.ASTNode;
-import matwably.ast.ConstLiteral;
-import matwably.ast.F64;
-import matwably.ast.I32;
-import matwably.ast.Mul;
 import matwably.code_generation.MatWablyFunctionInformation;
+import matwably.ast.ConstLiteral;
+import matwably.ast.I32;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
+import natlab.tame.valueanalysis.components.shape.Shape;
 
-public class Mtimes extends BinaryMatrixOp {
+public class Isempty extends LogicalProperty {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -19,8 +18,21 @@ public class Mtimes extends BinaryMatrixOp {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Mtimes(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public Isempty(ASTNode node, TIRCommaSeparatedList arguments,
+                   TIRCommaSeparatedList targs,
+                   String callName,
+                   MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
+    }
+
+    /**
+     * Boolean indicating whether the matrix property is true
+     * @param shape Shape for the target variable
+     * @return boolean indicating whether the inputs matrix property is true
+     */
+    @Override
+    protected boolean shapeHasProperty(Shape shape) {
+        return shape!=null  && shape.getHowManyElements(0) == 0;
     }
 
     /**
@@ -46,34 +58,14 @@ public class Mtimes extends BinaryMatrixOp {
     public boolean expressionReturnsVoid() {
         return false;
     }
-
-    public MatWablyBuiltinGeneratorResult generateExpression(){
-        super.validateInput();
+    /**
+     * Logical flag indicating whether the property is true for a scalar
+     */
+    @Override
+    protected MatWablyBuiltinGeneratorResult generateLogicalScalarExpression() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)
-                &&valueUtil.isScalar(arguments.getNameExpresion(1),node,true)){
-            result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(0), node));
-            result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(1), node));
-            result.addInstruction(new Mul(new F64()));
-        }else{
-            result.add(super.generateInputs());
-            result.addInstruction(new ConstLiteral(new I32(),0));
-            result.add(super.generateCall());
-        }
+        result.addInstruction(new ConstLiteral(new I32(), 0));
         return result;
     }
 
-    @Override
-    public String getGeneratedBuiltinName() {
-        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)
-                || valueUtil.isScalar(arguments.getNameExpresion(1),node,true)){
-            return "times";
-        }
-        return callName;
-    }
-
-    @Override
-    public boolean isSpecialized() {
-        return true;
-    }
 }

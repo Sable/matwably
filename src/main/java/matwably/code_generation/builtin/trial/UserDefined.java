@@ -1,13 +1,10 @@
-package matwably.code_generation.builtin.trial.properties;
+package matwably.code_generation.builtin.trial;
 
 import ast.ASTNode;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.MatWablyError;
-import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public abstract class Property extends MatWablyBuiltinGenerator {
+public class UserDefined extends MatWablyBuiltinGenerator {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -17,13 +14,10 @@ public abstract class Property extends MatWablyBuiltinGenerator {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Property(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
+    public UserDefined(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
-    @Override
-    public boolean isSpecialized() {
-        return true;
-    }
+
     /**
      * To be implemented by actual Builtin. Specifies whether the built-in expression returns boxed scalar.
      * Returns whether the expression always returns a matrix. i.e. whether the generated built-in call does
@@ -46,22 +40,5 @@ public abstract class Property extends MatWablyBuiltinGenerator {
     @Override
     public boolean expressionReturnsVoid() {
         return false;
-    }
-    protected void validateInput(){
-        if(arguments.size() > 1) throw new MatWablyError.TooManyInputArguments(callName,node);
-        if(arguments.size() < 1) throw new MatWablyError.NotEnoughInputArguments(callName,node);
-    }
-
-    public abstract MatWablyBuiltinGeneratorResult generateScalarExpression();
-
-    public MatWablyBuiltinGeneratorResult generateExpression(){
-        validateInput();
-        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
-            result.add(generateScalarExpression());
-        }else{
-            result.add(super.generateExpression());
-        }
-        return result;
     }
 }

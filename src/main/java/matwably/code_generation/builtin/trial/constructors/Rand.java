@@ -7,15 +7,10 @@ import matwably.ast.Idx;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class RandGenerator extends ShapeConstructorGenerator {
+public class Rand extends ShapeConstructor {
 
-    public RandGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
+    public Rand(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
         super(node, arguments, targs, callName, functionInfo);
-    }
-
-    @Override
-    public String get2DConstructorName() {
-        return "rand_2D";
     }
 
     @Override

@@ -17,8 +17,8 @@ import matwably.code_generation.builtin.trial.matrix_operation.Mldivide;
 import matwably.code_generation.builtin.trial.matrix_operation.Mpower;
 import matwably.code_generation.builtin.trial.matrix_operation.Mrdivide;
 import matwably.code_generation.builtin.trial.matrix_operation.Mtimes;
-import matwably.code_generation.builtin.trial.properties.*;
-import matwably.code_generation.builtin.trial.reduction_operation.Reduction;
+import matwably.code_generation.builtin.trial.matrix_query.*;
+import matwably.code_generation.builtin.trial.reduction_operation.NumericReduction;
 import matwably.code_generation.builtin.trial.unary_operation.logical.Not;
 import matwably.code_generation.builtin.trial.unary_operation.numeric.*;
 import matwably.code_generation.builtin.trial.utility.Disp;
@@ -33,12 +33,12 @@ public class MatWablyBuiltinGeneratorFactory {
      private static HashMap<String, Class<? extends MatWablyBuiltinGenerator>> matwablyGeneratorMap = new HashMap<>();
      static{
          // Constructors
-         matwablyGeneratorMap.put("ones", OnesGenerator.class);
-         matwablyGeneratorMap.put("zeros", ZerosGenerator.class);
-         matwablyGeneratorMap.put("randn", RandnGenerator.class);
-         matwablyGeneratorMap.put("rand", RandGenerator.class);
-         matwablyGeneratorMap.put("randi", RandiGenerator.class);
-         matwablyGeneratorMap.put("eye", EyeGenerator.class);
+         matwablyGeneratorMap.put("ones", Ones.class);
+         matwablyGeneratorMap.put("zeros", Zeros.class);
+         matwablyGeneratorMap.put("randn", Randn.class);
+         matwablyGeneratorMap.put("rand", Rand.class);
+         matwablyGeneratorMap.put("randi", Randi.class);
+         matwablyGeneratorMap.put("eye", Eye.class);
          matwablyGeneratorMap.put("horzcat", Horzcat.class);
          matwablyGeneratorMap.put("cat", Cat.class);
          matwablyGeneratorMap.put("vertcat", Vertcat.class);
@@ -104,18 +104,18 @@ public class MatWablyBuiltinGeneratorFactory {
          matwablyGeneratorMap.put("ismatrix", Ismatrix.class);
 
          // Reductions
-         matwablyGeneratorMap.put("sum", Reduction.class);
-         matwablyGeneratorMap.put("prod", Reduction.class);
-         matwablyGeneratorMap.put("mean", Reduction.class);
-         matwablyGeneratorMap.put("max", Reduction.class);
-         matwablyGeneratorMap.put("min", Reduction.class);
+         matwablyGeneratorMap.put("sum", NumericReduction.class);
+         matwablyGeneratorMap.put("prod", NumericReduction.class);
+         matwablyGeneratorMap.put("mean", NumericReduction.class);
+         matwablyGeneratorMap.put("max", NumericReduction.class);
+         matwablyGeneratorMap.put("min", NumericReduction.class);
 
          // Matrix ops
          matwablyGeneratorMap.put("mtimes", Mtimes.class);
          matwablyGeneratorMap.put("mrdivide", Mrdivide.class);
          matwablyGeneratorMap.put("mldivide", Mldivide.class);
          matwablyGeneratorMap.put("mpower", Mpower.class);
-
+         matwablyGeneratorMap.put("equals", Equals.class);
 
 
      }
@@ -125,7 +125,7 @@ public class MatWablyBuiltinGeneratorFactory {
                                                         MatWablyFunctionInformation analyses) {
          boolean isUserDefined = analyses.getFunctionQuery().isUserDefinedFunction(callName);
          if(isUserDefined){
-           return new UserDefinedGenerator(node, arguments,targs, callName, analyses);
+           return new UserDefined(node, arguments,targs, callName, analyses);
          }else if(matwablyGeneratorMap.containsKey(callName)){
 //            System.out.println("hERE: "+callName);
             try{

@@ -1,15 +1,14 @@
 package matwably.code_generation.builtin.trial.utility;
 
 import ast.ASTNode;
-import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.Idx;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Toc  extends MatWablyBuiltinGenerator {
+public class Toc  extends Utility {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *

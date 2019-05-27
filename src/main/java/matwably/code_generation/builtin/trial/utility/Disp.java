@@ -2,15 +2,14 @@ package matwably.code_generation.builtin.trial.utility;
 
 import ast.ASTNode;
 import ast.NameExpr;
-import matwably.code_generation.MatWablyError;
-import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.Call;
 import matwably.ast.Idx;
+import matwably.code_generation.MatWablyError;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Disp extends MatWablyBuiltinGenerator {
+public class Disp extends Utility {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *

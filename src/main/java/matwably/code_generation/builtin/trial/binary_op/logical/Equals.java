@@ -1,13 +1,13 @@
 package matwably.code_generation.builtin.trial.binary_op.logical;
 
 import ast.ASTNode;
-import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.F64;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.trial.binary_op.LogicalBinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class Eq  extends LogicalBinaryOp {
+public class Equals extends LogicalBinaryOp {
     /**
      * Constructor for class MatWablyBuiltinGenerator
      *
@@ -17,15 +17,8 @@ public class Eq  extends LogicalBinaryOp {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public Eq(ASTNode node, TIRCommaSeparatedList arguments,
-              TIRCommaSeparatedList targs, String callName,
-              MatWablyFunctionInformation analyses ) {
+    public Equals(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
-    }
-
-    @Override
-    public boolean isSpecialized() {
-        return true;
     }
 
     /**
@@ -37,6 +30,25 @@ public class Eq  extends LogicalBinaryOp {
     public MatWablyBuiltinGeneratorResult generateScalarCall() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         result.addInstruction(new matwably.ast.Eq(new F64()));
+        return result;
+    }
+
+    @Override
+    public MatWablyBuiltinGeneratorResult generateExpression() {
+        super.validateInput();
+        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+        boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node,true);
+        boolean arg2IsScalar = valueUtil.isScalar(arguments.getNameExpresion(1),node,true);
+
+        result.add(generateInputs());
+        // Only scalars are supported with logical ops
+        if(arg1IsScalar && arg2IsScalar) {
+            result.add(generateScalarCall());
+
+        }else{
+            result = MatWablyBuiltinGeneratorResult.
+                    merge(result,super.generateCall());
+        }
         return result;
     }
 }

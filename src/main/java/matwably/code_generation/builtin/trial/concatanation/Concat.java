@@ -6,7 +6,7 @@ import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public abstract class AbstractConcat extends MatWablyBuiltinGenerator {
+public abstract class Concat extends MatWablyBuiltinGenerator {
 
 
     /**
@@ -18,9 +18,9 @@ public abstract class AbstractConcat extends MatWablyBuiltinGenerator {
      * @param callName  Original Matlab call name
      * @param analyses  Set of MatWably analyses.
      */
-    public AbstractConcat(ASTNode node, TIRCommaSeparatedList arguments,
-                          TIRCommaSeparatedList targs, String callName,
-                          MatWablyFunctionInformation analyses) {
+    public Concat(ASTNode node, TIRCommaSeparatedList arguments,
+                  TIRCommaSeparatedList targs, String callName,
+                  MatWablyFunctionInformation analyses) {
         super(node, arguments, targs, callName, analyses);
     }
 

@@ -7,7 +7,8 @@ final public class DynamicSite {
     public enum Kind {
         MaybeExternal("MaybeExternal"),
         External("External"),
-        Internal("Internal");
+        Internal("Internal"),
+        Global("Global");
         String name;
         Kind(String name){
             this.name = name;
@@ -76,11 +77,13 @@ final public class DynamicSite {
         return kind;
     }
 
+
+
     @Override
     public int hashCode() {
         return variableName.hashCode()+kind.getName().hashCode();
     }
-
+    public boolean isGlobal() {return this.kind == Kind.Global;}
     public boolean isExternal() {
         return this.kind == Kind.External;
     }

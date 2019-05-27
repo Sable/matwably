@@ -191,7 +191,8 @@ public class FunctionGenerator {
 
         if(!opts.disallow_free){
             GarbageCollectionAnalysis gcA = new GarbageCollectionAnalysis(this.analysisFunction.getTree(),
-                    valueAnalysisUtil,interproceduralFunctionQuery, opts);
+                    valueAnalysisUtil,interproceduralFunctionQuery, opts,
+                    defs);
             gcA.analyze();
             functionAnalyses.setGarbageCollectionAnalysis(gcA);
         }
@@ -472,8 +473,8 @@ public class FunctionGenerator {
     }
 
     /**
-     * // TODO This function is right when for i=a:b:c; end; and i=[], for now, since this significantly
-     *  //todo complicates the generation, ignore the case.
+     * // TODO This function is right when for i=a:b:c; end; and i=[], for now, since handling this correctly significant
+     * // TODO worsens performance, we do not use it.
      * @param tirStmt For loop to generate
      * @return List of instructions generated for a non-moving for-loop.
      */

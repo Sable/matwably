@@ -7,16 +7,11 @@ import matwably.ast.Idx;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class RandnGenerator extends ShapeConstructorGenerator {
+public class Randn extends ShapeConstructor {
 
 
-    public RandnGenerator(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
+    public Randn(ASTNode node, TIRCommaSeparatedList arguments, TIRCommaSeparatedList targs, String callName, MatWablyFunctionInformation functionInfo) {
         super(node, arguments, targs, callName, functionInfo);
-    }
-
-    @Override
-    public String get2DConstructorName() {
-        return "randn_2D";
     }
 
     @Override

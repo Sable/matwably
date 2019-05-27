@@ -15,7 +15,7 @@ import matwably.code_generation.wasm.MatWablyArray;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
-public class Colon extends MatWablyBuiltinGenerator {
+public class Colon extends Constructor {
 
     // For later use when generating subsref
     private boolean is_scalar = false;

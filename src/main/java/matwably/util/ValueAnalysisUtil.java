@@ -182,6 +182,10 @@ public class ValueAnalysisUtil {
 
     }
 
+    public boolean isDefined(String name, ASTNode node, boolean isRHS){
+       return getMatrixValue(name, node, true) != null;
+    }
+
     public String genTypedName(String name, ASTNode node, boolean isRHS) {
         if (this.isScalar(name, node, isRHS)) {
             return name + "_f64";
