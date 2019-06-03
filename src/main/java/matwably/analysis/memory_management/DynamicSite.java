@@ -4,11 +4,35 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 final public class DynamicSite {
+    /**
+     * Merges another Dynamic site into this one
+     * @param dynamicSite DynamicSite to merge
+     */
+    public DynamicSite merge(DynamicSite dynamicSite) {
+        assert dynamicSite.getVariableName().equals(this.variableName)
+                :"Error: To merge variable sites, they must have the same variable name";
+        DynamicSite newSite = new DynamicSite();
+        // Set the name
+        newSite.variableName = this.getVariableName();
+
+        // Intersect the kind
+        if(this.kind == dynamicSite.kind){
+            newSite.kind = this.kind;
+        }else if( (this.kind == Kind.Internal && dynamicSite.kind == Kind.External)
+                || (dynamicSite.kind == Kind.Internal && this.kind == Kind.External)
+                || dynamicSite.kind == Kind.MaybeExternal || this.kind == Kind.MaybeExternal){
+            newSite.kind = Kind.MaybeExternal;
+        }
+        // Add the static sites for both.
+        newSite.static_definitions = new HashSet<>(this.static_definitions);
+        newSite.static_definitions.addAll(dynamicSite.getStaticDefinitions());
+        return newSite;
+    }
+
     public enum Kind {
         MaybeExternal("MaybeExternal"),
         External("External"),
-        Internal("Internal"),
-        Global("Global");
+        Internal("Internal");
         String name;
         Kind(String name){
             this.name = name;
@@ -19,22 +43,25 @@ final public class DynamicSite {
     private String variableName;
     private Kind kind;
 
-    public List<MemorySite> getStaticDefinitions()  {
+    private Set<MemorySite> static_definitions = new HashSet<>();
+
+    public Set<MemorySite> getStaticDefinitions()  {
         return static_definitions;
     }
-
-    private List<MemorySite> static_definitions = null;
+    public boolean hasStaticDefinitions(){
+        return static_definitions.size()> 0;
+    }
 
     public static DynamicSite newInternalSite(String variableName, MemorySite... site){
         return new DynamicSite(variableName, site);
     }
 
     @SafeVarargs
-    public static DynamicSite newInternalSite(String variableName, List<MemorySite>... site){
+    public static DynamicSite newInternalSite(String variableName, Set<MemorySite>... site){
         DynamicSite res =new DynamicSite();
 
         res.static_definitions = Arrays.stream(site).filter(Objects::nonNull)
-                .flatMap(Collection::stream).collect(Collectors.toList());
+                .flatMap(Collection::stream).collect(Collectors.toSet());
         res.variableName = variableName;
         return res;
     }
@@ -51,7 +78,7 @@ final public class DynamicSite {
         return new DynamicSite(variableName,Kind.External);
     }
     private DynamicSite(String variableName, MemorySite[] initialCount) {
-        this.static_definitions = Arrays.stream(initialCount).filter(Objects::nonNull).collect(Collectors.toList());
+        this.static_definitions = Arrays.stream(initialCount).filter(Objects::nonNull).collect(Collectors.toSet());
         this.variableName = variableName;
         this.kind = Kind.Internal;
     }
@@ -62,8 +89,8 @@ final public class DynamicSite {
         this.kind = kind;
         this.variableName = variableName;
     }
-    private DynamicSite( String variableName, List<MemorySite> sites, Kind kind) {
-        this.static_definitions = new ArrayList<>(sites);
+    private DynamicSite( String variableName, Set<MemorySite> sites, Kind kind) {
+        this.static_definitions = new HashSet<>(sites);
         this.variableName = variableName;
         this.kind = kind;
     }
@@ -83,7 +110,6 @@ final public class DynamicSite {
     public int hashCode() {
         return variableName.hashCode()+kind.getName().hashCode();
     }
-    public boolean isGlobal() {return this.kind == Kind.Global;}
     public boolean isExternal() {
         return this.kind == Kind.External;
     }

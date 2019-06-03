@@ -7,6 +7,8 @@ import matwably.util.Util;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class MatWablyBuiltinGeneratorResult implements McLabBuiltinGenerationResult<MatWablyBuiltinGeneratorResult>{
 
@@ -127,6 +129,10 @@ public class MatWablyBuiltinGeneratorResult implements McLabBuiltinGenerationRes
     }
     public void addLocals(TypeUse... loc){
         locals_instructions.addAll(Arrays.asList(loc));
+    }
+    public void addLocals(List<TypeUse> loc){
+        locals_instructions.addAll(StreamSupport.stream(loc.spliterator(),
+                true).collect(Collectors.toSet()));
     }
 
     /**

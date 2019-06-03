@@ -15,6 +15,8 @@
 package matwably.util;
 
 import ast.ASTNode;
+import matwably.ast.I32;
+import matwably.ast.TypeUse;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueSet;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
@@ -37,6 +39,9 @@ public class Util {
             return (BasicMatrixValue) val.getSingleton();
         else
             return null;
+    }
+    public static TypeUse genI32TypeUse(){
+        return new TypeUse(genTypedLocalI32(),new I32());
     }
     public static String getTypedLocalI32(String name){
         return name+"_i32";

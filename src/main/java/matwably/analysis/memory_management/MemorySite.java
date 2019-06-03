@@ -4,6 +4,7 @@ import ast.ASTNode;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,7 +58,10 @@ public class MemorySite {
         this.reference_count = reference_count;
         this.staticallyFreed = staticallyFreed;
     }
-    public MemorySite( String varName, ASTNode<? extends ASTNode> node){
+
+    private MemorySite( String varName, ASTNode<? extends ASTNode> node){
+        Objects.requireNonNull(varName, "Cannot create memory site with null variable name");
+        Objects.requireNonNull(node,"Cannot create memory site with null argument TameIR node");
         this.node = node;
         this.name = varName;
         reference_count++;
@@ -66,9 +70,22 @@ public class MemorySite {
     }
 
     /**
+     * Factory method for MemorySite
+     * @param varName variable name
+     * @param node  TamerIR node
+     * @return Returns
+     */
+    public static MemorySite createMemorySite(String varName, ASTNode<? extends ASTNode> node){
+        return  new MemorySite(varName, node);
+    }
+
+    /**
      * Increases reference count
      */
     public void increaseReferenceCount(String varName, ASTNode<? extends ASTNode> node) {
+        assert !varName.equals(this.getInitialVariableName()):"Aliased variable names cannot be the same";
+        Objects.requireNonNull(varName, "Cannot alias memory site with null variable name");
+        Objects.requireNonNull(node,"Cannot alias memory site with null argument TameIR node");
         aliasing_sites.add(new AliasingSite(varName, node));
         aliasing_names.add(varName);
         reference_count++;

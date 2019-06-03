@@ -70,6 +70,10 @@ public final class MatWablyCommandLineOptions {
 
     @Parameter(names={ "--time" }, arity=1, description="time compilation time")
     public boolean timeCompilation = false;
+
+    @Parameter(names={ "--gc-dynamic" }, description="Dynamic GC, applies a completely dynamic garbage collection strategy")
+    public boolean gc_dynamic = false;
+
     /**
      * Parses the entry function parameters and prints usage if it gails.
      * @param commander {@link JCommander} object

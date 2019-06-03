@@ -68,6 +68,7 @@ class MachArray {
         this.BYTES_PER_ELEMENT = this._data.BYTES_PER_ELEMENT;
         this._mclass = types_1.MClass[this._type_attribute[2]];
         this._mat_class = types_1.MatClass[this._type_attribute[0]];
+        this._gc_info = new Uint8Array(MachRuntime_1._wi.mem.buffer, arr_ptr + 28, 2);
     }
     clone() {
         let new_arr_ptr = MachRuntime_1._wi.clone(this._headerOffset);

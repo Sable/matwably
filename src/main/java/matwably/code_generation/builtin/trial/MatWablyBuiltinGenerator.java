@@ -74,6 +74,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
         return result;
     }
 
+
     public MatWablyBuiltinGeneratorResult getGeneratedExpressionResult() {
         return (resultExpression == null)?generateExpression():resultExpression;
     }
@@ -118,6 +119,8 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
         result = MatWablyBuiltinGeneratorResult.merge(resultExpression,resultTarget);
         return result;
     }
+
+
 
     public MatWablyBuiltinGeneratorResult generateExpression(){
         return generateInputs()

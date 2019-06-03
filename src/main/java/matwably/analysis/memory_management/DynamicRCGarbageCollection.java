@@ -1,10 +1,7 @@
 package matwably.analysis.memory_management;
 
-import ast.ASTNode;
-import ast.Function;
-import ast.NameExpr;
-import ast.Stmt;
-import matjuice.transformer.MJCopyStmt;
+import ast.*;
+import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
@@ -13,17 +10,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.
-        Collectors;
+import java.util.stream.Collectors;
 
 public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     private final ValueAnalysisUtil valueUtil;
+    private final InterproceduralFunctionQuery functionQuery;
 
     /**
      * Set keeps track of currently defined sites in the program
      */
     private Set<String> definedSites = new HashSet<>();
-
 
     /**
      * Map from TameIR nodes to GCCallsSet
@@ -38,11 +34,13 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     private ASTNode node;
 
     /**
-     * Constructor for analysis for other nodes.
-     * @param node Matlab node to traverse in the analysis
-     * @
+     * Its applied in an arbitrary ASTNode
+     * @param node TameIR ast Node
+     * @param valueAnalysisUtil parameters helps us find out whether the variable is an array or a scalar
+     * @param functionQuery Function query to determine dynamic calls
      */
-    public DynamicRCGarbageCollection(ASTNode<? extends ASTNode> node, ValueAnalysisUtil valueAnalysisUtil) {
+    public DynamicRCGarbageCollection(ASTNode<? extends ASTNode> node, ValueAnalysisUtil valueAnalysisUtil, InterproceduralFunctionQuery functionQuery) {
+        this.functionQuery = functionQuery;
         if(node instanceof Function){
             this.function = (Function) node;
         }
@@ -50,40 +48,64 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
         this.valueUtil = valueAnalysisUtil;
     }
     /**
-     * Constructor for analysis for dynamic sites.
-     * @param function  Matlab function to traverse in the analysis
-     * @
+     * Its applied in an arbitrary ASTNode
+     * @param function TameIR Function Node
+     * @param valueAnalysisUtil parameters helps us find out whether the variable is an array or a scalar
+     * @param functionQuery Function query to determine dynamic calls
      */
-    public DynamicRCGarbageCollection(TIRFunction function, ValueAnalysisUtil valueAnalysisUtil) {
+    public DynamicRCGarbageCollection(TIRFunction function, ValueAnalysisUtil valueAnalysisUtil,
+                                      InterproceduralFunctionQuery functionQuery) {
         this.function = function;
         this.valueUtil = valueAnalysisUtil;
         this.node = function;
+        this.functionQuery = functionQuery;
     }
 
-    public void apply(){
+    /**
+     * Runs the analysis once instantiated
+     */
+    public void analyze(){
         node.analyze(this);
     }
 
+    /**
+     * Function visitor.
+     *  - Adds argument paramters to defined set
+     *  - Processes tirFunction visitor
+     *  - To the last statement,
+     *    it merges the return handle
+     *
+     * @param tirFunction TameIR Function
+     */
     @Override
-    public void caseTIRFunction(TIRFunction tirFunction) {
+    public void caseFunction(Function tirFunction) {
+        TIRFunction func = (TIRFunction) tirFunction;
         GCCallsSet set = initializeSites();
         // Mapp function to input parameters
-        stmt_mapping.put(tirFunction, set);
-        super.caseTIRFunction(tirFunction);
-        GCCallsSet ret = processReturn();
-        TIRStatementList stmtList = tirFunction.getStmtList();
-        Stmt lastStmt = stmtList.getChild(stmtList.getNumChild() - 1);
-        stmt_mapping.get(lastStmt)
-                .merge(ret);
-
+        stmt_mapping.put(func, set);
+        super.caseFunction(func);
+        if( tirFunction.getStmtList().getChild(tirFunction.getStmtList()
+                .getNumChild()-1).getClass()
+                != TIRReturnStmt.class) {
+            GCCallsSet ret = processReturn();
+            TIRStatementList stmtList = func.getStmtList();
+            Stmt lastStmt = stmtList.getChild(stmtList.getNumChild() - 1);
+            stmt_mapping.get(lastStmt)
+                    .merge(ret);
+        }
     }
 
+    /**
+     * Adds all the initial set which is composed of the arguments. In terms of arguments,
+     * we never modify external sites.
+     * @return Set of GC calls that initializes the sites
+     */
     private GCCallsSet initializeSites(){
         GCCallsSet set = new GCCallsSet();
         definedSites.addAll(function.getInputParamList().getNameExpressions()
                 .stream().map(NameExpr::getVarName).filter((String param)->{
                     if(!valueUtil.isScalar(param, function, true)){
-                        set.increaseReference(param);
+                        // To not touch external sites.
                         addDefinedSite(param);
                         return true;
                     }
@@ -99,59 +121,112 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     public Map<ASTNode, GCCallsSet> getGcCallsMapping() {
         return stmt_mapping;
     }
+
+
+    /**
+     * Stmts of the for [a,b,...c] = A(i,j) or [a,b,...,c] = call().
+     * If its a user_defined function, we add external tag to the site of the arguments passed.
+     * @param tirAbstractAssignToListStmt TameIR Node
+     */
     @Override
     public void caseTIRAbstractAssignToListStmt(TIRAbstractAssignToListStmt tirAbstractAssignToListStmt) {
         GCCallsSet res = new GCCallsSet();
         tirAbstractAssignToListStmt.getTargets()
                 .getNameExpressions().forEach((NameExpr nameExpr)->{
-            addDynamicCalls(res, nameExpr.getVarName(), tirAbstractAssignToListStmt);
+            addDefGCCalls(res, nameExpr.getVarName(), tirAbstractAssignToListStmt);
         });
+        // If is a call stmt and is a used_defined function
+        if(tirAbstractAssignToListStmt instanceof TIRCallStmt)
+        {
+            TIRCallStmt callStmt = (TIRCallStmt)tirAbstractAssignToListStmt;
+            if(this.functionQuery.isUserDefinedFunction(callStmt.
+                    getFunctionName().getID())){
+                callStmt.getArguments()
+                    .getNameExpressions().stream().map(NameExpr::getName).map(Name::getID)
+                    .filter((String name)-> !valueUtil.isScalar(name, callStmt, true))
+                    .forEach(res::checkAndAddExternalFlag);
+            }
+
+        }
         stmt_mapping.put(tirAbstractAssignToListStmt, res);
     }
-    private void addDynamicCalls(GCCallsSet res, String name, ASTNode node){
-        if(siteDefined(name)){
+
+    /**
+     *  Adds a particular variable definition. Here are the steps:
+     *      - If variable is already defined, decrease the reference
+     *      - If variable is an array (not scalar), increase reference of result,
+     *        and if its not defined in set, add name to defined variables.
+     *      - If variable is a scalar, remove from defined sites.
+     * @param res Result set for the GC operation
+     * @param name Name of variable being defiend
+     * @param node TameIR node for definition
+     */
+    private void addDefGCCalls(GCCallsSet res, String name, ASTNode node){
+        // If is already defined, decrease the reference for the site already defined
+        if(isSiteDefined(name))
             res.decreaseReference(name);
-        }
-        if(!valueUtil.isScalar(name, node, false)){
-            removeDefinedSite(name);
-        }else {
+        // If is
+        boolean isScalar = valueUtil.isScalar(name, node,false);
+        if(!isScalar){
             res.increaseReference(name);
-        }
-        if(!siteDefined(name))
             addDefinedSite(name);
+        }else{
+            removeDefinedSite(name);
+        }
     }
+
+    /**
+     * Takes care of two statements a=b, and a = 1, adds the definition of variable `a`
+     * @param tirAbstractAssignToVarStmt TameIR Node
+     */
     @Override
     public void caseTIRAbstractAssignToVarStmt(TIRAbstractAssignToVarStmt tirAbstractAssignToVarStmt) {
         GCCallsSet res = new GCCallsSet();
-        addDynamicCalls(res, tirAbstractAssignToVarStmt.getVarName(), tirAbstractAssignToVarStmt);
+        addDefGCCalls(res, tirAbstractAssignToVarStmt.getVarName(), tirAbstractAssignToVarStmt);
         stmt_mapping.put(tirAbstractAssignToVarStmt, res);
     }
 
-    @Override
-    public void caseTIRCopyStmt(TIRCopyStmt tirCopyStmt) {
-        GCCallsSet res = new GCCallsSet();
-        addDynamicCalls(res, tirCopyStmt.getVarName(), tirCopyStmt);
-        boolean isScalar = valueUtil.isScalar(tirCopyStmt.getSourceName().getID(), tirCopyStmt,true);
-        if(!(tirCopyStmt instanceof MJCopyStmt) && isScalar){
-            res.increaseReference(tirCopyStmt.getSourceName().getID());
-        }
-        stmt_mapping.put(tirCopyStmt, res);
-    }
 
+
+    /**
+     * Case stmt, if it does not hit our cases, then simply add map an empty set
+     * @param tirStmt Stmt node
+     */
     @Override
     public void caseStmt(Stmt tirStmt) {
         GCCallsSet res = new GCCallsSet();
         stmt_mapping.put(tirStmt, res);
+        super.caseStmt(tirStmt);
+    }
+    /**
+     * Case stmt, if it does not hit our cases, then simply add map an empty set
+     * @param tirStmt Stmt node
+     */
+    @Override
+    public void caseTIRCommentStmt(TIRCommentStmt tirStmt) {
+        GCCallsSet res = new GCCallsSet();
+        stmt_mapping.put(tirStmt, res);
+        super.caseTIRCommentStmt(tirStmt);
     }
 
+    /**
+     * Assume that for-loop is not empty!
+     * @param tirForStmt For-loop statement node
+     */
     @Override
     public void caseTIRForStmt(TIRForStmt tirForStmt) {
         GCCallsSet res = new GCCallsSet();
-        if(siteDefined(tirForStmt.getLoopVarName().getID()))
+        // We know the loop variables is a scalar
+        if(isSiteDefined(tirForStmt.getLoopVarName().getID()))
             res.decreaseReference(tirForStmt.getLoopVarName().getID());
         super.caseTIRForStmt(tirForStmt);
+        stmt_mapping.put(tirForStmt,res);
     }
 
+    /**
+     * Process return statement {@link DynamicRCGarbageCollection#processReturn()}
+     * @param tirReturnStmt TIRReturnStmt node
+     */
     @Override
     public void caseTIRReturnStmt(TIRReturnStmt tirReturnStmt) {
         if(function != null){
@@ -160,14 +235,17 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     }
     private GCCallsSet processReturn(){
         GCCallsSet res = new GCCallsSet();
-        // For all defined variables not part of return values, free!
-        // For all the defined variables, set reference count to 1.
+        // For all defined variables not part of return values,
+        // free unless external
+        // i.e. mark sites as external at runtime.
+        // For all the returned variables, set RC to 0, since they are NOT
+        // mapped to input arguments,
         Set<String> outParams = function
                 .getOutputParamList()
                 .getNameExpressions()
                 .stream().map(NameExpr::getVarName)
                 .peek(outName ->{
-                    if(siteDefined(outName)) res.setRCToOne(outName);
+                    if(isSiteDefined(outName)) res.addCheckExternalSetRCToZero(outName);
                 }).collect(Collectors.toSet());
         // For the rest of sites, check that they are not external
         // free if they not call.
@@ -177,7 +255,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
         return res;
     }
 
-    private boolean siteDefined(String varName) {
+    private boolean isSiteDefined(String varName) {
         return definedSites.contains(varName);
     }
 

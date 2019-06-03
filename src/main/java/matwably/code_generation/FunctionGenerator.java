@@ -17,7 +17,7 @@ import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
 import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.analysis.intermediate_variable.UseDefDefUseChain;
-import matwably.analysis.memory_management.GarbageCollectionAnalysis;
+import matwably.analysis.memory_management.*;
 import matwably.ast.*;
 import matwably.code_generation.builtin.BuiltinGenerator;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
@@ -63,6 +63,7 @@ public class FunctionGenerator {
     private ValueAnalysisUtil valueAnalysisUtil;
     private LogicalVariableUtil logicalVariableUtil;
     private UseDefDefUseChain udChain;
+    private String i32_scrap_local;
 
     /**
      * Returns the ast of the generated function
@@ -125,7 +126,7 @@ public class FunctionGenerator {
         return suffix.toString();
     }
     public void runAnalyses(){
-        // Set
+
         // Add copy of parameters
         Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(matlabFunction);
         ParameterCopyTransformer.apply(matlabFunction, writtenParams);
@@ -166,7 +167,9 @@ public class FunctionGenerator {
         // Run variable elimination analysis
         if(!opts.skip_variable_elimination){
             this.elim_var_analysis = new TreeExpressionBuilderAnalysis(
-                    this.analysisFunction.getTree(),defs, interproceduralFunctionQuery);
+                    this.analysisFunction.getTree(),defs,
+                    interproceduralFunctionQuery,
+                    valueAnalysisUtil);
             this.elim_var_analysis.analyze();
             this.functionAnalyses.setTreeExpressionBuilderAnalysis(this.elim_var_analysis);
         }
@@ -190,21 +193,42 @@ public class FunctionGenerator {
 
 
         if(!opts.disallow_free){
-            GarbageCollectionAnalysis gcA = new GarbageCollectionAnalysis(this.analysisFunction.getTree(),
-                    valueAnalysisUtil,interproceduralFunctionQuery, opts,
-                    defs);
-            gcA.analyze();
-            functionAnalyses.setGarbageCollectionAnalysis(gcA);
+//            opts.gc_dynamic = true;
+//            if(!opts.gc_dynamic){
+                HybridRCGarbageCollectionAnalysis gcA = new HybridRCGarbageCollectionAnalysis(this.analysisFunction.getTree(),
+                        valueAnalysisUtil,interproceduralFunctionQuery, opts);
+                gcA.analyze();
+//                functionAnalyses.setGCInstructionMapping(HybridGCCallInsertion.generate(gcA));
+//            }else{
+                DynamicRCGarbageCollection dynGC = new DynamicRCGarbageCollection(this.analysisFunction.getTree(),
+                        valueAnalysisUtil, interproceduralFunctionQuery);
+                dynGC.analyze();
+                functionAnalyses.setGCInstructionMapping(DynamicGCCallInsertion.generate(dynGC));
+//            }
         }
+    }
 
-
-
+    /**
+     * Node adds a return stmt as the last stmt, only if the
+     * last statement is not already a return.
+     * @param tirFunction TameIR Function node to add return to.
+     */
+    private static void checkAndAddReturnStmt(TIRFunction tirFunction) {
+        TIRStatementList tirStmts = tirFunction.getStmtList();
+        if (tirStmts.getChild(tirStmts.getNumChild()-1).getClass() != TIRReturnStmt.class) {
+            TIRStatementList stmts = tirFunction.getStmtList();
+            TIRStmt ret = new TIRReturnStmt();
+            stmts.add(ret);
+            tirFunction.setStmtList(stmts);
+        }
     }
     /**
      * Function generator method, takes a tamer function as input
      * and generates a WebAssembly function
      */
     public void generate(){
+        // Adds return statement as the last stmt of
+        checkAndAddReturnStmt(matlabFunction);
         runAnalyses();
         // Setting function name and signature setting output_parameters
         Type funcType = genSignature();
@@ -216,9 +240,13 @@ public class FunctionGenerator {
                 functionAnalyses.getLogicalVariableUtil(),
                 opts.disallow_logicals);
         locals.addAll(local_map.values());
-
+        // Set scrip register
+        TypeUse scrapLocal = Util.genI32TypeUse();
+        locals.add(scrapLocal);
+        this.i32_scrap_local = scrapLocal.getIdentifier().getName();
         // Setting instructions
         List<Instruction> instructions = genStmtList(matlabFunction.getStmtList());
+
         Expression exp = new Expression(instructions);
         // Setting return function, automatically adds return statements for variables
         instructions.addAll(addReturn());
@@ -306,7 +334,15 @@ public class FunctionGenerator {
     private List<Instruction> genStmtList(TIRStatementList stmtList) {
         List<Instruction> instructionList = new List<>();
         for(ast.Stmt stmt: stmtList){
-            if(shouldGenerateStmt(stmt)) instructionList.addAll(genStmt(stmt));
+            if(shouldGenerateStmt(stmt)) {
+                instructionList.addAll(this.functionAnalyses
+                        .getGCInstructionMapping().get(stmt)
+                        .getBeforeStmtInstructions());
+                instructionList.addAll(genStmt(stmt));
+                instructionList.addAll(this.functionAnalyses
+                        .getGCInstructionMapping().get(stmt)
+                        .getAfterStmtInstructions());
+            }
         }
         return instructionList;
     }
@@ -332,12 +368,25 @@ public class FunctionGenerator {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         } else if (tirStmt instanceof TIRCallStmt) {
             List<Instruction> res = new List<>();
+            GCInstructions gcInst = this.functionAnalyses
+                    .getGCInstructionMapping().get(tirStmt);
+
             MatWablyBuiltinGenerator generator = builtin_analysis.getGenerator(tirStmt);
-            MatWablyBuiltinGeneratorResult matWablyBuiltinGeneratorResult = generator.getResult();
-//            MatWablyBuiltinGeneratorResult matWablyBuiltinGeneratorResult = BuiltinGenerator.
-//                    generate((TIRCallStmt) tirStmt, programAnalysis, analysisFunction,expressionGenerator);
-            locals.addAll(matWablyBuiltinGeneratorResult.getLocals());
-            res.addAll(matWablyBuiltinGeneratorResult.getInstructions());
+            MatWablyBuiltinGeneratorResult  resultGenerator =
+                    generator.getGeneratedExpressionResult();
+            // GC calls
+            if(gcInst.hasInBetweenInstructions()){
+                resultGenerator.addInstruction(new SetLocal(new Idx(
+                        this.i32_scrap_local)));
+                resultGenerator.addInstructions(gcInst.
+                        getInBetweenCallStmtInstructions());
+                resultGenerator.addInstruction(
+                        new GetLocal(new Idx(
+                                this.i32_scrap_local)));
+            }
+            resultGenerator.add(generator.getGeneratedSetToTargetResult());
+            locals.addAll(resultGenerator.getLocals());
+            res.addAll(resultGenerator.getInstructions());
             return res;
         }else if(tirStmt instanceof MJCopyStmt){
             return genMJCopyStmt((TIRCopyStmt) tirStmt);
@@ -378,17 +427,27 @@ public class FunctionGenerator {
      * @return Returns generated list of instructions
      */
     private List<Instruction> genMJCopyStmt(TIRCopyStmt tirStmt) {
+        GCInstructions gcInst = this.functionAnalyses.getGCInstructionMapping().get(tirStmt);
         List<Instruction> res = new List<>();
         if(valueAnalysisUtil.isScalar(tirStmt.getSourceName().getID(), tirStmt, false)){
             // Only generate if scalars are different names, otherwise computation does nothing
-            if(!tirStmt.getSourceName().getID().equals(tirStmt.getTargetName().getID())){
-                res.addAll(new GetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getSourceName().getID()))));
-                res.addAll(new SetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getTargetName().getID()))));
+            if(!tirStmt.getSourceName().getID().
+                    equals(tirStmt.getTargetName().getID())){
+                res.addAll(new GetLocal(new Idx(Util.
+                        getTypedLocalF64(tirStmt.getSourceName().getID()))));
+                res.addAll(new SetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.getTargetName().getID()
+                        ,tirStmt,false))));
             }
         }else{
             res.addAll(expressionGenerator.genNameExpr((NameExpr)tirStmt.getRHS(), tirStmt));
             res.addAll(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
-            res.addAll(new SetLocal(new Idx(Util.getTypedLocalI32(tirStmt.getTargetName().getID()))));
+            if(gcInst.hasInBetweenInstructions()){
+                res.add(new SetLocal(new Idx(this.i32_scrap_local)));
+                res.addAll(gcInst.getInBetweenCallStmtInstructions());
+                res.add(new GetLocal(new Idx(this.i32_scrap_local)));
+            }
+            res.addAll(new SetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.getTargetName().getID()
+                    ,tirStmt,false))));
         }
         return res;
     }
@@ -543,7 +602,10 @@ public class FunctionGenerator {
         typedLow = valueAnalysisUtil.genTypedName(tirStmt.getLowerName().getID(),tirStmt,true);
         if(!valueAnalysisUtil.isScalar(tirStmt.getLowerName().getID(),tirStmt, true)){
             res.addAll(MatWablyArray.isEmpty(typedLow));
-            List<Instruction> get_first_elem = MatWablyArray.getArrayIndexF64CheckBounds(typedLow, 1);
+            List<Instruction> get_first_elem = new List<>();
+            get_first_elem.addAll(MatWablyArray.getArrayIndexF64CheckBounds(typedLow, 1));
+            get_first_elem.addAll(this.functionAnalyses.getGCInstructionMapping().
+                    get(tirStmt).getInBetweenCallStmtInstructions());
             typedLow = Util.genTypedLocalF64();
             get_first_elem.add(new SetLocal(new Idx(typedLow)));
             res.add(new If(new Opt<>(),new Opt<>(),
@@ -686,8 +748,7 @@ public class FunctionGenerator {
         Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString());
 
         //Generate Condition (f64.le/ge (get_local $loop_var)(get_local $high))
-        List<Instruction> condition = new List<>(new GetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.
-                getLoopVarName().getID(), tirStmt, false))));
+        List<Instruction> condition = new List<>(new GetLocal(new Idx(typedLow)));
         condition.addAll(new GetLocal(new Idx(typedHigh)));
         condition.addAll((direction==LoopDirection.Ascending)?new Le(new F64(),
                 false):new Ge(new F64(),
@@ -928,9 +989,8 @@ public class FunctionGenerator {
     private List<Instruction> genAssignLiteralStmt(TIRAssignLiteralStmt tirStmt) {
         List<Instruction> inst = expressionGenerator.genExpr(tirStmt.getRHS(), tirStmt);
         String name = tirStmt.getLHS().getVarName();
-        BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt, name);
-        String newName = Util.getTypedName(name, val);
-        inst.add(new SetLocal(new Idx(new Opt<>(new Identifier(newName)),findLocalsIndex(newName))));
+        String newName = valueAnalysisUtil.genTypedName(name,tirStmt, true);
+        inst.add(new SetLocal(new Idx(newName)));
         return inst;
     }
 

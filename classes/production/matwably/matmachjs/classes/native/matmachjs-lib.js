@@ -16,7 +16,7 @@ else if (typeof console.warn === "undefined") {
 }
 // Polyfill
 if (typeof performance === "undefined") {
-    performance = {};
+    var performance = {};
     performance.now = Date.now;
 }
 if (typeof performance.now === "undefined") {

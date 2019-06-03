@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * This class contains the point-to information for garbage collection purposes sites in the Matlab program
@@ -32,64 +33,79 @@ public class ReferenceCountMap {
      * Set maintains for each newly dynamic definition, the site where it became dynamic.
      */
     private HashMap<ASTNode, HashMap<String, Integer>> dynamic_from_previously_static_sites = new HashMap<>();
+
+
+    private Set<String> dynamicInternalSetSiteAsExternal = new HashSet<>();
+    private Set<String> dynamicInternalIncreaseReferenceSites = new HashSet<>();
+    private Set<String> dynamicInternalDecreaseReferenceSites = new HashSet<>();
+    private Set<String> dynamicInternalFreeMemorySite = new HashSet<>(); //Set of memory sites to free at given stmt.
+    private Set<String> dynamicInternalSetReturnFlagAndRCToZero = new HashSet<>();
+    private Set<String> dynamicInternalCheckReturnFlagToFreeSites = new HashSet<>();
+    private Set<DynamicSite> dynamicInternalInitiateSiteCount = new HashSet<>();
     /**
      * Set of sites at given statement that we are making dynamic, a result of the analysis
      */
-    private Set<DynamicSite> initiating_dynamic_sites = new HashSet<>();
+    private Set<String> dynamicCheckExternalSetReturnFlagAndRCToZero = new HashSet<>();
+    private Set<String> dynamicCheckExternalToSetSiteAsExternal = new HashSet<>();
+    private Set<String> dynamicCheckExternalToIncreaseReferenceSites = new HashSet<>();
+    private Set<String> dynamicCheckExternalToDecreaseReferenceSites = new HashSet<>();
+    private Set<String> dynamicCheckExternalAndReturnFlagToFreeSites = new HashSet<>();
 
-    /**
-     * Static variable to free at given statement, a result of the analysis
-     */
-    private HashSet<String> static_freeing_memory_sites = new HashSet<>(); //Set of memory sites to free at given stmt.
-
-    /**
-     * Set of dynamic statements to increase the count at run-time for given site
-     */
-    private HashSet<String> setSiteAsExternal = new HashSet<>();
-
-
-    private HashSet<String> dynamicLocalIncreaseReferenceSites = new HashSet<>();
-
-
-    private Set<String> dynamicCheckExternalIncreaseReferenceSites = new HashSet<>();
-    private Set<String> dynamicLocalDecreaseReferenceSites = new HashSet<>();
-    private Set<String> dynamicCheckExternalDecreaseReferenceSites = new HashSet<>();
-    public Set<String> getCheck_external_before_freeing() {
-        return check_external_before_freeing;
+    public void addDynamicInternalCheckReturnFlagToFreeSites(String name){
+        dynamicInternalCheckReturnFlagToFreeSites.add(name);
     }
 
-    private Set<String> check_external_before_freeing = new HashSet<>();
-
-    public Set<String> getDynamicCheckExternalIncreaseReferenceSites() {
-        return dynamicCheckExternalIncreaseReferenceSites;
+    public void addDynamicCheckExternalAndReturnFlagToFreeSites(String name){
+        dynamicCheckExternalAndReturnFlagToFreeSites.add(name);
     }
 
-    public Set<String> getDynamicLocalDecreaseReferenceSites() {
-        return dynamicLocalDecreaseReferenceSites;
+    public Set<String> getDynamicCheckExternalSetReturnFlagAndRCToZero() {
+        return dynamicCheckExternalSetReturnFlagAndRCToZero;
+    }
+    public Set<String> getDynamicCheckExternalToSetSiteAsExternal() {
+        return dynamicCheckExternalToSetSiteAsExternal;
     }
 
-    public Set<String> getDynamicCheckExternalDecreaseReferenceSites() {
-        return dynamicCheckExternalDecreaseReferenceSites;
-    }
-    public void setDynamicallySiteAsExternal(String name){
-        setSiteAsExternal.add(name);
+    public Set<String> getDynamicInternalSetSiteAsExternal() {
+        return dynamicInternalSetSiteAsExternal;
     }
 
-    public Set<String> getSetSiteAsExternal(){
-        return setSiteAsExternal;
+    public Set<String> getDynamicCheckExternalAndReturnFlagToFreeSites() {
+        return dynamicCheckExternalAndReturnFlagToFreeSites;
     }
+
+    public Set<String> getDynamicCheckExternalToIncreaseReferenceSites() {
+        return dynamicCheckExternalToIncreaseReferenceSites;
+    }
+
+    public Set<String> getDynamicInternalDecreaseReferenceSites() {
+        return dynamicInternalDecreaseReferenceSites;
+    }
+
+    public Set<String> getDynamicCheckExternalToDecreaseReferenceSites() {
+        return dynamicCheckExternalToDecreaseReferenceSites;
+    }
+
+    public void addDynamicInternalSetSiteAsExternal(String name){
+        dynamicInternalSetSiteAsExternal.add(name);
+    }
+    public void addDynamicCheckExternalToSetSiteAsExternal(String name){
+        dynamicCheckExternalToSetSiteAsExternal.add(name);
+    }
+
+
     /**
      * @return Returns the dynamic increasing counts statements at given program point
      */
-    public HashSet<String> getDynamicLocalIncreaseReferenceSites() {
-        return dynamicLocalIncreaseReferenceSites;
+    public Set<String> getDynamicInternalIncreaseReferenceSites() {
+        return dynamicInternalIncreaseReferenceSites;
     }
 
     /**
      * @return Returns statically freed names at given point-to
      */
-    public HashSet<String> getStaticFreeingMemoryNames() {
-        return static_freeing_memory_sites;
+    public Set<String> getStaticFreeingMemoryNames() {
+        return dynamicInternalFreeMemorySite;
     }
 
     /**
@@ -108,25 +124,26 @@ public class ReferenceCountMap {
     public MemorySite getStaticSite(String name){
         return static_memory_sites.get(name);
     }
-    private void addNewInitiatingDynamicSite(DynamicSite dynamicSite){
-        if(dynamicSite.isInternal()){
-
-        }
-        initiating_dynamic_sites.add(dynamicSite);
-    }
-    public void initiateDynamicSite(String newDynName){
-        if(static_memory_sites.containsKey(newDynName)){
-            addNewInitiatingDynamicSite(DynamicSite.newInternalSite(newDynName,
-                    static_memory_sites.get(newDynName)));
-        }
+    public void addNewInitiatingDynamicSite(DynamicSite dynamicSite){
+        dynamicInternalInitiateSiteCount.add(dynamicSite);
     }
 
+    public Set<String> getDynamicInternalSetReturnFlagAndRCToZero(){
+        return dynamicInternalSetReturnFlagAndRCToZero;
+    }
+
+    public void addDynamicInternalSetReturnFlagAndRCToZero(String name){
+        dynamicInternalSetReturnFlagAndRCToZero.add(name);
+    }
     public boolean staticSitesContainKey(String name){
         return static_memory_sites.containsKey(name);
     }
-
+    public void addDynamicCheckExternalSetReturnFlagAndRCToZero(String name){
+        dynamicCheckExternalSetReturnFlagAndRCToZero.add(name);
+    }
 
     /**
+     * Consider sets a_static (a_s), b_static (b_s), a_dynamic (a_d), b_dynamic (b_d)
      * @param first First PointsToInformation in the data flow graph
      * @param second Second PointsToInformation to compare against
      * @return Returns the results of comparing against
@@ -165,7 +182,7 @@ public class ReferenceCountMap {
         // For the previously static sites that have become dynamic, add them to the new dynamic map.
         // What about the intersection.
         for(String newDynName: newDyn){
-            DynamicSite newDimSite = null;
+            DynamicSite newDimSite;
             // First argument
             if(first.staticSitesContainKey(newDynName) && second.staticSitesContainKey(newDynName)){
                 newDimSite = DynamicSite.newInternalSite(newDynName,
@@ -174,9 +191,21 @@ public class ReferenceCountMap {
             }else if(second.staticSitesContainKey(newDynName)){
                 newDimSite = DynamicSite.newInternalSite(newDynName,
                         second.getStaticSite(newDynName));
+                // Checks if there is already a dynamic site for that variable.
+                // if there isn't the variable is not defined yet, merges the two DynSites
+                if(first.getDynamicMemorySites().containsKey(newDynName)){
+                    newDimSite = newDimSite.merge(first.getDynamicMemorySites().
+                            get(newDynName));
+                }
             }else{
                 newDimSite = DynamicSite.newInternalSite(newDynName,
                         first.getStaticSite(newDynName));
+                // Checks if there is already a dynamic site for that variable.
+                // if there isn't the variable is not defined yet, merges the two DynSites
+                if(second.getDynamicMemorySites().containsKey(newDynName)){
+                    newDimSite = newDimSite.merge(second.getDynamicMemorySites().
+                            get(newDynName));
+                }
             }
             // Add to current map.
             // Node -> Set<String> variables to initialize as dynamic.
@@ -188,30 +217,25 @@ public class ReferenceCountMap {
         // Since they are dynamic, we have to merge Kind of dynamic site
         // If they have the same type, it does not matter which site it may be, if they do not have the same kind,
         // We add a new DynamicSite as
+
+        // The only ones missing here are the sites dynamic in both sets
         Set<String> dynamicNamesSitesMerge = new HashSet<>(first.getDynamicMemorySites().keySet());
         dynamicNamesSitesMerge.addAll(second.getDynamicMemorySites().keySet());
         for(String varName:dynamicNamesSitesMerge){
-            if(first.getDynamicMemorySites().containsKey(varName)&&
-                    !second.getDynamicMemorySites().containsKey(varName)){
+            if(!newDynamicSites.containsKey(varName)){
+                if(first.getDynamicMemorySites().containsKey(varName)&&
+                        !second.getDynamicMemorySites().containsKey(varName)){
+                    newDynamicSites.put(varName,first.getDynamicMemorySites().
+                            get(varName).copy());
 
-                newDynamicSites.put(varName,first.getDynamicMemorySites().get(varName).copy() );
-
-            }else if(!first.getDynamicMemorySites().containsKey(varName)&&
-                    second.getDynamicMemorySites().containsKey(varName)){
-                newDynamicSites.put(varName,second.getDynamicMemorySites().get(varName).copy() );
-            }else{
-
-                DynamicSite firstSite = first.getDynamicMemorySites().get(varName);
-                DynamicSite secondSite = second.getDynamicMemorySites().get(varName);
-                if(firstSite.getKind() == DynamicSite.Kind.Internal
-                        && secondSite.getKind() == DynamicSite.Kind.Internal){
-                        newDynamicSites.put(varName, DynamicSite.newInternalSite(varName, firstSite.getStaticDefinitions()
-                        ,secondSite.getStaticDefinitions()));
-                }else if(firstSite.getKind() == DynamicSite.Kind.External
-                        && secondSite.getKind() == DynamicSite.Kind.External){
-                    newDynamicSites.put(varName, firstSite.copy());
+                }else if(!first.getDynamicMemorySites().containsKey(varName)&&
+                        second.getDynamicMemorySites().containsKey(varName)){
+                    newDynamicSites.put(varName,second.getDynamicMemorySites().
+                            get(varName).copy() );
                 }else{
-                    newDynamicSites.put(varName, DynamicSite.newMaybeExternalSite(varName));
+                    DynamicSite firstSite = first.getDynamicMemorySites().get(varName);
+                    DynamicSite secondSite = second.getDynamicMemorySites().get(varName);
+                    newDynamicSites.put(varName, firstSite.merge(secondSite));
                 }
             }
         }
@@ -233,7 +257,7 @@ public class ReferenceCountMap {
      * @return Returns the set of initiating sites at the given point
      */
     public Set<DynamicSite> getDynamicSitesToInialize() {
-        return initiating_dynamic_sites;
+        return dynamicInternalInitiateSiteCount;
     }
 
     /**
@@ -266,11 +290,13 @@ public class ReferenceCountMap {
         // The set of dynamic names and the map of dynamic maps should always be mutually exclusive
         assert !(dynamic_memory_sites.containsKey(name) && static_memory_sites.containsKey(name) ):
                 "Variable"+name+" is both dynamic and static! This should not be possible";
-        decreaseReference(name);
-        static_memory_sites.put(name, new MemorySite(name,node));
+        static_memory_sites.put(name, MemorySite.createMemorySite(name, node));
     }
-    //TODO TEST the map correctlyx
+
     public void decreaseReference(String name){
+        assert !(dynamic_memory_sites.containsKey(name) && static_memory_sites.containsKey(name) ):
+                "Variable"+name+" is both dynamic and static! This should not be possible";
+
         if(dynamic_memory_sites.containsKey(name)) {
             decreaseDynamicCount(name);
         }
@@ -284,13 +310,12 @@ public class ReferenceCountMap {
             if(setFree){
                 // At this point, if there was only one alias and it was deleted,
                 // the static freeing acts
-                static_freeing_memory_sites.add(name);
+                dynamicInternalFreeMemorySite.add(name);
                 // Its okay to remove as there will be other keys pointing to the same MemorySite, unless
                 // it was the only reference, at that point the above call to decreaseReferenceCount should have returned true
                 assert static_memory_sites.get(name).getReferenceCount() == 0: "Reference count should be zero here";
             }
             static_memory_sites.remove(name);
-
         }
     }
 
@@ -311,7 +336,6 @@ public class ReferenceCountMap {
     }
     public void addExternalDynamicSite(String name){
         dynamic_memory_sites.put(name, DynamicSite.newExternalSite(name));
-
     }
     /**
      * This method is used by aliasing statements
@@ -346,9 +370,9 @@ public class ReferenceCountMap {
         // if
         if(dynamic_memory_sites.containsKey(name)){
             if(dynamic_memory_sites.get(name).isInternal()){
-                dynamicLocalDecreaseReferenceSites.add(name);
+                dynamicInternalDecreaseReferenceSites.add(name);
             }else if(dynamic_memory_sites.get(name).isMaybeExternal()){
-                dynamicCheckExternalDecreaseReferenceSites.add(name);
+                dynamicCheckExternalToDecreaseReferenceSites.add(name);
             }
             dynamic_memory_sites.remove(name);
         }
@@ -357,63 +381,33 @@ public class ReferenceCountMap {
     private void increaseDynamicCount(String name) {
         // if
         if(dynamic_memory_sites.get(name).isInternal()){
-            dynamicLocalDecreaseReferenceSites.add(name);
+            dynamicInternalDecreaseReferenceSites.add(name);
         }else if(dynamic_memory_sites.get(name).isMaybeExternal()){
-            dynamicCheckExternalDecreaseReferenceSites.add(name);
+            dynamicCheckExternalToDecreaseReferenceSites.add(name);
         }
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\nStatic Sites:\n");
-        sb.append(static_memory_sites.toString());
-        sb.append("\nDynamic Sites:\n");
-        sb.append(dynamic_memory_sites.toString());
-        sb.append("\nDynamic Sites to initialize:\n");
-        sb.append(initiating_dynamic_sites.toString());
-        sb.append("\nVariables to free statically:\n");
-        sb.append(static_freeing_memory_sites);
-        sb.append("\nLocal Dynamic variables to increase:\n");
-        sb.append(dynamicLocalIncreaseReferenceSites);
-        sb.append("\nLocal Dynamic variables to decrease:\n");
-        sb.append(dynamicLocalDecreaseReferenceSites);
-        sb.append("\nMaybe External dynamic variables to increase:\n");
-        sb.append(dynamicCheckExternalIncreaseReferenceSites);
-        sb.append("\nMaybe External dynamic variables to decrease:\n");
-        sb.append(dynamicCheckExternalDecreaseReferenceSites);
-        return sb.toString();
+        //        sb.append("\nDynamic Sites to initialize:\n");
+//        sb.append(dynamicInternalInitiateSiteCount.toString());
+//        sb.append("\nVariables to free statically:\n");
+//        sb.append(dynamicInternalFreeMemorySite);
+//        sb.append("\nLocal Dynamic variables to increase:\n");
+//        sb.append(dynamicInternalIncreaseReferenceSites);
+//        sb.append("\nLocal Dynamic variables to decrease:\n");
+//        sb.append(dynamicInternalDecreaseReferenceSites);
+//        sb.append("\nMaybe External dynamic variables to increase:\n");
+//        sb.append(dynamicCheckExternalToIncreaseReferenceSites);
+//        sb.append("\nMaybe External dynamic variables to decrease:\n");
+//        sb.append(dynamicCheckExternalToDecreaseReferenceSites);
+        return "\nStatic Sites:\n" +
+                static_memory_sites.toString() +
+                "\nDynamic Sites:\n" +
+                dynamic_memory_sites.toString();
     }
 
-    /**
-     * This method frees all the variables that are not in the set.
-     * If it is static, it adds freeing statement directly.
-     * If it is dynamic:
-     *  - If is external, does nothing
-     *  - If is maybeExternal, checks  whether it is indeed external and dynamically frees  if it is not
-     *  - IF is internal, frees immediately.
-     * @param varName Set of strings of variables to maintain and not clean
-     */
-    public void freeRemaining(Set<String> varName) {
 
-        // Process static
-        Set<String> static_site_names = new HashSet<>(static_memory_sites.keySet());
-        static_site_names.removeAll(varName);
-        static_site_names.forEach(static_memory_sites::remove);
-        this.static_freeing_memory_sites.addAll(static_site_names);
-
-        // Process static
-        Set<String> dynamic_site_names = new HashSet<>(dynamic_memory_sites.keySet());
-        dynamic_site_names.removeAll(varName);
-        dynamic_site_names.forEach((String name)->{
-            DynamicSite site = dynamic_memory_sites.get(name);
-            if(site.isInternal()) {
-                this.static_freeing_memory_sites.add(name);
-                dynamic_memory_sites.remove(name);
-            }
-            if(site.isMaybeExternal()) this.check_external_before_freeing.add(name);
-        });
-    }
 
     @Override
     public boolean equals(Object other){
@@ -437,5 +431,19 @@ public class ReferenceCountMap {
             siteMap.put(site.getInitialVariableName(), site.getReferenceCount());
             dynamic_from_previously_static_sites.put(site.getDefinition(), siteMap);
         }
+    }
+
+    public Set<DynamicSite> getInitiatedDynamicSites() {
+        return dynamic_memory_sites.values().stream().
+                filter(DynamicSite::hasStaticDefinitions).
+                collect(Collectors.toSet());
+    }
+
+    public void addInternalFreeMemorySite(Set<String> free_static_sites_set) {
+        this.dynamicInternalFreeMemorySite.addAll(free_static_sites_set);
+    }
+
+    public Set<String> getDynamicInternalCheckReturnFlagToFreeSites() {
+        return dynamicInternalCheckReturnFlagToFreeSites;
     }
 }

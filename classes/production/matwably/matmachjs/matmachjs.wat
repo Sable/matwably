@@ -4788,7 +4788,7 @@ return)
 (export "copy_mxarray_header" (func $copy_mxarray_header))
 (func $copy_mxarray_header (param $mxarray i32)(result i32)
     (local $i i32)(local $return_mxarray i32)
-    i32.const 28
+    i32.const 30
     call $malloc
     tee_local $return_mxarray
     loop
@@ -4802,7 +4802,7 @@ return)
 (func $copy_mxarray_structure (param $mxarray i32)(result i32)
     (local $i i32)(local $len i32)(local $return_mxarray i32)
     (local $step i32)(local $ptr_data i32)
-    i32.const 28
+    i32.const 30
     call $malloc
     set_local $return_mxarray
     loop
@@ -4915,7 +4915,7 @@ return)
         (set_local $dim2 (f64.const 0))
     end
 
-    i32.const 28
+    i32.const 30
     call $malloc
     ;; Set type attribute
     tee_local $header_pointer
@@ -5177,7 +5177,7 @@ return)
     end
 
     ;; Allocate header
-    i32.const 28
+    i32.const 30
     call $malloc
     set_local  $array_header_ptr
     
@@ -5362,8 +5362,9 @@ return)
     get_local $i
     i32.lt_s
     if
-         i32.const 10
-         call $throwError
+        ;; TODO(dherre3): Grow array to require size
+        ;; i32.const 10
+        ;; call $throwError
     end
     (set_local $i (i32.sub (get_local $i)(i32.const 1)))
     get_local $i
@@ -5459,6 +5460,7 @@ return)
     if
         i32.const 3
         call $throwError
+        ;; TODO(dherre3): Grow array to require size
     end
     (set_local $i (i32.sub (get_local $i)(i32.const 1)))
     get_local $i
@@ -5529,7 +5531,7 @@ return)
     if
         (set_local $dim_num (i32.const 2))
     end
-    i32.const 28
+    i32.const 30
     call $malloc
         ;; Allocate array memory or return -1 if size is 0
     tee_local $header_pointer
@@ -5653,7 +5655,7 @@ return)
             (get_local $dim1)
             (get_local $dim2)))
     
-    i32.const 28 ;; TypeAttr, numel, data_ptr, ndims, dim_ptr, stride, attri
+    i32.const 30 ;; TypeAttr, numel, data_ptr, ndims, dim_ptr, stride, attri, 
     call $malloc
     tee_local $header_ptr
     i32.const 0
@@ -5761,8 +5763,8 @@ return)
             (get_local $elem_size)
             (get_local $n)))
     ;; Allocate header memory
-    ;; 4 for type attribute, 4 for number of elements,  4 for array pointer,  4 for number of dimensions, 4 for dimension pointer , 4 attributes
-    i32.const 28 
+    ;; 4 for type attribute, 4 for number of elements,  4 for array pointer,  4 for number of dimensions, 4 for dimension pointer , 4 attributes, 2 GC
+    i32.const 30
     call $malloc
     tee_local $header_pointer
     ;; Allocate array memory or return -1 if size is 0
@@ -5948,8 +5950,9 @@ return)
     get_local $i
     i32.lt_s
     if
-        i32.const 10
-        call $throwError
+        ;; TODO(dherre3): Grow array to require size
+        ;; i32.const 10
+        ;; call $throwError
     end
     (set_local $i (i32.sub (get_local $i)(i32.const 1)))
     get_local $i
@@ -6226,13 +6229,7 @@ return)
 
 (export "isscalar" (func $isscalar))
 (func $isscalar (param $arr_ptr i32) (result i32)
-
-    get_local $arr_ptr
-    i32.eqz
-    if
-        (call $throwError 
-            (i32.const 4))
-    end
+(;TODO(dherre3): Check for null;)
     get_local $arr_ptr
     i32.load offset=4 align=4
     i32.const 1
@@ -6254,6 +6251,7 @@ return)
         i32.const 6
         call $throwError 
     end
+
     (set_local $ndim (i32.load offset=12 align=4 (get_local $arr_ptr)))
     (set_local $dim_ptr (i32.load offset=16 align=4 (get_local $arr_ptr)))
     (i32.lt_s (get_local $i)(get_local $ndim))
@@ -6266,6 +6264,7 @@ return)
                 (i32.shl (get_local $i)(i32.const 3)))) 
             f64.max
             set_local $max
+            (set_local $i (i32.add (get_local $i)(i32.const 1)))
             (br_if 0 (i32.lt_s (get_local $i)(get_local $ndim)))
         end
     end
@@ -6972,11 +6971,6 @@ return)
     get_local $offset
 )
 
-(func $get_expr_f64 (param $arr_ptr i32)(param $expr i32)(result i32)
-
-
-
-)
 (export "get_f64" (func $get_f64))
 (func $get_f64 (param $array_ptr i32)(param $indices i32)(result i32)
     (local $shape_ptr i32)(local $res_ptr i32)(local $dim_ptr i32)
@@ -7146,23 +7140,14 @@ return)
 (func $create_meta_input_vec (param $type i32)(param $number i32)(param $is_vec_input i32)(result i32)
     (local $input_vec i32)
     (;
-        Layout: type:4 bytes
+        Layout: type:1byte,is_4:1byte,empty_byte,empty_byte,num:number,data.
         Controls meta-information for matwably (Modified: 15/03/19)
-        TypeAttribute:-> Class, bytes, number_type, referenceCount
-        Class:
-            0: MachArray
-            1: Scalar
-            2: Colon
-            3: Input/Output
+        type:
+            0: Input/outputs
+            1: Colon
+            2: MachArray
+            3: Scalar
     ;)
-    get_local $type
-    i32.eqz
-    if
-        ;; TODO Throw appropriate error
-        (call $throwError (i32.const 25)) ;; Cannot instantiate a MachArray this way.
-    end
-
-
     get_local $is_vec_input
     if (result i32)
         get_local $number
@@ -10768,9 +10753,9 @@ return)
         return
     end
     get_local $arr_ptr
-    call $mxarray_core_get_mclass
-    i32.const 0
-    i32.ne
+    i32.load8_u offset=0 align=1
+    i32.const 4
+    i32.gt_u
     if
         i32.const 0
         return
@@ -11867,3 +11852,144 @@ return)
 
     (call $elementwise_mapping (get_local $arr_ptr)(i32.const 35)(get_local $res_ptr ))
 )    
+;; TODO: Implement run-time GC methods
+(export "gcCheckExternalIncreaseRCSite" (func $gcCheckExternalIncreaseRCSite))
+(func $gcCheckExternalIncreaseRCSite (param i32)
+    ;; Only process if not null
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if
+        ;; Get the external flag, shift the reference counter number
+        get_local 0
+        i32.load16_u offset=28 align=2
+        i32.const 8
+        i32.shr_u
+        i32.eqz
+        if
+            get_local 0
+            get_local 0
+            i32.load8_u offset=28 align=1
+            i32.const 1
+            i32.add
+            i32.store8 offset=28 align=1
+        end
+    end
+)
+(export "gcGetExternalFlag" (func $gcGetExternalFlag))
+(func $gcGetExternalFlag (param i32)(result i32)
+;; Only process if not null
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if (result i32)
+        ;; Get the external flag, shift the reference counter number
+        get_local 0
+        i32.load16_u offset=28 align=2
+        i32.const 8
+        i32.shr_u
+    else
+        i32.const 0
+    end
+)
+(export "gcSetExternalFlag" (func $gcSetExternalFlag))
+(func $gcSetExternalFlag (param $flag i32)(param $ptr i32)
+    get_local $ptr 
+    i32.eqz
+    i32.eqz
+    if
+        ;; Get the external flag, shift the reference counter number
+        get_local $ptr
+        get_local $flag
+        i32.store8 offset=29
+    else
+        (call $throwError (i32.const 6))
+    end
+)
+(export "gcCheckExternalDecreaseRCSite" (func $gcCheckExternalDecreaseRCSite))
+(func $gcCheckExternalDecreaseRCSite (param i32)
+    (local $temp i32)
+   ;; Only process if not null
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        ;; Get the external flag, shift the reference counter number
+        get_local 0
+        i32.load16_u offset=28 align=2
+        i32.const 8
+        i32.shr_u
+        i32.eqz
+        if
+            get_local 0
+            i32.load8_u offset=28 align=1
+            i32.const 1
+            i32.sub
+            (tee_local $temp)
+            i32.eqz
+            if
+                (call $free_macharray (get_local 0))
+            else
+                get_local 0
+                get_local $temp
+                i32.store8 offset=28 align=1
+            end
+        end
+    end
+)
+(export "gcGetRC" (func $gcGetRC))
+(func $gcGetRC (param i32)(result i32)
+   ;; Only process if not null
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if
+        ;; Get the external flag, shift the reference counter number
+        get_local 0
+        i32.load8_u offset=28 align=1
+        return
+    else
+        (call $throwError (i32.const 6))
+        unreachable
+    end
+    i32.const 0
+)
+(export "gcCheckExternalSetRCZero" (func $gcCheckExternalSetRCZero))
+(func $gcCheckExternalSetRCZero (param i32)
+   ;; Only process if not null
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        ;; Get the external flag, shift the reference counter number
+        get_local 0
+        i32.load16_u offset=28 align=2
+        i32.const 8
+        i32.shr_u
+        i32.eqz
+        if
+            get_local 0
+            i32.const 0
+            i32.store8 offset=28 align=1
+        end
+    end
+)
+
+(export "gcCheckExternalFreeSite" (func $gcCheckExternalFreeSite))
+(func $gcCheckExternalFreeSite (param i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        ;; Get the external flag, shift the reference counter number
+        get_local 0
+        i32.load16_u offset=28 align=2
+        i32.const 8
+        i32.shr_u
+        i32.eqz
+        if
+            (call $free_macharray (get_local 0))
+        end
+    end
+)
+
