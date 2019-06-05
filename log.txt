@@ -1,0 +1,240 @@
+rand
+[(mc_t2,double,2.0,[1, 1],<2, 2>,REAL), (mc_t3,double,2.0,[1, 1],<2, 2>,REAL)]
+HERE BEFORE MATCH:rand
+[(mc_t2,double,2.0,[1, 1],<2, 2>,REAL), (mc_t3,double,2.0,[1, 1],<2, 2>,REAL)] ,1
+output emitting done!
+[[2, 2]]
+HERE AFTER MATCH:rand
+rand
+[]
+HERE BEFORE MATCH:rand
+[] ,1
+output emitting done!
+[[1, 1]]
+HERE AFTER MATCH:rand
+lt
+[(double,[1, 1],REAL), (double,[1, 1],REAL)]
+HERE BEFORE MATCH:lt
+[(double,[1, 1],REAL), (double,[1, 1],REAL)] ,1
+output emitting done!
+[[1, 1]]
+HERE AFTER MATCH:lt
+rand
+[(mc_t4,double,2.0,[1, 1],<2, 2>,REAL), (mc_t5,double,2.0,[1, 1],<2, 2>,REAL)]
+HERE BEFORE MATCH:rand
+[(mc_t4,double,2.0,[1, 1],<2, 2>,REAL), (mc_t5,double,2.0,[1, 1],<2, 2>,REAL)] ,1
+output emitting done!
+[[2, 2]]
+HERE AFTER MATCH:rand
+Name:
+mc_t4
+Stmt:
+    mc_t4 = 2;
+Name:
+mc_t3
+Stmt:
+  mc_t3 = 2;
+Name:
+mc_t6
+Stmt:
+  [mc_t6] = lt(b, mc_t1);
+Name:
+mc_t2
+Stmt:
+  mc_t2 = 2;
+Name:
+mc_t5
+Stmt:
+    mc_t5 = 2;
+Initial Flow: 
+
+Static Sites:
+{}
+Dynamic Sites:
+{}
+IR Node:
+  mc_t2 = 2;
+Current In Set:
+Static Sites:
+{}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{}
+Dynamic Sites:
+{}
+IR Node:
+  mc_t3 = 2;
+Current In Set:
+Static Sites:
+{}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{}
+Dynamic Sites:
+{}
+IR Node:
+  [a] = rand(mc_t2, mc_t3);
+Current In Set:
+Static Sites:
+{}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{a=Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}]}}
+Dynamic Sites:
+{}
+IR Node:
+  c = a;
+Current In Set:
+Static Sites:
+{a=Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}]}}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+IR Node:
+  [mc_t1] = rand();
+Current In Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+IR Node:
+  [mc_t6] = lt(b, mc_t1);
+Current In Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+IR Node:
+    mc_t4 = 2;
+Current In Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+IR Node:
+    mc_t5 = 2;
+Current In Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+IR Node:
+    [a] = rand(mc_t4, mc_t5);
+Current In Set:
+Static Sites:
+{a=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, c=Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+Current Out Set:
+Static Sites:
+{a=Memsite:{count:1, defining_name:a, defining_stmt    [a] = rand(mc_t4, mc_t5);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@740773a3}]}, c=Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}}
+Dynamic Sites:
+{}
+IR Node:
+  b = a;
+Current In Set:
+Static Sites:
+{}
+Dynamic Sites:
+{a={ Varname:a,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt    [a] = rand(mc_t4, mc_t5);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@740773a3}]}]}, c={ Varname:c,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}]}}
+Current Out Set:
+Static Sites:
+{}
+Dynamic Sites:
+{a={ Varname:a,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt    [a] = rand(mc_t4, mc_t5);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@740773a3}]}]}, b={ Varname:b,Kind: Internal,StaticDefinitions:[]}, c={ Varname:c,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}]}}
+IR Node:
+  return;
+Current In Set:
+Static Sites:
+{}
+Dynamic Sites:
+{a={ Varname:a,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt    [a] = rand(mc_t4, mc_t5);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@740773a3}]}]}, b={ Varname:b,Kind: Internal,StaticDefinitions:[]}, c={ Varname:c,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}]}}
+Current Out Set:
+Static Sites:
+{}
+Dynamic Sites:
+{a={ Varname:a,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt    [a] = rand(mc_t4, mc_t5);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@740773a3}]}]}, b={ Varname:b,Kind: Internal,StaticDefinitions:[]}, c={ Varname:c,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}]}}
+IR Node:
+function [a] = returnAlias4(b)
+% return alias dynamic, both sites
+% Copy Analysis should create clones
+  mc_t2 = 2;
+  mc_t3 = 2;
+  [a] = rand(mc_t2, mc_t3);
+  c = a;
+  [mc_t1] = rand();
+  [mc_t6] = lt(b, mc_t1);
+  if mc_t6
+    mc_t4 = 2;
+    mc_t5 = 2;
+    [a] = rand(mc_t4, mc_t5);
+  else 
+  end
+  b = a;
+% Dynamically: should check if a is internal set return flag to 1, if external do nothing.
+% When processing whether to free b, check return flag.
+  return;
+end
+Current In Set:
+Static Sites:
+{}
+Dynamic Sites:
+{a={ Varname:a,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt    [a] = rand(mc_t4, mc_t5);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@740773a3}]}]}, b={ Varname:b,Kind: Internal,StaticDefinitions:[]}, c={ Varname:c,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}]}}
+Current Out Set:
+Static Sites:
+{}
+Dynamic Sites:
+{a={ Varname:a,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt    [a] = rand(mc_t4, mc_t5);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@740773a3}]}]}, b={ Varname:b,Kind: Internal,StaticDefinitions:[]}, c={ Varname:c,Kind: Internal,StaticDefinitions:[Memsite:{count:2, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:a,alias stmt:natlab.tame.tir.TIRCallStmt@481a15ff}, { varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}, Memsite:{count:1, defining_name:a, defining_stmt  [a] = rand(mc_t2, mc_t3);aliasing_stmt: [{ varname:c,alias stmt:natlab.tame.tir.TIRCopyStmt@6ad82709}]}]}}
+  [mc_t6] = lt(b, mc_t1);
+function [a] = returnAlias4(b)
+% return alias dynamic, both sites
+% Copy Analysis should create clones
+  mc_t2 = 2;
+  mc_t3 = 2;
+  [a] = rand(mc_t2, mc_t3);
+  c = a;
+  [mc_t1] = rand();
+  [mc_t6] = lt(b, mc_t1);
+  if mc_t6
+    mc_t4 = 2;
+    mc_t5 = 2;
+    [a] = rand(mc_t4, mc_t5);
+  else 
+  end
+  b = a;
+% Dynamically: should check if a is internal set return flag to 1, if external do nothing.
+% When processing whether to free b, check return flag.
+  return;
+end
+Generated: returnAlias4_S
+wat2wasm returnAlias4.wat -o returnAlias4.wasm
