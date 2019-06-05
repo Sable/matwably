@@ -1,4 +1,4 @@
-package matwably.analysis.memory_management;
+package matwably.analysis.memory_management.hybrid;
 
 import ast.ASTNode;
 

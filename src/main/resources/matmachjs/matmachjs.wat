@@ -11853,8 +11853,8 @@ return)
     (call $elementwise_mapping (get_local $arr_ptr)(i32.const 35)(get_local $res_ptr ))
 )    
 ;; TODO: Implement run-time GC methods
-(export "gcCheckExternalIncreaseRCSite" (func $gcCheckExternalIncreaseRCSite))
-(func $gcCheckExternalIncreaseRCSite (param i32)
+(export "gcCheckExternalToIncreaseRCSite" (func $gcCheckExternalToIncreaseRCSite))
+(func $gcCheckExternalToIncreaseRCSite (param i32)
     ;; Only process if not null
     get_local 0
     i32.eqz
@@ -11901,13 +11901,15 @@ return)
         ;; Get the external flag, shift the reference counter number
         get_local $ptr
         get_local $flag
+        i32.const 1
+        i32.and
         i32.store8 offset=29
     else
         (call $throwError (i32.const 6))
     end
 )
-(export "gcCheckExternalDecreaseRCSite" (func $gcCheckExternalDecreaseRCSite))
-(func $gcCheckExternalDecreaseRCSite (param i32)
+(export "gcCheckExternalToDecreaseRCSite" (func $gcCheckExternalToDecreaseRCSite))
+(func $gcCheckExternalToDecreaseRCSite (param i32)
     (local $temp i32)
    ;; Only process if not null
     get_local 0
@@ -11916,9 +11918,9 @@ return)
     if 
         ;; Get the external flag, shift the reference counter number
         get_local 0
-        i32.load16_u offset=28 align=2
-        i32.const 8
-        i32.shr_u
+        i32.load8_u offset=29 align=1
+        i32.const 1
+        i32.and
         i32.eqz
         if
             get_local 0
@@ -11954,8 +11956,9 @@ return)
     end
     i32.const 0
 )
-(export "gcCheckExternalSetRCZero" (func $gcCheckExternalSetRCZero))
-(func $gcCheckExternalSetRCZero (param i32)
+(export "gcCheckExternalToSetReturnFlagAndSetRCZero" (func $gcCheckExternalToSetReturnFlagAndSetRCZero))
+(func $gcCheckExternalToSetReturnFlagAndSetRCZero (param i32)
+
    ;; Only process if not null
     get_local 0
     i32.eqz
@@ -11963,28 +11966,140 @@ return)
     if 
         ;; Get the external flag, shift the reference counter number
         get_local 0
-        i32.load16_u offset=28 align=2
-        i32.const 8
-        i32.shr_u
-        i32.eqz
+        i32.load8_u offset=29 align=1
+        i32.const 1
+        i32.and
+        i32.eqz        
         if
+            ;; Store reference
             get_local 0
             i32.const 0
             i32.store8 offset=28 align=1
+            ;; Store return flag 10=2, for 1 return, 0 for external
+            get_local 0
+            i32.const 2
+            i32.store8 offset=29 align=1
         end
     end
 )
 
-(export "gcCheckExternalFreeSite" (func $gcCheckExternalFreeSite))
-(func $gcCheckExternalFreeSite (param i32)
+(export "gcCheckExternalAndReturnFlagToFreeSite" (func $gcCheckExternalAndReturnFlagToFreeSite))
+(func $gcCheckExternalAndReturnFlagToFreeSite (param i32)
+    (local $flags i32)
     get_local 0
     i32.eqz
     i32.eqz
     if 
         ;; Get the external flag, shift the reference counter number
         get_local 0
-        i32.load16_u offset=28 align=2
-        i32.const 8
+        i32.load8_u offset=29 align=1
+        tee_local $flags
+        i32.const 1
+        i32.and
+        i32.eqz
+        if
+            get_local $flags
+            i32.const 1
+            i32.shr_u
+            i32.eqz
+            if
+                (call $free_macharray (get_local 0))
+            end
+        end
+    end
+)
+(export "gcCheckExternalToResetReturnFlag" (func $gcCheckExternalToResetReturnFlag))
+(func $gcCheckExternalToResetReturnFlag (param $site i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        ;; Get the external flag, shift the reference counter number
+        get_local 0
+        i32.load8_u offset=29 align=1
+        i32.const 1
+        i32.and
+        i32.eqz
+        if
+            get_local 0
+            i32.const 0
+            i32.store8 offset=29 align=1
+        end
+    end
+ ) 
+(export "gcInitiateRC" (func $gcInitiateRC))
+(func $gcInitiateRC (param $arr i32)(param $rc i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if
+        get_local $arr
+        get_local $rc
+        i32.store8 offset=28 align=1
+    end
+)
+(export "gcDecreaseRCSite" (func $gcDecreaseRCSite))
+(func $gcDecreaseRCSite (param $arr i32)
+    (local $temp  i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if
+        get_local 0
+        i32.load8_u offset=28 align=1
+        i32.const 1
+        i32.sub
+        (tee_local $temp)
+        i32.eqz
+        if
+            (call $free_macharray (get_local 0))
+        else
+            get_local 0
+            get_local $temp
+            i32.store8 offset=28 align=1
+        end
+    end
+)
+(export "gcIncreaseRCSite" (func $gcIncreaseRCSite))
+(func $gcIncreaseRCSite (param $arr i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if
+        get_local 0
+        get_local 0
+        i32.load8_u offset=28 align=1
+        i32.const 1
+        i32.add
+        i32.store8 offset=28 align=1
+    end
+)
+(export "gcSetReturnFlagAndSetRCZero" (func $gcSetReturnFlagAndSetRCZero))
+(func $gcSetReturnFlagAndSetRCZero (param i32)
+   ;; Only process if not null
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        ;; Store reference
+        get_local 0
+        i32.const 0
+        i32.store8 offset=28 align=1
+        ;; Store return flag 10=2, for 1 return, 0 for external
+        get_local 0
+        i32.const 2
+        i32.store8 offset=29 align=1
+    end
+)
+(export "gcCheckReturnFlagToFreeSite" (func $gcCheckReturnFlagToFreeSite))
+(func $gcCheckReturnFlagToFreeSite (param i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        get_local 0
+        i32.load8_u offset=29 align=1
+        i32.const 1
         i32.shr_u
         i32.eqz
         if
@@ -11992,4 +12107,24 @@ return)
         end
     end
 )
-
+(export "gcFreeSite" (func $gcFreeSite))
+(func $gcFreeSite (param i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        (call $free_macharray (get_local 0))
+    end
+)
+(export "gcResetReturnFlag" (func $gcResetReturnFlag))
+(func $gcResetReturnFlag (param $site i32)
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        get_local 0
+        i32.const 0
+        i32.store8 offset=29 align=1
+    end
+ )
+  

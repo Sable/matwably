@@ -49,7 +49,7 @@ public final class MatWablyCommandLineOptions {
     @Parameter(names = {"--inline-builtins"},description = "Inlines built-in calls where possible")
     public boolean inline_builtins = false;
     // TODO: Place flag in code to make it viable.
-    @Parameter(names = {"--opt-alloc-params"}, description = "Optimizes allocations for built-in call parameters")
+    @Parameter(names = {"--opt-alloc-params","-oa"}, description = "Optimizes allocations for built-in call parameters")
     public boolean opt_alloc_params = false;
     // TODO: Place flag in code to allow or disallow memory freeing.
     @Parameter(names = {"--disallow-free"}, description = "Takes away free calls from code, results in memory leakage")
@@ -71,7 +71,7 @@ public final class MatWablyCommandLineOptions {
     @Parameter(names={ "--time" }, arity=1, description="time compilation time")
     public boolean timeCompilation = false;
 
-    @Parameter(names={ "--gc-dynamic" }, description="Dynamic GC, applies a completely dynamic garbage collection strategy")
+    @Parameter(names={ "--gc-dynamic" ,"-gcd"}, description="Dynamic GC, applies a completely dynamic garbage collection strategy")
     public boolean gc_dynamic = false;
 
     /**

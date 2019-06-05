@@ -8,7 +8,7 @@ import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
 import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.analysis.memory_management.GCInstructions;
-import matwably.analysis.memory_management.HybridRCGarbageCollectionAnalysis;
+import matwably.analysis.memory_management.hybrid.HybridRCGarbageCollectionAnalysis;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.LogicalVariableUtil;
 import matwably.util.ValueAnalysisUtil;

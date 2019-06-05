@@ -1,4 +1,4 @@
-package matwably.analysis.memory_management;
+package matwably.analysis.memory_management.hybrid;
 
 import ast.ASTNode;
 import ast.Name;
@@ -11,6 +11,7 @@ import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralForwardAnalysis;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
  *
  *  Do not analyze statements to eliminate via the intermediate_variable_elimination
  */
-public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<ReferenceCountMap> {
+public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<HybridReferenceCountMap> {
     private final ValueAnalysisUtil valueAnalysisUtil;
     private final InterproceduralFunctionQuery functionQuery;
     private final MatWablyCommandLineOptions opts;
@@ -30,7 +31,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
     /**
      * Processes dynamic sites, this site serves as cached initiated dynamic site.
      */
-    private Set<DynamicSite> processed_initially_dynamic = new HashSet<>();
+    private Set<MemorySite> processed_initially_dynamic = new HashSet<>();
 
     /**
      * Base constructor for the analysis
@@ -51,21 +52,23 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
     }
 
     @Override
-    public ReferenceCountMap merge(ReferenceCountMap pointsToInformation, ReferenceCountMap a1) {
-        return ReferenceCountMap.merge(pointsToInformation, a1);
+    public HybridReferenceCountMap merge(HybridReferenceCountMap pointsToInformation, HybridReferenceCountMap a1) {
+        return HybridReferenceCountMap.merge(pointsToInformation, a1);
     }
 
     @Override
-    public ReferenceCountMap copy(ReferenceCountMap pointsToInformation) {
+    public HybridReferenceCountMap copy(HybridReferenceCountMap pointsToInformation) {
         return pointsToInformation.copy();
     }
 
     @Override
-    public ReferenceCountMap newInitialFlow() {
-        ReferenceCountMap map = new ReferenceCountMap();
-        function.getInputParamList().stream().map(Name::getID).
-                filter((String paramName)->!valueAnalysisUtil.isScalar(paramName,function,true))
-                .forEach(map::addExternalDynamicSite);
+    public HybridReferenceCountMap newInitialFlow() {
+        HybridReferenceCountMap map = new HybridReferenceCountMap();
+        for(int i = 0; i < function.getInputParamList().getNumChild(); i++){
+            if(!valueAnalysisUtil.isArgumentScalar(i)){
+                map.addExternalDynamicSite(function.getInputParam(i).getID());
+            }
+        }
         return map;
     }
 
@@ -345,14 +348,27 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      * at those points to their lastly known static reference count.
      */
     private void checkForInitialDynamicSites(){
-        Set<DynamicSite> dynamicSites = currentInSet.getInitiatedDynamicSites();
-        dynamicSites.stream().filter(processed_initially_dynamic::contains)
-                .forEach((DynamicSite site)->{
-                    processed_initially_dynamic.add(site);
-                    currentInSet.addNewInitiatingDynamicSite(site);
-                });
+
+        Set<MemorySite> dynamicSites = currentInSet.
+                getInitiatedDynamicSites().stream().map(DynamicSite::getStaticDefinitions)
+                .flatMap(Collection::stream).collect(Collectors.toSet());
+        dynamicSites.stream().filter(this::shouldProcessSite)
+                    .forEach((MemorySite memSite)->{
+                        processed_initially_dynamic.add(memSite);
+                        currentInSet.addNewInitiatingDynamicSite(memSite);
+                    });
+        return;
     }
-    private void log(ReferenceCountMap map){
+
+    private boolean shouldProcessSite(MemorySite site) {
+        return !processed_initially_dynamic.stream()
+                        .anyMatch((MemorySite sitePro)->
+                                sitePro.getInitialVariableName()
+                                        .equals(site.getInitialVariableName())&&
+                                                sitePro.getDefinition().equals(site.getDefinition()) );
+    }
+
+    private void log(HybridReferenceCountMap map){
         System.out.println("Initial Flow: ");
         System.out.println(map);
     }

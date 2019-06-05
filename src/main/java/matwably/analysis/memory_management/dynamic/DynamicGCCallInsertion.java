@@ -1,6 +1,7 @@
-package matwably.analysis.memory_management;
+package matwably.analysis.memory_management.dynamic;
 
 import ast.ASTNode;
+import matwably.analysis.memory_management.GCInstructions;
 import matwably.ast.Call;
 import matwably.ast.GetLocal;
 import matwably.ast.Idx;
@@ -18,24 +19,24 @@ public class DynamicGCCallInsertion {
 
     private Map<ASTNode,GCInstructions> collectInstruction() {
         Map<ASTNode, GCInstructions> res = new HashMap<>();
-        for(Map.Entry<ASTNode, GCCallsSet> entry: analysis.getGcCallsMapping().entrySet()){
+        for(Map.Entry<ASTNode, DynamicRCSet> entry: analysis.getGcCallsMapping().entrySet()){
             res.put(entry.getKey(), generateGCInstructions(entry.getValue()));
         }
         return res;
     }
     // TODO: Inline these calls
-    private GCInstructions generateGCInstructions(GCCallsSet gcSet) {
+    private GCInstructions generateGCInstructions(DynamicRCSet gcSet) {
         GCInstructions gcInstructions = new GCInstructions();
         // Add decrease instructions
         gcSet.getCheckExternalDecreaseSite()
                 .forEach((String name)-> gcInstructions.addInBetweenStmtInstructions(
                         new GetLocal(new Idx(name+"_i32")),
-                        new Call(new Idx("gcCheckExternalDecreaseRCSite"))));
+                        new Call(new Idx("gcCheckExternalToDecreaseRCSite"))));
 
         gcSet.getCheckExternalIncreaseSite()
                 .forEach((String name)-> gcInstructions.addAfterInstructions(
                         new GetLocal(new Idx(name+"_i32")),
-                        new Call(new Idx("gcCheckExternalIncreaseRCSite"))));
+                        new Call(new Idx("gcCheckExternalToIncreaseRCSite"))));
 
         gcSet.getCheckAndAddExternalFlagSet().stream().sorted()
                 .forEach((String name)->{
@@ -51,14 +52,14 @@ public class DynamicGCCallInsertion {
                         new Call(new Idx("gcSetExternalFlag"))));
 
 
-        gcSet.getCheckExternalSetRCZero()
-                .forEach((String name)-> gcInstructions.addAfterInstructions(
+        gcSet.getCheckExternalToSetReturnFlagAndSetRCToZero()
+                .forEach((String name)-> gcInstructions.addBeforeInstruction(
                         new GetLocal(new Idx(name+"_i32")),
-                        new Call(new Idx("gcCheckExternalSetRCZero"))));
+                        new Call(new Idx("gcCheckExternalToSetReturnFlagAndSetRCZero"))));
 
-        gcSet.getCheckExternalAndFree()
-                .forEach((String name)-> gcInstructions.addAfterInstructions(new GetLocal(new Idx(name+"_i32")),
-                        new Call(new Idx("gcCheckExternalFreeSite"))));
+        gcSet.getCheckExternalAndCheckReturnFlagToFree()
+                .forEach((String name)-> gcInstructions.addBeforeInstruction(new GetLocal(new Idx(name+"_i32")),
+                        new Call(new Idx("gcCheckExternalAndReturnFlagToFreeSite"))));
         return gcInstructions;
     }
 

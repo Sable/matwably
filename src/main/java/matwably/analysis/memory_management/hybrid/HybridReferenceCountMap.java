@@ -1,4 +1,4 @@
-package matwably.analysis.memory_management;
+package matwably.analysis.memory_management.hybrid;
 
 import ast.ASTNode;
 
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * is to make sure that aliased variables point to the exact same memory site. The other tricky aspect is to make
  * sure the sets remain mutually exclusive.
  */
-public class ReferenceCountMap {
+public class HybridReferenceCountMap {
     /**
      * Map of variable names to static memory sites.
      */
@@ -41,7 +41,7 @@ public class ReferenceCountMap {
     private Set<String> dynamicInternalFreeMemorySite = new HashSet<>(); //Set of memory sites to free at given stmt.
     private Set<String> dynamicInternalSetReturnFlagAndRCToZero = new HashSet<>();
     private Set<String> dynamicInternalCheckReturnFlagToFreeSites = new HashSet<>();
-    private Set<DynamicSite> dynamicInternalInitiateSiteCount = new HashSet<>();
+    private Set<MemorySite> dynamicInternalInitiateSiteCount = new HashSet<>();
     /**
      * Set of sites at given statement that we are making dynamic, a result of the analysis
      */
@@ -93,6 +93,10 @@ public class ReferenceCountMap {
         dynamicCheckExternalToSetSiteAsExternal.add(name);
     }
 
+    public Set<String> getDynamicInternalFreeMemorySite() {
+        return dynamicInternalFreeMemorySite;
+    }
+
 
     /**
      * @return Returns the dynamic increasing counts statements at given program point
@@ -111,12 +115,12 @@ public class ReferenceCountMap {
     /**
      * Default constructor for PointsToInformation
      */
-    ReferenceCountMap(){
+    HybridReferenceCountMap(){
     }
 
 
 
-    private ReferenceCountMap(HashMap<String, MemorySite> static_memory_sites, HashMap<String, DynamicSite> dynamic) {
+    private HybridReferenceCountMap(HashMap<String, MemorySite> static_memory_sites, HashMap<String, DynamicSite> dynamic) {
         this.static_memory_sites = static_memory_sites;
         this.dynamic_memory_sites = dynamic;
     }
@@ -124,8 +128,8 @@ public class ReferenceCountMap {
     public MemorySite getStaticSite(String name){
         return static_memory_sites.get(name);
     }
-    public void addNewInitiatingDynamicSite(DynamicSite dynamicSite){
-        dynamicInternalInitiateSiteCount.add(dynamicSite);
+    public void addNewInitiatingDynamicSite(MemorySite memorySite){
+        dynamicInternalInitiateSiteCount.add(memorySite);
     }
 
     public Set<String> getDynamicInternalSetReturnFlagAndRCToZero(){
@@ -149,7 +153,7 @@ public class ReferenceCountMap {
      * @return Returns the results of comparing against
      */
     @SuppressWarnings("unchecked")
-    public static ReferenceCountMap merge(ReferenceCountMap first, ReferenceCountMap second){
+    public static HybridReferenceCountMap merge(HybridReferenceCountMap first, HybridReferenceCountMap second){
 
         HashMap<String, MemorySite> newMapPointInfo = new HashMap<>();
         Set<String> namesFirst = first.getStaticMemorySites().keySet();
@@ -180,14 +184,13 @@ public class ReferenceCountMap {
         }
         HashMap<String, DynamicSite> newDynamicSites = new HashMap<>();
         // For the previously static sites that have become dynamic, add them to the new dynamic map.
-        // What about the intersection.
         for(String newDynName: newDyn){
             DynamicSite newDimSite;
             // First argument
             if(first.staticSitesContainKey(newDynName) && second.staticSitesContainKey(newDynName)){
-                newDimSite = DynamicSite.newInternalSite(newDynName,
-                        first.getStaticSite(newDynName),
-                        second.getStaticSite(newDynName));
+                    newDimSite = DynamicSite.newInternalSite(newDynName,
+                            first.getStaticSite(newDynName),
+                            second.getStaticSite(newDynName));
             }else if(second.staticSitesContainKey(newDynName)){
                 newDimSite = DynamicSite.newInternalSite(newDynName,
                         second.getStaticSite(newDynName));
@@ -239,7 +242,7 @@ public class ReferenceCountMap {
                 }
             }
         }
-        return new ReferenceCountMap(newMapPointInfo, newDynamicSites);
+        return new HybridReferenceCountMap(newMapPointInfo, newDynamicSites);
     }
 
 
@@ -256,7 +259,7 @@ public class ReferenceCountMap {
      * initial reference count pointer.
      * @return Returns the set of initiating sites at the given point
      */
-    public Set<DynamicSite> getDynamicSitesToInialize() {
+    public Set<MemorySite> getDynamicSitesToInialize() {
         return dynamicInternalInitiateSiteCount;
     }
 
@@ -265,7 +268,7 @@ public class ReferenceCountMap {
      * memory site for aliased sites.
      * @return Returns copy of PointsToInformation
      */
-    public ReferenceCountMap copy(){
+    public HybridReferenceCountMap copy(){
         HashMap<String, MemorySite> map = new HashMap<>();
 
         for(Map.Entry<String, MemorySite> entry: static_memory_sites.entrySet()){
@@ -276,7 +279,7 @@ public class ReferenceCountMap {
                 }
             }
         }
-        return new ReferenceCountMap(map, new HashMap<>(dynamic_memory_sites));
+        return new HybridReferenceCountMap(map, new HashMap<>(dynamic_memory_sites));
     }
 
 
@@ -337,8 +340,16 @@ public class ReferenceCountMap {
     public void addExternalDynamicSite(String name){
         dynamic_memory_sites.put(name, DynamicSite.newExternalSite(name));
     }
+
     /**
-     * This method is used by aliasing statements
+     * This method is used by aliasing statements.
+     * When we have a copy statements and the dynamic sites are aliased.
+     * Keeping track of dynamic aliases makes no difference in terms of run-times.
+     * There is only an advantage when returning, but to support this, we would
+     * need to define a merge operation even for dynamic site aliases. Basically,
+     * In this merge operation, if the aliases differ, we would convert all the variables
+     * involved in separate dynamic sites. But for now, we will ignore that little optimization,
+     * and simply convert them all to different sites right away.
      * @param src Source of which points to the aliasing site
      * @param dest New variable name which will point to the src
      * @param node Copy stmt node.
@@ -363,6 +374,9 @@ public class ReferenceCountMap {
             // Map it to the source object
         }else if(dynamic_memory_sites.containsKey(src)){
             increaseDynamicCount(src);
+            dynamic_memory_sites.put(dest,
+                    DynamicSite.newSite(dest,
+                            dynamic_memory_sites.get(src).getKind()));
         }
     }
 
@@ -390,7 +404,6 @@ public class ReferenceCountMap {
     @Override
     public String toString() {
         //        sb.append("\nDynamic Sites to initialize:\n");
-//        sb.append(dynamicInternalInitiateSiteCount.toString());
 //        sb.append("\nVariables to free statically:\n");
 //        sb.append(dynamicInternalFreeMemorySite);
 //        sb.append("\nLocal Dynamic variables to increase:\n");
@@ -412,8 +425,8 @@ public class ReferenceCountMap {
     @Override
     public boolean equals(Object other){
         if(this == other) return true;
-        if(!(other instanceof ReferenceCountMap)) return false;
-        ReferenceCountMap otherPointsTo = (ReferenceCountMap) other;
+        if(!(other instanceof HybridReferenceCountMap)) return false;
+        HybridReferenceCountMap otherPointsTo = (HybridReferenceCountMap) other;
         return this.static_memory_sites.equals(otherPointsTo.getStaticMemorySites())
                 && this.dynamic_memory_sites.equals(otherPointsTo.getDynamicMemorySites());
     }

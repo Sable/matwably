@@ -1,4 +1,4 @@
-package matwably.analysis.memory_management;
+package matwably.analysis.memory_management.hybrid;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -54,6 +54,19 @@ final public class DynamicSite {
 
     public static DynamicSite newInternalSite(String variableName, MemorySite... site){
         return new DynamicSite(variableName, site);
+    }
+
+    /**
+     * Factory method for generic new sites dynamic sites
+     * @param name Name of variable
+     * @param kind Kind of dynamic variable.
+     * @return Returns a new instance of the dynamic site.
+     */
+    public static DynamicSite newSite(String name, DynamicSite.Kind kind){
+        DynamicSite other = new DynamicSite();
+        other.kind = kind;
+        other.variableName = name;
+        return other;
     }
 
     @SafeVarargs

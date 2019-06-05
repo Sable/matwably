@@ -1,4 +1,4 @@
-package matwably.analysis.memory_management;
+package matwably.analysis.memory_management.hybrid;
 
 import ast.ASTNode;
 
@@ -17,6 +17,9 @@ public class MemorySite {
      * ASTNode defining the malloc site, use for debugging purposes
      */
     private final ASTNode<? extends ASTNode> node;
+
+
+    private ASTNode<? extends ASTNode> latestAliasAdded;
 
     public String getInitialVariableName() {
         return name;
@@ -52,6 +55,7 @@ public class MemorySite {
                        Set<String> aliasing_names,
                        boolean staticallyFreed, int reference_count) {
         this.node = node;
+        this.latestAliasAdded = node;
         this.name = name;
         this.aliasing_sites = aliasing_sites;
         this.aliasing_names = aliasing_names;
@@ -63,6 +67,7 @@ public class MemorySite {
         Objects.requireNonNull(varName, "Cannot create memory site with null variable name");
         Objects.requireNonNull(node,"Cannot create memory site with null argument TameIR node");
         this.node = node;
+        this.latestAliasAdded = node;
         this.name = varName;
         reference_count++;
         aliasing_sites.add(new AliasingSite(varName,node));
@@ -86,6 +91,7 @@ public class MemorySite {
         assert !varName.equals(this.getInitialVariableName()):"Aliased variable names cannot be the same";
         Objects.requireNonNull(varName, "Cannot alias memory site with null variable name");
         Objects.requireNonNull(node,"Cannot alias memory site with null argument TameIR node");
+        latestAliasAdded = node;
         aliasing_sites.add(new AliasingSite(varName, node));
         aliasing_names.add(varName);
         reference_count++;
@@ -129,7 +135,7 @@ public class MemorySite {
     public boolean referenceCountIsZero(){
         assert (!staticallyFreed &&reference_count == 0) || (staticallyFreed && reference_count>0)
                 :"Statically freed flag is has not been set property and does not match the referenceCount";
-        return reference_count == 0 && staticallyFreed;
+        return aliasing_names.size() == 0;
     }
 
     /**

@@ -2,18 +2,18 @@ package matwably.util;
 
 import ast.Name;
 import ast.Stmt;
+import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import natlab.tame.builtin.Builtin;
 import natlab.tame.tir.TIRCallStmt;
 import natlab.toolkits.analysis.core.Def;
-import natlab.toolkits.analysis.core.ReachingDefs;
 
 import java.util.Set;
 
 public class LogicalVariableUtil  {
-    private final ReachingDefs rd;
+    private final ReachingDefinitions rd;
     private final InterproceduralFunctionQuery functionQuery;
 
-    public LogicalVariableUtil(InterproceduralFunctionQuery functionQuery, ReachingDefs defs){
+    public LogicalVariableUtil(InterproceduralFunctionQuery functionQuery, ReachingDefinitions defs){
         this.functionQuery = functionQuery;
         this.rd = defs;
     }

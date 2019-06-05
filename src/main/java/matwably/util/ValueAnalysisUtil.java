@@ -96,7 +96,29 @@ public class ValueAnalysisUtil {
         BasicMatrixValue val = getMatrixValue(name.getVarName(), node, isRHS);
         return val != null && val.hasShape() && val.getShape().isScalar();
     }
+    private BasicMatrixValue getArgumentMatrixValue(int argIndex){
+        if(this.analysisFunction.getArgs().size() > argIndex){
+            AggrValue<BasicMatrixValue> val = this.analysisFunction.getArgs().get(argIndex);
+            if(val!= null && val instanceof BasicMatrixValue) {
+                return (BasicMatrixValue) val;
+            }
+        }
+        return null;
+    }
+    public Shape getArgumentShape(int argIndex){
+        if(this.analysisFunction.getArgs().size() > argIndex){
+            AggrValue<BasicMatrixValue> val = this.analysisFunction.getArgs().get(argIndex);
+            if(val!= null && val instanceof BasicMatrixValue) {
+                return ((BasicMatrixValue) val).getShape();
+            }
+        }
+        return null;
+    }
 
+    public boolean isArgumentScalar(int argIndex){
+        BasicMatrixValue val = this.getArgumentMatrixValue(argIndex);
+        return val != null && val.hasShape() && val.getShape().isScalar();
+    }
     /**
      * Returns whether the nameExpr
      *

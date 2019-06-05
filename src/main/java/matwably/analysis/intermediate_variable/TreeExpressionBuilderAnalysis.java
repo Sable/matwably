@@ -163,7 +163,6 @@ public class TreeExpressionBuilderAnalysis extends TIRAbstractNodeCaseHandler {
 
     @Override
     public void caseTIRCallStmt(TIRCallStmt tirStmt){
-
         if(tirStmt.getTargets().size() == 1 ){
             String targetName = tirStmt.getTargets().getNameExpresion(0).getVarName();
             if( checkCoverage(targetName,tirStmt)) return;

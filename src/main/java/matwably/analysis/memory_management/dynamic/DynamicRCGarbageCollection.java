@@ -1,4 +1,4 @@
-package matwably.analysis.memory_management;
+package matwably.analysis.memory_management.dynamic;
 
 import ast.*;
 import matwably.util.InterproceduralFunctionQuery;
@@ -22,9 +22,9 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     private Set<String> definedSites = new HashSet<>();
 
     /**
-     * Map from TameIR nodes to GCCallsSet
+     * Map from TameIR nodes to DynamicRCSet
      */
-    private Map<ASTNode, GCCallsSet> stmt_mapping = new HashMap<>();
+    private Map<ASTNode, DynamicRCSet> stmt_mapping = new HashMap<>();
 
     /**
      * Matlab function to analyze
@@ -80,14 +80,14 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     @Override
     public void caseFunction(Function tirFunction) {
         TIRFunction func = (TIRFunction) tirFunction;
-        GCCallsSet set = initializeSites();
+        DynamicRCSet set = initializeSites();
         // Mapp function to input parameters
         stmt_mapping.put(func, set);
         super.caseFunction(func);
         if( tirFunction.getStmtList().getChild(tirFunction.getStmtList()
                 .getNumChild()-1).getClass()
                 != TIRReturnStmt.class) {
-            GCCallsSet ret = processReturn();
+            DynamicRCSet ret = processReturn();
             TIRStatementList stmtList = func.getStmtList();
             Stmt lastStmt = stmtList.getChild(stmtList.getNumChild() - 1);
             stmt_mapping.get(lastStmt)
@@ -100,8 +100,8 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      * we never modify external sites.
      * @return Set of GC calls that initializes the sites
      */
-    private GCCallsSet initializeSites(){
-        GCCallsSet set = new GCCallsSet();
+    private DynamicRCSet initializeSites(){
+        DynamicRCSet set = new DynamicRCSet();
         definedSites.addAll(function.getInputParamList().getNameExpressions()
                 .stream().map(NameExpr::getVarName).filter((String param)->{
                     if(!valueUtil.isScalar(param, function, true)){
@@ -118,7 +118,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      * Getter for map of nodes to GcCallSets
      * @return Map of program nodes to GCCallSet
      */
-    public Map<ASTNode, GCCallsSet> getGcCallsMapping() {
+    public Map<ASTNode, DynamicRCSet> getGcCallsMapping() {
         return stmt_mapping;
     }
 
@@ -130,7 +130,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      */
     @Override
     public void caseTIRAbstractAssignToListStmt(TIRAbstractAssignToListStmt tirAbstractAssignToListStmt) {
-        GCCallsSet res = new GCCallsSet();
+        DynamicRCSet res = new DynamicRCSet();
         tirAbstractAssignToListStmt.getTargets()
                 .getNameExpressions().forEach((NameExpr nameExpr)->{
             addDefGCCalls(res, nameExpr.getVarName(), tirAbstractAssignToListStmt);
@@ -161,7 +161,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      * @param name Name of variable being defiend
      * @param node TameIR node for definition
      */
-    private void addDefGCCalls(GCCallsSet res, String name, ASTNode node){
+    private void addDefGCCalls(DynamicRCSet res, String name, ASTNode node){
         // If is already defined, decrease the reference for the site already defined
         if(isSiteDefined(name))
             res.decreaseReference(name);
@@ -181,7 +181,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      */
     @Override
     public void caseTIRAbstractAssignToVarStmt(TIRAbstractAssignToVarStmt tirAbstractAssignToVarStmt) {
-        GCCallsSet res = new GCCallsSet();
+        DynamicRCSet res = new DynamicRCSet();
         addDefGCCalls(res, tirAbstractAssignToVarStmt.getVarName(), tirAbstractAssignToVarStmt);
         stmt_mapping.put(tirAbstractAssignToVarStmt, res);
     }
@@ -194,7 +194,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      */
     @Override
     public void caseStmt(Stmt tirStmt) {
-        GCCallsSet res = new GCCallsSet();
+        DynamicRCSet res = new DynamicRCSet();
         stmt_mapping.put(tirStmt, res);
         super.caseStmt(tirStmt);
     }
@@ -204,7 +204,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      */
     @Override
     public void caseTIRCommentStmt(TIRCommentStmt tirStmt) {
-        GCCallsSet res = new GCCallsSet();
+        DynamicRCSet res = new DynamicRCSet();
         stmt_mapping.put(tirStmt, res);
         super.caseTIRCommentStmt(tirStmt);
     }
@@ -215,7 +215,7 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      */
     @Override
     public void caseTIRForStmt(TIRForStmt tirForStmt) {
-        GCCallsSet res = new GCCallsSet();
+        DynamicRCSet res = new DynamicRCSet();
         // We know the loop variables is a scalar
         if(isSiteDefined(tirForStmt.getLoopVarName().getID()))
             res.decreaseReference(tirForStmt.getLoopVarName().getID());
@@ -229,12 +229,10 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      */
     @Override
     public void caseTIRReturnStmt(TIRReturnStmt tirReturnStmt) {
-        if(function != null){
-            stmt_mapping.put(tirReturnStmt, processReturn());
-        }
+        stmt_mapping.put(tirReturnStmt, processReturn());
     }
-    private GCCallsSet processReturn(){
-        GCCallsSet res = new GCCallsSet();
+    private DynamicRCSet processReturn(){
+        DynamicRCSet res = new DynamicRCSet();
         // For all defined variables not part of return values,
         // free unless external
         // i.e. mark sites as external at runtime.
@@ -242,16 +240,15 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
         // mapped to input arguments,
         Set<String> outParams = function
                 .getOutputParamList()
-                .getNameExpressions()
-                .stream().map(NameExpr::getVarName)
-                .peek(outName ->{
-                    if(isSiteDefined(outName)) res.addCheckExternalSetRCToZero(outName);
-                }).collect(Collectors.toSet());
+                .stream().map(Name::getID).collect(Collectors.toSet());
+        outParams = outParams.stream().filter(this::isSiteDefined)
+                .peek(res::addCheckExternalAndSetReturnFlagToSetRCToZero)
+                .collect(Collectors.toSet());
         // For the rest of sites, check that they are not external
         // free if they not call.
         Set<String> restSites = new HashSet<>(definedSites);
         restSites.removeAll(outParams);
-        restSites.forEach(res::addCheckExternalAndFreeSite);
+        restSites.forEach(res::addCheckExternalAndCheckReturnFlagToFree);
         return res;
     }
 
