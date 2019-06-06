@@ -209,16 +209,15 @@ public class TreeExpressionBuilderAnalysis extends TIRAbstractNodeCaseHandler {
      */
     public void caseTIRCopyStmt(TIRCopyStmt stmt){
         if( checkCoverage(stmt.getTargetName().getID(),stmt)) return;
-
-        Name rhs = stmt.getSourceName();
-        Name lhs = stmt.getTargetName();
-        if(    isNotOutputParameter(lhs.getID())
-            && isVariableDefinitionNonAmbiguous(rhs.getID(),stmt)
-            && isAliasReplacementNonAmbiguous(lhs.getID(),rhs.getID(), stmt))
-        {
-            mapAlisedNames(lhs, rhs);
-            mapUsesToExpression(this.chain.getUsesOf(lhs.getID(), stmt), stmt);
-        }
+//        Name rhs = stmt.getSourceName();
+//        Name lhs = stmt.getTargetName();
+//        if(    isNotOutputParameter(lhs.getID())
+//            && isVariableDefinitionNonAmbiguous(rhs.getID(),stmt)
+//            && isAliasReplacementNonAmbiguous(lhs.getID(),rhs.getID(), stmt))
+//        {
+//            mapAlisedNames(lhs, rhs);
+//            mapUsesToExpression(this.chain.getUsesOf(lhs.getID(), stmt), stmt);
+//        }
     }
 
     /**

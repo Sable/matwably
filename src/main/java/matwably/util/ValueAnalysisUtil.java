@@ -28,7 +28,9 @@ public class ValueAnalysisUtil {
     public boolean isScalar(String name, ASTNode node, boolean isRHS) {
 
         BasicMatrixValue val = getMatrixValue(name, node, isRHS);
-        return val != null && val.hasShape() && val.getShape().isScalar();
+        boolean isScalar =  val != null && val.hasShape() && val.getShape().isScalar();
+        System.out.println(isScalar);
+        return isScalar;
     }
 
     /**

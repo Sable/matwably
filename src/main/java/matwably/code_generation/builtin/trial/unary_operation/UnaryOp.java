@@ -2,6 +2,8 @@ package matwably.code_generation.builtin.trial.unary_operation;
 
 import ast.ASTNode;
 import matwably.ast.Call;
+import matwably.ast.ConstLiteral;
+import matwably.ast.I32;
 import matwably.ast.Idx;
 import matwably.code_generation.MatWablyError;
 import matwably.code_generation.MatWablyFunctionInformation;
@@ -72,6 +74,7 @@ public abstract class UnaryOp  extends MatWablyBuiltinGenerator {
         if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
             result.add(generateScalarCall());
         }else{
+            result.addInstruction(new ConstLiteral(new I32(),0));
             result.add(generateCall());
         }
         return result;

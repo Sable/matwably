@@ -372,13 +372,7 @@ public class FunctionGenerator {
                     generator.getGeneratedExpressionResult();
             // GC calls
             if(gcInst.hasInBetweenStmtInstructions()){
-                resultGenerator.addInstruction(new SetLocal(new Idx(
-                        this.i32_scrap_local)));
-                resultGenerator.addInstructions(gcInst.
-                        getInBetweenStmtInstructions());
-                resultGenerator.addInstruction(
-                        new GetLocal(new Idx(
-                                this.i32_scrap_local)));
+                resultGenerator.addInstructions(produceInBetweenExpressionGCIntructions(gcInst));
             }
             resultGenerator.add(generator.getGeneratedSetToTargetResult());
             locals.addAll(resultGenerator.getLocals());
@@ -409,7 +403,9 @@ public class FunctionGenerator {
             List<Instruction> res = new List<>();
             GCInstructions gcInst = this.functionAnalyses
                     .getGCInstructionMapping().get(tirStmt);
-            if(gcInst.hasInBetweenStmtInstructions()) res.addAll(gcInst.getInBetweenStmtInstructions());
+            if(gcInst.hasInBetweenStmtInstructions()) {
+                res.addAll(gcInst.getInBetweenStmtInstructions());
+            }
             return res;
         }
         throw new UnsupportedOperationException(
@@ -417,6 +413,18 @@ public class FunctionGenerator {
                         tirStmt.getStartLine(), tirStmt.getStartColumn(),
                         tirStmt.getPrettyPrinted(), tirStmt.getClass().getName())
         );
+    }
+
+    private List<Instruction> produceInBetweenExpressionGCIntructions(GCInstructions gcInst) {
+        List<Instruction> res = new List<>();
+        res.add(new SetLocal(new Idx(
+                this.i32_scrap_local)));
+        res.addAll(gcInst.
+                getInBetweenStmtInstructions());
+        res.add(
+                new GetLocal(new Idx(
+                        this.i32_scrap_local)));
+        return res;
     }
 
     /**
@@ -440,9 +448,7 @@ public class FunctionGenerator {
             res.addAll(expressionGenerator.genNameExpr((NameExpr)tirStmt.getRHS(), tirStmt));
             res.addAll(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
             if(gcInst.hasInBetweenStmtInstructions()){
-                res.add(new SetLocal(new Idx(this.i32_scrap_local)));
-                res.addAll(gcInst.getInBetweenStmtInstructions());
-                res.add(new GetLocal(new Idx(this.i32_scrap_local)));
+               res.addAll(produceInBetweenExpressionGCIntructions(gcInst));
             }
             res.addAll(new SetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.getTargetName().getID()
                     ,tirStmt,false))));
@@ -552,6 +558,9 @@ public class FunctionGenerator {
 
     private List<Instruction> genForStmt(TIRForStmt tirStmt) {
         List<Instruction> res =new List<>();
+        res.addAll(this.functionAnalyses.getGCInstructionMapping()
+                .get(tirStmt).getBeforeStmtInstructions());
+
         LoopDirection direction = LoopMetaInformation.getLoopDirection(tirStmt,
                 functionAnalyses.getFunctionAnalysis());
         // If the boundaries do not enter the loop, skip the loop creation entirely
@@ -595,6 +604,8 @@ public class FunctionGenerator {
         }else if(direction == LoopDirection.Unknown){
            res.addAll(genDynamicForLoop(tirStmt));
         }
+        res.addAll(this.functionAnalyses.getGCInstructionMapping()
+                .get(tirStmt).getAfterStmtInstructions());
         return res;
     }
 
@@ -724,7 +735,7 @@ public class FunctionGenerator {
             res.addAll(MatWablyArray.getArrayIndexF64Check(1));
         }
         GCInstructions gcInst = this.functionAnalyses.getGCInstructionMapping().get(tirStmt);
-        if(gcInst.hasInBetweenStmtInstructions()) res.addAll(gcInst.getInBetweenStmtInstructions());
+        if(gcInst.hasInBetweenStmtInstructions()) res.addAll(produceInBetweenExpressionGCIntructions(gcInst));
         res.add(new SetLocal(new Idx(valueAnalysisUtil.
                 genTypedName(tirStmt.getLoopVarName().getID(),
                         tirStmt, false))));
@@ -769,7 +780,7 @@ public class FunctionGenerator {
         Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString());
 
         //Generate Condition (f64.le/ge (get_local $loop_var)(get_local $high))
-        List<Instruction> condition = new List<>(new GetLocal(new Idx(typedLow)));
+        List<Instruction> condition = new List<>(new GetLocal(new Idx(typedLoopVar)));
         condition.addAll(new GetLocal(new Idx(typedHigh)));
         condition.addAll((direction==LoopDirection.Ascending)?new Le(new F64(),
                 false):new Ge(new F64(),
@@ -792,7 +803,9 @@ public class FunctionGenerator {
         // Loop init
         List<Instruction> res = new List<>(new GetLocal(new Idx(typedLow)));
         GCInstructions gcInst = this.functionAnalyses.getGCInstructionMapping().get(tirStmt);
-        if(gcInst.hasInBetweenStmtInstructions()) res.addAll(gcInst.getInBetweenStmtInstructions());
+        if(gcInst.hasInBetweenStmtInstructions()) {
+            res.addAll(gcInst.getInBetweenStmtInstructions());
+        }
         res.add(new SetLocal(new Idx(typedLoopVar)));
         res.addAll(condition);
 
@@ -823,7 +836,7 @@ public class FunctionGenerator {
 
         if(isSlicingOperation(tirStmt, tirStmt.getIndices())){
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
-                    null,"set",programAnalysis,
+                    null,"subsref",programAnalysis,
                     analysisFunction, expressionGenerator);
             MatWablyBuiltinGeneratorResult result =  generator.getResult();
             result.addInstruction(new GetLocal(new Idx(typedArr)));
@@ -853,10 +866,14 @@ public class FunctionGenerator {
             );
             res.addAll(result.getInstructions());
         }else{
-            String valArr = Util.getTypedLocalF64(tirStmt.getValueName().getID());
+
             res.add(new GetLocal(new Idx(typedArr)));
             res.addAll(computeIndexWasm(tirStmt, tirStmt.getArrayName().getID(),tirStmt.getIndices()));
-            res.add(new GetLocal(new Idx(valArr)));
+            if(bmv.hasShape() && bmv.getShape().isScalar()){
+                res.add(new GetLocal(new Idx(Util.getTypedLocalF64(tirStmt.getValueName().getID()))));
+            }else{
+                res.addAll(MatWablyArray.getArrayIndexF64CheckBounds(tirStmt.getValueName().getID()+"_i32",1));
+            }
             res.add(new Call(new Idx("set_array_index_f64")));
         }
         return res;
@@ -885,7 +902,7 @@ public class FunctionGenerator {
         }
         if(isSlicingOperation(tirStmt,tirStmt.getIndices())){
             BuiltinGenerator generator = new BuiltinGenerator(tirStmt,tirStmt.getIndices(),
-                    tirStmt.getTargets(),"get",programAnalysis,
+                    tirStmt.getTargets(),"subsasgn",programAnalysis,
                     analysisFunction, expressionGenerator);
 
             MatWablyBuiltinGeneratorResult result =  generator.getResult();
@@ -893,7 +910,7 @@ public class FunctionGenerator {
             // Generate inputs
             generator.generateInputs();
             // Make call to get_f64
-            result.addInstructions(new List<Instruction>(
+            result.addInstructions(new List<>(
                     new Call(new Idx("get_f64"))
             ));
             generator.generateSetToTarget();
@@ -989,7 +1006,9 @@ public class FunctionGenerator {
         String source = tirStmt.getSourceName().getID();
         String target = tirStmt.getTargetName().getID();
         instructions.addAll(expressionGenerator.genName(tirStmt.getSourceName(),tirStmt));
-        if(gcInst.hasInBetweenStmtInstructions()) instructions.addAll(gcInst.getInBetweenStmtInstructions());
+
+        if(gcInst.hasInBetweenStmtInstructions())
+            instructions.addAll(produceInBetweenExpressionGCIntructions(gcInst));
 
         if(valueAnalysisUtil.isScalar(source, tirStmt,true)){
             instructions.add(new SetLocal( new Idx(valueAnalysisUtil.genTypedName(target, tirStmt,false))));
@@ -1031,7 +1050,8 @@ public class FunctionGenerator {
 
         inst.addAll(expressionGenerator.genExpr(tirStmt.getRHS(), tirStmt));
 
-        if(gcInst.hasInBetweenStmtInstructions())inst.addAll(gcInst.getInBetweenStmtInstructions());
+        if(gcInst.hasInBetweenStmtInstructions())
+            inst.addAll(produceInBetweenExpressionGCIntructions(gcInst));
 
         // Set target
         String newName = valueAnalysisUtil.genTypedName(tirStmt.getLHS().getVarName(),tirStmt, true);

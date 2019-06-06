@@ -4,13 +4,12 @@ import ast.ASTNode;
 import ast.Stmt;
 import matwably.analysis.memory_management.GCInstructions;
 import matwably.ast.*;
+import natlab.tame.tir.TIRForStmt;
 import natlab.tame.tir.TIRFunction;
 import natlab.tame.tir.TIRNode;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Calls uses the analysis to produce the
@@ -25,6 +24,8 @@ public class HybridGCCallInsertionMap {
         private final TIRFunction function;
         private HybridRCGarbageCollectionAnalysis analysis;
         private Map<ASTNode, GCInstructions> map_instructions = new HashMap<>();
+        private Set<Integer> initial_sites_processed = new HashSet<>();
+        private Map<ASTNode<? extends ASTNode>, String> initial_dynamic_sites = new HashMap<>();
 
         HybridGCCallInsertionBuilder(TIRFunction function, HybridRCGarbageCollectionAnalysis gcA){
             this.analysis = gcA;
@@ -32,7 +33,51 @@ public class HybridGCCallInsertionMap {
         }
         Map<ASTNode,GCInstructions> build(){
             function.analyze(this);
+            buildInitialSites();
             return map_instructions;
+        }
+
+        private void buildInitialSites(){
+            initial_dynamic_sites.forEach((key, value) -> map_instructions.get(key)
+                    .addAfterInstructions(
+                            new GetLocal(new Idx(value+"_i32")),
+                            new ConstLiteral(new I32(), this.analysis.getOutFlowSets()
+                                    .get(key).getStaticMemorySites()
+                                    .get(value).getReferenceCount()),
+                            new Call(new Idx("gcInitiateRC"))));
+        }
+
+        @Override
+        public void caseTIRForStmt(TIRForStmt tirForStmt) {
+            HybridReferenceCountMap inMap = this.analysis.getInFlowSets().get(tirForStmt);
+            GCInstructions gcInstructions = new GCInstructions();
+            String varLoop = tirForStmt.getLoopVarName().getID();
+            if(inMap.getStaticMemorySites().containsKey(varLoop)){
+                // check ref count if 1, free site.
+                MemorySite site = inMap.getStaticMemorySites().get(varLoop);
+                if(site.getReferenceCount() == 1){
+                    gcInstructions.addInBetweenStmtInstructions(
+                            new GetLocal(new Idx(varLoop+"_i32")),
+                            new Call(new Idx("gcFreeSite")));
+                }
+
+                // if not one, do nothing.
+            }else if(inMap.getDynamicMemorySites().containsKey(varLoop)){
+                DynamicSite site = inMap.getDynamicMemorySites().get(varLoop);
+                if(site.isInternal()){
+                    gcInstructions.addInBetweenStmtInstructions(
+                            new GetLocal(new Idx(varLoop+"_i32")),
+                            new Call(new Idx("gcDecreaseRCSite")));
+                }else if(site.isMaybeExternal()){
+                    gcInstructions.addInBetweenStmtInstructions(
+                            new GetLocal(new Idx(varLoop+"_i32")),
+                            new Call(new Idx("gcCheckExternalToDecreaseRCSite")));
+                }
+                // decrease dynamically
+            }
+            // If var an array, do nothing as it is a static definition.
+            this.caseASTNode(tirForStmt);
+            map_instructions.put(tirForStmt, gcInstructions);
         }
 
         @Override
@@ -40,17 +85,7 @@ public class HybridGCCallInsertionMap {
             HybridReferenceCountMap outMap = this.analysis.getOutFlowSets().get(stmt);
             GCInstructions gcInstructions = new GCInstructions();
 
-
-            // Check for initiating dynamic sites
-            this.analysis.getInFlowSets().get(stmt)
-                    .getDynamicSitesToInialize()
-                    .forEach((MemorySite site)->
-                            map_instructions.get(site.getDefinition())
-                            .addBeforeInstruction(
-                                new GetLocal(new Idx(site.getInitialVariableName())),
-                                new ConstLiteral(new I32(), site.getReferenceCount()),
-                                new Call(new Idx("gcInitiateRC"))));
-
+            getInitiatedSites(stmt);
 
             // Increase site
             outMap.getDynamicCheckExternalToDecreaseReferenceSites()
@@ -103,21 +138,26 @@ public class HybridGCCallInsertionMap {
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcIncreaseRCSite"))));
             // Internal dynamic site, set return flag to prevent accidental freeing
+            outMap.getDynamicInternalSetRCToZero()
+                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                            new GetLocal(new Idx(name+"_i32")),
+                            new Call(new Idx("gcSetRCToZero"))));
+
             outMap.getDynamicInternalSetReturnFlagAndRCToZero()
-                    .forEach((String name)-> gcInstructions.addAfterInstructions(
+                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcSetReturnFlagAndSetRCToZero"))));
             // Dynamic Return value, ambiguous external flag, make sure that is external and set return flag to 1
             // along with RC
             outMap.getDynamicCheckExternalSetReturnFlagAndRCToZero()
-                    .forEach((String name)-> gcInstructions.addAfterInstructions(
+                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcCheckExternalToSetReturnFlagAndSetRCZero"))));
 
             // Freeing results, only contained within mandatory return statements.
             // Static site freeing
             outMap.getDynamicInternalFreeMemorySite()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructions.addInBetweenStmtInstructions(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcFreeSite"))));
             // Dynamic but internal site freeing. Since is dynamic, have to check return flag
@@ -145,8 +185,33 @@ public class HybridGCCallInsertionMap {
             this.caseASTNode(stmt);
         }
 
-        private void getInitiatedSites(){
+        /**
+         * Traverses all the dynamic sites, looks for newly initiated dynamic
+         * sites and resolves the initialization count for the site.
+         * Strategy is as follows:
+         * If two site point to the same memory, check the latest aliased node.
+         * If its the same:
+         *  - Go to the latest node map, and get the static count from there.
+         *  - If it is different, no conflict, and then add an initiating count
+         *  to every path.
+         */
+        private void getInitiatedSites(Stmt stmt){
+            this.analysis.getInFlowSets()
+                    .get(stmt).getDynamicMemorySites()
+                    .entrySet().stream()
+                    .map(Map.Entry::getValue)
+                    .map(DynamicSite::getStaticDefinitions)
+                    .flatMap(Collection::stream)
+                    .forEach((MemorySite site)->{
+                        int processed =
+                                site.getDefinition().hashCode()+
+                                        site.getInitialVariableName().hashCode()+site.getLatestAliasAdded().hashCode();
+                        if(!initial_sites_processed.contains(processed)){
+                            initial_dynamic_sites.put(site.getLatestAliasAdded(), (new ArrayList<>(site.getAliasingNames()).get(0)));
+                            initial_sites_processed.add(processed);
+                        }
 
+                    });
         }
 
         @Override

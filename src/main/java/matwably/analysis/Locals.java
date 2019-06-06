@@ -60,7 +60,8 @@ public class Locals {
         private void addDeclaration(Name name, ASTNode node){
             TypeUse typeUse = new TypeUse();
             String identifier_name;
-            if(valueAnalysisUtil.isScalar(name.getID(), node, false)) {
+            boolean isScalar = valueAnalysisUtil.isScalar(name.getID(), node, false);
+            if(isScalar) {
                 if(!disallow_logicals &&
                         node instanceof Def &&
                         this.logicalVariableUtil.
@@ -106,9 +107,11 @@ public class Locals {
 
         @Override
         public void caseTIRFunction(TIRFunction function){
-            for (Name expr : function.getInputParamList()) {
-                String typedName = valueAnalysisUtil.genTypedName(expr.getID(), function,true);
+            for(int i = 0;i<function.getInputParamList().getNumChild();i++){
+                String typedName = function.getInputParam(i).getID();
+                typedName+=(valueAnalysisUtil.isArgumentScalar(i))?"_f64":"_i32";
                 names_mapping.remove(typedName);
+
             }
             caseASTNode(function.getStmtList());
         }

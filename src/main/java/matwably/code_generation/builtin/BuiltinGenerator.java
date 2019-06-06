@@ -119,8 +119,8 @@ public class BuiltinGenerator {
         builtinMap.put("horzcat", VectorBuiltinInputHandler.getInstance());
         builtinMap.put("concat", VectorBuiltinInputHandler.getInstance());
         builtinMap.put("colon", VectorBuiltinInputHandler.getInstance());
-        builtinMap.put("get", VectorBuiltinInputHandler.getInstance());
-        builtinMap.put("set", VectorBuiltinInputHandler.getInstance());
+        builtinMap.put("subsasgn", VectorBuiltinInputHandler.getInstance());
+        builtinMap.put("subsref", VectorBuiltinInputHandler.getInstance());
         builtinMap.put("reshape", OneMatrixAndShapeBuiltinInputHandler.getInstance());
         builtinMap.put("randi", OneMatrixAndShapeBuiltinInputHandler.getInstance());
         Arrays.sort(SPECIALIZED, String::compareTo);
@@ -234,7 +234,7 @@ public class BuiltinGenerator {
                     target);
 
             if(bmv.hasShape() && bmv.getShape().isScalar() &&
-                    Builtin.getInstance(functionName)!= null){
+                    (Builtin.getInstance(functionName)!= null|| functionName.equals("subsref")||functionName.equals("subsasgn"))){
                 String temp = Util.genTypedLocalI32();
                 result.addLocal(new TypeUse(new Opt<>(new Identifier(temp)),new I32()));
                 result.addInstruction(new SetLocal(new Idx(temp)));

@@ -12074,8 +12074,8 @@ return)
         i32.store8 offset=28 align=1
     end
 )
-(export "gcSetReturnFlagAndSetRCZero" (func $gcSetReturnFlagAndSetRCZero))
-(func $gcSetReturnFlagAndSetRCZero (param i32)
+(export "gcSetReturnFlagAndSetRCToZero" (func $gcSetReturnFlagAndSetRCToZero))
+(func $gcSetReturnFlagAndSetRCToZero (param i32)
    ;; Only process if not null
     get_local 0
     i32.eqz
@@ -12089,6 +12089,19 @@ return)
         get_local 0
         i32.const 2
         i32.store8 offset=29 align=1
+    end
+)
+(export "gcSetRCToZero" (func $gcSetRCToZero))
+(func $gcSetRCToZero (param i32)
+   ;; Only process if not null
+    get_local 0
+    i32.eqz
+    i32.eqz
+    if 
+        ;; Store reference
+        get_local 0
+        i32.const 0
+        i32.store8 offset=28 align=1
     end
 )
 (export "gcCheckReturnFlagToFreeSite" (func $gcCheckReturnFlagToFreeSite))
@@ -12127,4 +12140,3 @@ return)
         i32.store8 offset=29 align=1
     end
  )
-  

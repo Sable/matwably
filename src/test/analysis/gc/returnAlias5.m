@@ -1,4 +1,4 @@
-function [ a ] = returnAlias4(b)
+function [ a ] = returnAlias5(b)
     % return alias dynamic, both sites
     % Copy Analysis should create clones
     a = rand(2,2)
@@ -6,8 +6,6 @@ function [ a ] = returnAlias4(b)
     if b < rand()
         a = rand(2,2)
         % a = rand(2,2) {refC:1}
-        f = c
-        d = c % c = rand(2,2) {refC:3}
     end
     b = a
     % decrease b reference, increase a reference.

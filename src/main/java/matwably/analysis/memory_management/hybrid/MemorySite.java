@@ -51,11 +51,11 @@ public class MemorySite {
     private int reference_count = 0;
 
 
-    private MemorySite(ASTNode<? extends ASTNode> node, String name, Set<AliasingSite> aliasing_sites,
+    private MemorySite(ASTNode<? extends ASTNode> node, String name, ASTNode<? extends ASTNode> alias, Set<AliasingSite> aliasing_sites,
                        Set<String> aliasing_names,
                        boolean staticallyFreed, int reference_count) {
         this.node = node;
-        this.latestAliasAdded = node;
+        this.latestAliasAdded = alias;
         this.name = name;
         this.aliasing_sites = aliasing_sites;
         this.aliasing_names = aliasing_names;
@@ -202,11 +202,16 @@ public class MemorySite {
         // Creates shallow copy of aliasing sites, passes reference to aliasing site and defining node.
         Set<AliasingSite> thatSet = new HashSet<>(this.aliasing_sites);
         Set<String> thaSet = new HashSet<>(this.aliasing_names);
-        return new MemorySite(node,name, thatSet,thaSet,staticallyFreed, reference_count);
+        return new MemorySite(node,name,latestAliasAdded, thatSet,thaSet,staticallyFreed, reference_count);
     }
 
     @Override
     public String toString() {
-        return "Memsite:{count:"+reference_count+", defining_name:"+name+", defining_stmt"+node.getPrettyPrinted()+"aliasing_stmt: "+aliasing_sites.toString()+"}";
+        return "Memsite:{count:"+reference_count+", defining_name:"+name+", defining_stmt: "+node.getPrettyPrinted()
+                +"aliasing_stmt: "+aliasing_sites.toString()+", lastAlias: "+latestAliasAdded.getPrettyPrinted()+"}";
+    }
+
+    public ASTNode<? extends ASTNode> getLatestAliasAdded() {
+        return latestAliasAdded;
     }
 }

@@ -1,9 +1,6 @@
 package matwably.analysis.memory_management.hybrid;
 
-import ast.ASTNode;
-import ast.Name;
-import ast.NameExpr;
-import ast.Stmt;
+import ast.*;
 import matjuice.transformer.MJCopyStmt;
 import matwably.MatWablyCommandLineOptions;
 import matwably.util.InterproceduralFunctionQuery;
@@ -11,7 +8,6 @@ import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralForwardAnalysis;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,10 +24,6 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
     private final MatWablyCommandLineOptions opts;
     private final TIRFunction function;
     public static boolean Debug = false;
-    /**
-     * Processes dynamic sites, this site serves as cached initiated dynamic site.
-     */
-    private Set<MemorySite> processed_initially_dynamic = new HashSet<>();
 
     /**
      * Base constructor for the analysis
@@ -98,11 +90,10 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      *
      */
     public void caseTIRReturnStmt(TIRReturnStmt tirNode){
-        checkForInitialDynamicSites();
         inFlowSets.put(tirNode, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         processReturn();
-        outFlowSets.put(tirNode, copy(currentOutSet));
+        outFlowSets.put(tirNode, currentOutSet);
         if(Debug) log(tirNode);
     }
 
@@ -145,11 +136,9 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
         Set<String> processed = new HashSet<>();
         output.forEach((String name)->{
             if(currentOutSet.getStaticMemorySites().containsKey(name)){
-                if(!processed.contains(name)){
-                    currentOutSet.addDynamicInternalSetReturnFlagAndRCToZero(name);
+                if(!processed.contains(name))
                     processed.addAll(currentOutSet.getStaticMemorySites()
                             .get(name).getAliasingNames());
-                }
             }
             if(currentOutSet.getDynamicMemorySites().containsKey(name)){
                 DynamicSite site = currentOutSet.getDynamicMemorySites().get(name);
@@ -166,6 +155,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
         Set<String> free_static_sites_set = new HashSet<>(currentOutSet.getStaticMemorySites().keySet());
         free_static_sites_set.removeAll(output);
         free_static_sites_set.removeAll(processed);
+
         currentOutSet.addInternalFreeMemorySite(free_static_sites_set);
         // Process dynamic freeing
         Set<String> dynamic_site_names = new HashSet<>(currentOutSet.
@@ -191,7 +181,6 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      * @param tirNode TIRCopyStmt to process
      */
     public void caseTIRCopyStmt(TIRCopyStmt tirNode){
-        checkForInitialDynamicSites();
         inFlowSets.put(tirNode, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         if(!valueAnalysisUtil.isScalar(tirNode.getSourceName().getID(), tirNode,true)) {
@@ -208,7 +197,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
             // Remove variable name from both static and dynamic sets.
             currentOutSet.decreaseReference(tirNode.getTargetName().getID());
         }
-        outFlowSets.put(tirNode, copy(currentOutSet));
+        outFlowSets.put(tirNode, currentOutSet);
         if(Debug) log(tirNode);
 
     }
@@ -221,11 +210,10 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      * @param tirNode Assign literal statement.
      */
     public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt tirNode){
-        checkForInitialDynamicSites();
         inFlowSets.put(tirNode, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         currentOutSet.decreaseReference(tirNode.getTargetName().getID());
-        outFlowSets.put(tirNode, copy(currentOutSet));
+        outFlowSets.put(tirNode, currentOutSet);
         if(Debug) log(tirNode);
     }
 
@@ -237,7 +225,6 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      * @param tirNode [a,b,c] = A(i,s)
      */
     public void caseTIRArrayGetStmt(TIRArrayGetStmt tirNode){
-        checkForInitialDynamicSites();
         inFlowSets.put(tirNode, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         for(NameExpr name: tirNode.getTargets().getNameExpressions()){
@@ -248,7 +235,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
                 currentOutSet.decreaseReference(name.getName().getID());
             }
         }
-        outFlowSets.put(tirNode, copy(currentOutSet));
+        outFlowSets.put(tirNode, currentOutSet);
         if(Debug) log(tirNode);
     }
 
@@ -271,7 +258,6 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      * @param tirNode TameIR node to be analized
      */
     public void caseTIRCallStmt(TIRCallStmt tirNode){
-        checkForInitialDynamicSites();
         inFlowSets.put(tirNode, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         String callName = tirNode.getFunctionName().getID();
@@ -307,28 +293,27 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
                 currentOutSet.decreaseReference(name.getName().getID());
             }
         }
-        outFlowSets.put(tirNode, copy(currentOutSet));
+        outFlowSets.put(tirNode, currentOutSet);
         if(Debug) log(tirNode);
     }
-
-
-
-
-
     /**
      * For this particular statement, we know that i is an scalar, all we have to do is to remove the i (loop-variable)
-     * reference
-     * @param tirNode for i=low:step:high
+     * reference, hack around the ForStmt.
+     * @param assignStmt for i=low:step:high
      */
-    public void caseTIRForStmt(TIRForStmt tirNode) {
-        checkForInitialDynamicSites();
-        inFlowSets.put(tirNode, copy(currentInSet));
+    @Override
+    public void caseAssignStmt(AssignStmt assignStmt) {
+        inFlowSets.put(assignStmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
-        currentOutSet.decreaseReference(tirNode.getLoopVarName().getID());
-        caseTIRStatementList(tirNode.getStatements());
-        outFlowSets.put(tirNode, copy(currentOutSet));
-        if (Debug) log(tirNode);
+        if(assignStmt.getLHS() instanceof NameExpr){
+            NameExpr he = (NameExpr) assignStmt.getLHS();
+            currentOutSet.decreaseReference(he.getName().getID());
+        }
+        outFlowSets.put(assignStmt, currentOutSet);
     }
+
+
+
 
     /**
      * Default to propagate sets through stmts
@@ -336,36 +321,9 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      */
     @Override
     public void caseStmt(Stmt stmt) {
-        checkForInitialDynamicSites();
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
         outFlowSets.put(stmt, copy(currentOutSet));
-    }
-
-    /**
-     * Whenever we perform a merge operation, there are sites that flow from the
-     * static set into the dynamic set, these sites must be initiated dynamically
-     * at those points to their lastly known static reference count.
-     */
-    private void checkForInitialDynamicSites(){
-
-        Set<MemorySite> dynamicSites = currentInSet.
-                getInitiatedDynamicSites().stream().map(DynamicSite::getStaticDefinitions)
-                .flatMap(Collection::stream).collect(Collectors.toSet());
-        dynamicSites.stream().filter(this::shouldProcessSite)
-                    .forEach((MemorySite memSite)->{
-                        processed_initially_dynamic.add(memSite);
-                        currentInSet.addNewInitiatingDynamicSite(memSite);
-                    });
-        return;
-    }
-
-    private boolean shouldProcessSite(MemorySite site) {
-        return !processed_initially_dynamic.stream()
-                        .anyMatch((MemorySite sitePro)->
-                                sitePro.getInitialVariableName()
-                                        .equals(site.getInitialVariableName())&&
-                                                sitePro.getDefinition().equals(site.getDefinition()) );
     }
 
     private void log(HybridReferenceCountMap map){
