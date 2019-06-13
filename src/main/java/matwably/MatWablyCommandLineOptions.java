@@ -52,7 +52,7 @@ public final class MatWablyCommandLineOptions {
     @Parameter(names = {"--opt-alloc-params","-oa"}, description = "Optimizes allocations for built-in call parameters")
     public boolean opt_alloc_params = false;
     // TODO: Place flag in code to allow or disallow memory freeing.
-    @Parameter(names = {"--disallow-free"}, description = "Takes away free calls from code, results in memory leakage")
+    @Parameter(names = {"--disallow-free", "--nofree"}, description = "Takes away free calls from code, results in memory leakage")
     public boolean disallow_free = false;
 
     @Parameter(names = {"--skip-variable-elimination","-e"},

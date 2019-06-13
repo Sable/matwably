@@ -39,7 +39,7 @@ public abstract class Constant extends MatWablyBuiltinGenerator{
     public abstract MatWablyBuiltinGeneratorResult generateConstant();
     @Override
     public MatWablyBuiltinGeneratorResult generateExpression() {
-        if(arguments.size()!= 0) throw new MatWablyError("Unsupported matrix call for constant:"+ callName +" in MatWably",node);
+        if(arguments.size()!= 0) throw new MatWablyError.UnsupportedBuiltinCall("Unsupported matrix call for constant:"+ callName +" in MatWably",node);
         return generateConstant();
     }
     /**

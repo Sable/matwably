@@ -40,6 +40,7 @@ public class Mod extends NumericBinaryOp {
              f64.sub
          */
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+        result = generateInputs();
         result.addInstructions(new Div(new F64(),false),
                 new Floor(new F64()),
                 new Mul(new F64()),

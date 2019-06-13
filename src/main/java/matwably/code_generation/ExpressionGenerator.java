@@ -30,7 +30,7 @@ public class ExpressionGenerator {
     private  TreeExpressionBuilderAnalysis expression_builder = null;
     private  MatWablyBuiltinAnalysis builtinAnalysis;
     private  HashMap<Name, List<Instruction>> cached_expression_rebuild = new HashMap<>();
-    public static boolean Debug = true;
+    public static boolean Debug = false;
     /**
      * Contains the map the NameExpr to expression map.
      */
@@ -113,7 +113,6 @@ public class ExpressionGenerator {
             } else if (mapped_stmt instanceof TIRCopyStmt) {// Copy Statement
                res = genName(((TIRCopyStmt) mapped_stmt).getSourceName(), mapped_stmt);
             } else if(mapped_stmt instanceof TIRCallStmt) {
-                System.out.println(mapped_stmt.getPrettyPrinted());
                 MatWablyBuiltinGenerator generator = builtinAnalysis.getGenerator(mapped_stmt);
                 MatWablyBuiltinGeneratorResult result = generator.getGeneratedExpressionResult();
                 res.addAll(result.getInstructions());

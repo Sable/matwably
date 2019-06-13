@@ -15,6 +15,7 @@
 package matwably.util;
 
 import ast.ASTNode;
+import matwably.ast.F64;
 import matwably.ast.I32;
 import matwably.ast.TypeUse;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
@@ -43,6 +44,9 @@ public class Util {
     public static TypeUse genI32TypeUse(){
         return new TypeUse(genTypedLocalI32(),new I32());
     }
+    public static TypeUse genF64TypeUse(){
+        return new TypeUse(genTypedLocalF64(),new F64());
+    }
     public static String getTypedLocalI32(String name){
         return name+"_i32";
     }
@@ -54,6 +58,9 @@ public class Util {
     }
     public static String genTypedLocalF64(){
         return TempFactory.genFreshTempString()+"_f64";
+    }
+    public static String genID(){
+        return TempFactory.genFreshTempString();
     }
     public static String getTypedName(String name, BasicMatrixValue val) {
         return name + "_"+((val.hasShape()&&val.getShape().isScalar())?"f64":"i32");

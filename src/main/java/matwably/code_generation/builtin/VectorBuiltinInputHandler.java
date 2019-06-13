@@ -47,10 +47,10 @@ public class VectorBuiltinInputHandler extends BuiltinInputHandler {
                     result.addInstruction(new GetLocal(new Idx(typedName)));
                     result.addInstruction(new Call(new Idx("convert_scalar_to_mxarray")));
                     result.addInstruction(new SetLocal(new Idx(typedNewName)));
-                    result.addInstructions(MatWablyArray.setArrayIndexI32(input_arg,i-1,new GetLocal(new Idx(typedNewName))));
+                    result.addInstructions(MatWablyArray.setArrayIndexI32NoCheck(input_arg,i-1,new GetLocal(new Idx(typedNewName))));
                 }else{
                     String typedName = Util.getTypedLocalI32(name);
-                    result.addInstructions(MatWablyArray.setArrayIndexI32(input_arg,i-1,new GetLocal(new Idx(typedName))));
+                    result.addInstructions(MatWablyArray.setArrayIndexI32NoCheck(input_arg,i-1,new GetLocal(new Idx(typedName))));
 
                 }
             }else if(expr instanceof ColonExpr){
@@ -66,38 +66,36 @@ public class VectorBuiltinInputHandler extends BuiltinInputHandler {
                 DimValue val;
                 List<Instruction> dynamicSize = new List<>();
                 if(arguments.size() == 1){
-                    val = dimValues.stream().reduce(new DimValue(1,1+""),
-                            ( acc,dim1)->new DimValue(acc.getIntValue() *dim1.getIntValue(),""));
-                    if(!val.hasIntValue()){
+////                    val = dimValues.stream().reduce(new DimValue(1,1+""),
+////                            ( acc,dim1)->new DimValue(acc.getIntValue() *dim1.getIntValue(),""));
+//                    if(!val.hasIntValue()){
                         dynamicSize.addAll(new GetLocal(new Idx(Util.getTypedLocalI32(arrayName))),
                                 new Call(new Idx("numel")));
-                    }
+//                    }
                 }else{
-                    val = dimValues.get(i-1);
-                    if(!val.hasIntValue()){
+//                    val = dimValues.get(i-1);
+//                    if(!val.hasIntValue()){
                         dynamicSize.addAll(new GetLocal(new Idx(Util.getTypedLocalI32(arrayName))),
                                 new ConstLiteral(new F64(), i),
                                 new Call(new Idx("size_MS")));
-                    }
+//                    }
                 }
                 String name = Util.genTypedLocalI32();
                 result.addLocal(new TypeUse(name, new I32()));
 
                 result.addInstruction( new ConstLiteral(new F64(), 1));
 
-                if(val.hasIntValue()){
-                    result.addInstruction(new ConstLiteral(new F64(), val.getIntValue()));
-                }else{
+//                if(val.hasIntValue()){
+//                    result.addInstruction(new ConstLiteral(new F64(), val.getIntValue()));
+//                }else{
                     result.addInstructions(dynamicSize);
-                }
+//                }
 
                 result.addInstructions(
                         new Call(new Idx("colon_two")),
                         new SetLocal(new Idx(name))
                 );
-
                 if(arguments.size() == 1){
-
                     result.addInstructions(
                         new GetLocal(new Idx(name)),
                         new Call(new Idx("transpose_M")),

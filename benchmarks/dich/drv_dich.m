@@ -19,4 +19,5 @@ for time=1:scale
 end
 t = toc();
 disp(t)
+disp(U(numel(U)))
 end

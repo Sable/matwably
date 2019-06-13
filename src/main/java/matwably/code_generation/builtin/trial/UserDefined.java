@@ -1,6 +1,7 @@
 package matwably.code_generation.builtin.trial;
 
 import ast.ASTNode;
+import ast.Function;
 import matwably.code_generation.MatWablyFunctionInformation;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
@@ -39,6 +40,7 @@ public class UserDefined extends MatWablyBuiltinGenerator {
      */
     @Override
     public boolean expressionReturnsVoid() {
-        return false;
+        Function func = this.functionQuery.getFunctionInCallGraph(callName);
+        return func!=null && func.getOutputParamList().getNumChild() == 0;
     }
 }

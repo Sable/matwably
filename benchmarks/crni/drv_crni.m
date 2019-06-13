@@ -17,5 +17,6 @@ for time=1:scale
 end
 t = toc();
 disp(t);
+disp(U(2))
 end
 

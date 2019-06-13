@@ -40,7 +40,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
         this.valueAnalysisUtil = valueAnalysisUtil;
         this.functionQuery = functionQuery;
         this.opts = opts;
-        Debug = true;
+//        Debug = true;
     }
 
     @Override
@@ -312,8 +312,22 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
         outFlowSets.put(assignStmt, currentOutSet);
     }
 
+    /**
+     * Hack to amend McSAF, parent does not call caseStmt.
+     * @param tirBreakStmt
+     */
+    @Override
+    public void caseTIRBreakStmt(TIRBreakStmt tirBreakStmt) {
+        super.caseTIRBreakStmt(tirBreakStmt);
+        this.caseStmt(tirBreakStmt);
+    }
 
+    @Override
+    public void caseTIRContinueStmt(TIRContinueStmt tirContinueStmt) {
+        super.caseTIRContinueStmt(tirContinueStmt);
+        this.caseStmt(tirContinueStmt);
 
+    }
 
     /**
      * Default to propagate sets through stmts

@@ -13,12 +13,25 @@ public class MatWablyArray{
         return ret;
     }
     public static List<Instruction> setArrayIndexF64(String arr_name,int index, Instruction value) {
+        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for: "+arr_name);
         List<Instruction> ret = new List<>();
         ret.add(new GetLocal(new Idx(arr_name)));
         ret.add(new ConstLiteral(new I32(), index));
-        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for: "+arr_name);
         ret.add(value);
-        ret.add(new Call(new Idx("set_array_index_f64_no_check")));
+        ret.add(new Call(new Idx("set_array_index_f64")));
+        return ret;
+    }
+    public static List<Instruction> setArrayIndexF64NoCheck(String arr_name, int index, Instruction value){
+        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for: "+arr_name);
+        List<Instruction> ret = new List<>();
+        ret.add(new GetLocal(new Idx(arr_name)));
+        ret.add(new Load(new I32(),new Opt<>(new MemArg((short)8,(short)4)),new Opt<>(),new Opt<>()));
+        ret.add(new ConstLiteral(new I32(), index));
+        ret.add(new ConstLiteral(new I32(), 3));
+        ret.add(new Shl(new I32()));
+        ret.add(new Add(new I32()));
+        ret.add(value);
+        ret.add(new Store(new F64(),new Opt<>(new MemArg((short)0,(short)8)),new Opt<>()));
         return ret;
     }
     public static List<Instruction> freeMachArray(String arr_name){
@@ -72,16 +85,16 @@ public class MatWablyArray{
         ret.add(new Call(new Idx("get_array_index_f64")));
         return ret;
     }
-    public static List<Instruction> setArrayIndexI32(String arr_name,int index,  Instruction value) {
+    public static List<Instruction> setArrayIndexI32NoCheck(String arr_name, int index, Instruction value) {
+        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for: "+arr_name);
         List<Instruction> ret = new List<>();
         ret.add(new GetLocal(new Idx(arr_name)));
         ret.add(new ConstLiteral(new I32(), index));
-        if(index < 0 ) throw new IndexOutOfBoundsException("Index: "+index+" out of bounce for: "+arr_name);
         ret.add(value);
         ret.add(new Call(new Idx("set_array_index_i32_no_check")));
         return ret;
     }
-    public static List<Instruction> setArrayIndexI32(String arr_name, int index,  List<Instruction> values) {
+    public static List<Instruction> setArrayIndexI32NoCheck(String arr_name, int index,  List<Instruction> values) {
         List<Instruction> ret = new List<>();
         ret.add(new GetLocal(new Idx(arr_name)));
         ret.add(new ConstLiteral(new I32(), index));
@@ -90,7 +103,7 @@ public class MatWablyArray{
         ret.add(new Call(new Idx("set_array_index_i32_no_check")));
         return ret;
     }
-    public static List<Instruction> setArrayIndexI32(List<Instruction> array , int index,  List<Instruction> values) {
+    public static List<Instruction> setArrayIndexI32NoCheck(List<Instruction> array , int index, List<Instruction> values) {
         List<Instruction> ret = new List<>();
         ret.addAll(array);
         ret.add(new ConstLiteral(new I32(), index));
@@ -140,6 +153,7 @@ public class MatWablyArray{
     public static List<Instruction> createF64Vector(int capacity, String name, boolean isRowVector){
         return createVector( capacity,false,isRowVector).add(new SetLocal(new Idx(name)));
     }
+
 
     public static List<Instruction> createVector( int capacity,boolean isCellArray, boolean isRowVector){
         List<Instruction> instructions = new List<>();

@@ -1,5 +1,12 @@
 import java.security.InvalidParameterException;
 aspect AST {
+     public Load.Load(ValueType p0){
+        setType(p0);
+        setChild(new Opt<>(), 0);
+        setChild(new Opt<>(), 1);
+        setChild(new Opt<>(), 2);
+     }
+
      public Idx.Idx(String name){
         setChild(new Opt<>(new Identifier(name)),0);
         setIndex(0);
@@ -25,7 +32,12 @@ aspect AST {
     public boolean ValueType.isI32(){
         return this instanceof I32;
     }
-
+    public boolean ValueType.isFloat(){
+            return this instanceof F64 || this instanceof F32;
+    }
+     public boolean ValueType.isInt(){
+            return this instanceof I32 || this instanceof I64;
+    }
       public  String I64.getTypeString(){
          return "i64";
       }

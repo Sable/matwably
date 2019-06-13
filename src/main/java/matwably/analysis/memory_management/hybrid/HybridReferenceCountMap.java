@@ -202,7 +202,6 @@ public class HybridReferenceCountMap {
 
     public void decreaseReference(String name){
         assert checkValidity():"Not a valid ReferenceMap"+this.toString();
-
         if(dynamic_memory_sites.containsKey(name)) {
             decreaseDynamicCount(name);
         }

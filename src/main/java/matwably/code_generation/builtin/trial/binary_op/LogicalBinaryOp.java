@@ -33,19 +33,19 @@ public abstract class LogicalBinaryOp extends BinaryOp {
     public MatWablyBuiltinGeneratorResult generateExpression() {
         validateInput();
 
-        MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node,true);
         boolean arg2IsScalar = valueUtil.isScalar(arguments.getNameExpresion(1),node,true);
 
-        result.add(generateInputs());
         // Only scalars are supported with logical ops
         if(arg1IsScalar && arg2IsScalar){
+            MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
+            result.add(generateInputs());
             result.add(generateScalarCall());
+            promoteIfAmbiguousLogical(result);
+            return result;
         }else{
-            throw new MatWablyError.UnsupportedBuiltinCall(callName,node);
+            return super.generateExpression();
         }
-        promoteIfAmbiguousLogical(result);
-        return result;
     }
 
      protected void promoteIfAmbiguousLogical(MatWablyBuiltinGeneratorResult result) {

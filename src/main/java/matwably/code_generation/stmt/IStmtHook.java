@@ -1,10 +1,8 @@
-package matwably.analysis.memory_management;
+package matwably.code_generation.stmt;
 
-
-public interface GCCalls<T>{
+public interface IStmtHook<T>{
     void  addBeforeInstruction(T instructions);
     void addAfterInstructions(T instructions);
-    void addInBetweenStmtInstructions(T instructions);
 
     T getBeforeStmtInstructions();
     T getAfterStmtInstructions();
@@ -13,6 +11,5 @@ public interface GCCalls<T>{
     boolean hasBeforeStmtInstructions();
     boolean hasAfterStmtInstructions();
     boolean hasInBetweenStmtInstructions();
-
 
 }

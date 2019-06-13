@@ -5,7 +5,10 @@ import ast.Stmt;
 import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import natlab.tame.builtin.Builtin;
 import natlab.tame.tir.TIRCallStmt;
+import natlab.tame.tir.TIRIfStmt;
+import natlab.tame.tir.TIRWhileStmt;
 import natlab.toolkits.analysis.core.Def;
+import natlab.utils.NodeFinder;
 
 import java.util.Set;
 
@@ -20,16 +23,19 @@ public class LogicalVariableUtil  {
 
     public boolean isUseLogical(Name name) {
         Set<Def> defs = rd.getUseDefDefUseChain().getDefs(name);
-        return defs.size() > 0 && defs
+        Stmt useStmt = NodeFinder.findParent(Stmt.class,name);
+
+        return (useStmt instanceof TIRIfStmt || useStmt instanceof TIRWhileStmt)
+         && (defs.size() > 0 && defs
                 .stream().allMatch((Def def)->
-                        def instanceof Stmt &&
-                                def instanceof TIRCallStmt
-                                && isCallLogical((TIRCallStmt) def));
+                        def instanceof TIRCallStmt
+                                && isCallLogical((TIRCallStmt) def)));
     }
     public boolean isDefinitionLogical(String name, Def def){
         Set<Name> uses = rd.getUseDefDefUseChain()
                 .getUsesOf(name, def);
-        return uses.size() > 0 && uses
+        return def instanceof TIRCallStmt && isCallLogical((TIRCallStmt) def)
+                && uses
                 .stream().allMatch(this::isUseLogical);
     }
 

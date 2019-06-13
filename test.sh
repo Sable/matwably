@@ -20,8 +20,11 @@ TOTAL=`ls -1q ./src/test/features/**/*.m | wc -l`
 TOTAL=`echo $TOTAL |sed -e "s/[\t]*//g"`
 errorMessage=""
 for file in `ls ./src/test/features/**/*.m`; do
-    COUNTER=$[$COUNTER+1]
     fname=$(basename $file)
+    if [[ $fname == *"helper"* ]]; then
+        continue
+    fi
+    COUNTER=$[$COUNTER+1]
     matfile=${file%.m}
     fbname=${fname%.*}
     res="./runner.sh $file -o ./$gen_dir/gen/$fbname.wat -a \"[DOUBLE&1*1&REAL]\""

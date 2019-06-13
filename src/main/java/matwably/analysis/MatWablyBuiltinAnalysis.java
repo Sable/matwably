@@ -95,14 +95,14 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
                                 callStmt.getTargets(), callStmt.getFunctionName().getID(), functionInformation);
         MatWablyBuiltinGeneratorResult result;
         if(!this.skip_variable_elim && this.expr_elim_analysis.isStmtRedundant(callStmt)){
-            result = generator.generateExpression();
-            this.locals.addAll(result.getLocals());
+//            result = generator.generateExpression();
+//            this.locals.addAll(result.getLocals());
         }else{
-            result = generator.generate();
+//            result = generator.generate();
             // Add free/alloc instructions to loop.
 
         }
-        addLoopInstructions(result);
+//        addLoopInstructions(result);
         // Put the built-in generator in map for later use
         callGeneratorMap.put(callStmt, generator);
     }

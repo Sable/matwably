@@ -24,7 +24,7 @@ public class Pi extends Constant {
     @Override
     public MatWablyBuiltinGeneratorResult generateConstant() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-        result.addInstruction(new Call(new Idx("PI")));
+        result.addInstruction(new Call(new Idx("pi")));
         return result;
     }
 

@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class MemorySite {
+final public class MemorySite {
     public ASTNode<? extends ASTNode> getDefinition() {
         return node;
     }

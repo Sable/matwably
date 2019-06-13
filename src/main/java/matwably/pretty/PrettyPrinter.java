@@ -500,12 +500,36 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
 
     @Override
     public void visit(Load inst) {
-
+        sb.append(inst.getType().getTypeString());
+        sb.append(".load");
+        if(inst.hasBitWidth()){
+            sb.append(inst.getBitWidth().getWidth());
+        }
+        if(inst.getType().isInt() && inst.hasSigned()){
+            if(inst.getSigned().getValue()){
+                sb.append("_s");
+            }else{
+                sb.append("_u");
+            }
+        }
+        if(inst.hasMemArg()){
+            sb.append(" offset=").append(inst.getMemArg().getOffset());
+            sb.append(" align=").append(inst.getMemArg().getAlign());
+        }
     }
 
     @Override
     public void visit(Store inst) {
+        sb.append(inst.getType().getTypeString());
+        sb.append(".store");
+        if(inst.hasBitWidth()){
+            sb.append(inst.getBitWidth().getWidth());
+        }
 
+        if(inst.hasMemArg()){
+            sb.append(" offset=").append(inst.getMemArg().getOffset());
+            sb.append(" align=").append(inst.getMemArg().getAlign());
+        }
     }
 
     @Override

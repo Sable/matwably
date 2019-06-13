@@ -1,8 +1,13 @@
 #!/bin/bash
 
-MATJUICE=../run.sh
-BUILD_DIR=_BUILD_CI
+RUNNER=../run.sh
+BUILD_DIR="_NEW_BUILD"
 
+if [ ! -z $BUILD_DIR ];then
+    rm  $BUILD_DIR
+fi
+
+mkdir $BUILD_DIR
 
 HTML_TEMPLATE=`cat <<EOF
 <html>
@@ -39,14 +44,15 @@ mkdir -p $BUILD_DIR
 for b in ${BENCHMARKS[@]}; do
     basefile=$(basename $b .m)
     jsdrv=$basefile"-wably".js
+    outfile=$basefile.js
     htmlfile=$basefile.html
     echo -n "$b... "
-    $MATJUICE  $b -a "\"[DOUBLE&1*1&REAL]\""
+    $RUNNER  $b -a "\"[DOUBLE&1*1&REAL]\"" -o $BUILD_DIR/$outfile &> /dev/null
     if [ $? -eq 0 ]; then
         echo "OK"
-        echo $HTML_TEMPLATE > $BUILD_DIR/$htmlfile
+        echo "$HTML_TEMPLATE" > $BUILD_DIR/$htmlfile
         temp=$BUILD_DIR/$htmlfile
-        sed -i "s/SOURCE_FILE/$jsdrv/"  $temp
+        echo "sed -i 's/SOURCE_FILE/$outfile/' $BUILD_DIR/$htmlfile"
     else
         echo "FAIL"
     fi

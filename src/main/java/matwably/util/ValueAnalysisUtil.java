@@ -29,7 +29,6 @@ public class ValueAnalysisUtil {
 
         BasicMatrixValue val = getMatrixValue(name, node, isRHS);
         boolean isScalar =  val != null && val.hasShape() && val.getShape().isScalar();
-        System.out.println(isScalar);
         return isScalar;
     }
 
@@ -44,6 +43,35 @@ public class ValueAnalysisUtil {
         BasicMatrixValue val = getMatrixValue(name.getVarName(), node, true);
         return val != null && val.hasShape() && val.getShape().isVector();
     }
+    /**
+     * Returns whether the nameExpr is for a fact a RowVector, if
+     * its false, it may or it may not be one.
+     *
+     * @param name NameExpression to analyze
+     * @param node TIRNode node where there NameExpression happes
+     * @return Returns double from a nameExpr if its a constant.
+     */
+    public boolean isRowVector(NameExpr name, ASTNode node) {
+        BasicMatrixValue val = getMatrixValue(name.getVarName(), node, true);
+        return val != null && val.hasShape() && val.getShape().isRowVector();
+    }
+    /**
+     * Returns whether the nameExpr is for a fact NOT RowVector, if
+     * its false, it may or it may not be one.
+     * @param name NameExpression to analyze
+     * @param node TIRNode node where there NameExpression happes
+     * @return Returns double from a nameExpr if its a constant.
+     */
+    public boolean isNotRowVector(NameExpr name, ASTNode node) {
+        Shape val = getShape(name.getVarName(), node, true);
+        if(val != null){
+            return val.getDimensions().size() != 2 || (val.getDimensions()
+                    .get(0).hasIntValue() &&
+                    !val.getDimensions().get(0).equalsOne());
+        }
+        return false;
+    }
+
 
     /**
      * Returns shape if it exists
@@ -95,7 +123,7 @@ public class ValueAnalysisUtil {
      */
     public boolean isScalar(NameExpr name, ASTNode node, boolean isRHS) {
 
-        BasicMatrixValue val = getMatrixValue(name.getVarName(), node, isRHS);
+        BasicMatrixValue val = getMatrixValue(name.getName().getID(), node, isRHS);
         return val != null && val.hasShape() && val.getShape().isScalar();
     }
     private BasicMatrixValue getArgumentMatrixValue(int argIndex){

@@ -135,7 +135,14 @@ public class UseDefDefUseChain {
             if (parent == null){
                  parent = NodeFinder.findParent(Function.class, name);
             }
-            return reaching_defs.getInFlowSets().get(parent).get(name.getID());
+
+            if(parent instanceof TIRWhileStmt || parent instanceof TIRForStmt){
+                return reaching_defs.getOutFlowSets().get(parent).get(name.getID());
+            }else{
+                return reaching_defs.getInFlowSets().get(parent) .get(name.getID());
+
+            }
+
         }
         public Set<Def> getReachingDefSet(Stmt stmt, Name name){
             return reaching_defs.getInFlowSets().get(stmt).get(name.getID());
@@ -168,7 +175,7 @@ public class UseDefDefUseChain {
         @Override
         public void caseTIRWhileStmt(TIRWhileStmt stmt) {
             addUse(stmt.getCondition().getName());
-            this.caseASTNode(stmt.getStatements());
+            super.caseTIRWhileStmt(stmt);
         }
 
         @Override

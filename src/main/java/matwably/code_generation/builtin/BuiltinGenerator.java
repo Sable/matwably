@@ -294,7 +294,7 @@ public class BuiltinGenerator {
             for(Expr exp: arguments){
                 ast.NameExpr nameExpr = (ast.NameExpr) exp;
                 BasicMatrixValue bmv = getBasicMatrixValue(analysis,(ast.ASTNode) node, nameExpr.getName().getID());
-                if (bmv.hasShape() && !bmv.getShape().isScalar()) return false;
+                if ( bmv!= null && bmv.hasShape() && !bmv.getShape().isScalar()) return false;
             }
             return true;
         }
@@ -309,7 +309,7 @@ public class BuiltinGenerator {
             if(func.getName().getID().equals(callName)&&func.getOutputParamList().getNumChild() == 1) {
                 BasicMatrixValue val = Util.getBasicMatrixValue(funcAnalysis, func,
                         func.getOutputParamList().getChild(0).getID());
-                if(val.hasShape())
+                if(val!= null &&val.hasShape())
                     return val.getShape().isScalar();
                 else {
                     throw new Error("Must have ValueAnalysis information for output parameters: "

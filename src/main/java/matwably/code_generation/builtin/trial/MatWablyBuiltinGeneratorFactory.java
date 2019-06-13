@@ -1,9 +1,10 @@
 package matwably.code_generation.builtin.trial;
 
 import ast.ASTNode;
-import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.MatWablyError;
+import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.trial.binary_op.logical.*;
+import matwably.code_generation.builtin.trial.binary_op.logical.bitwise.And;
 import matwably.code_generation.builtin.trial.binary_op.numerical.*;
 import matwably.code_generation.builtin.trial.concatanation.Cat;
 import matwably.code_generation.builtin.trial.concatanation.Horzcat;
@@ -13,10 +14,7 @@ import matwably.code_generation.builtin.trial.constant.False;
 import matwably.code_generation.builtin.trial.constant.Pi;
 import matwably.code_generation.builtin.trial.constant.True;
 import matwably.code_generation.builtin.trial.constructors.*;
-import matwably.code_generation.builtin.trial.matrix_operation.Mldivide;
-import matwably.code_generation.builtin.trial.matrix_operation.Mpower;
-import matwably.code_generation.builtin.trial.matrix_operation.Mrdivide;
-import matwably.code_generation.builtin.trial.matrix_operation.Mtimes;
+import matwably.code_generation.builtin.trial.matrix_operation.*;
 import matwably.code_generation.builtin.trial.matrix_query.*;
 import matwably.code_generation.builtin.trial.reduction_operation.NumericReduction;
 import matwably.code_generation.builtin.trial.unary_operation.logical.Not;
@@ -43,6 +41,7 @@ public class MatWablyBuiltinGeneratorFactory {
          matwablyGeneratorMap.put("cat", Cat.class);
          matwablyGeneratorMap.put("vertcat", Vertcat.class);
          matwablyGeneratorMap.put("colon", Colon.class);
+         matwablyGeneratorMap.put("linspace", Linspace.class);
 
          //Utility
          matwablyGeneratorMap.put("disp", Disp.class);
@@ -60,6 +59,7 @@ public class MatWablyBuiltinGeneratorFactory {
          matwablyGeneratorMap.put("mod", Mod.class);
 
          // LogicalBinary Operators
+         matwablyGeneratorMap.put("and", And.class);
          matwablyGeneratorMap.put("lt", Lt.class);
          matwablyGeneratorMap.put("gt", Gt.class);
          matwablyGeneratorMap.put("le", Le.class);
@@ -111,11 +111,12 @@ public class MatWablyBuiltinGeneratorFactory {
          matwablyGeneratorMap.put("min", NumericReduction.class);
 
          // Matrix ops
+         matwablyGeneratorMap.put("transpose", Transpose.class);
          matwablyGeneratorMap.put("mtimes", Mtimes.class);
          matwablyGeneratorMap.put("mrdivide", Mrdivide.class);
          matwablyGeneratorMap.put("mldivide", Mldivide.class);
          matwablyGeneratorMap.put("mpower", Mpower.class);
-         matwablyGeneratorMap.put("equals", Equals.class);
+         matwablyGeneratorMap.put("isequal", Isequal.class);
 
 
      }

@@ -1,13 +1,11 @@
 package matwably.code_generation;
 
-import ast.ASTNode;
 import ast.Function;
 import matwably.MatWablyCommandLineOptions;
 import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
 import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
-import matwably.analysis.memory_management.GCInstructions;
 import matwably.analysis.memory_management.hybrid.HybridRCGarbageCollectionAnalysis;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.LogicalVariableUtil;
@@ -17,8 +15,6 @@ import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.toolkits.analysis.core.ReachingDefs;
-
-import java.util.Map;
 
 /**
  * This class encompasses all the analysis for the Matlab function, it makes it easier to be passed around through all
@@ -43,7 +39,7 @@ public class MatWablyFunctionInformation {
     private AmbiguousVariableUtil amb_var_util;
     private MatWablyBuiltinAnalysis builtinAnalysis;
     private HybridRCGarbageCollectionAnalysis hybridRCGarbageCollectionAnalysis;
-    private Map<ASTNode, GCInstructions> gcInstructionMapping;
+    private FunctionStmtHookMap functionHookMap;
 
 
     public MatWablyFunctionInformation(Function tree,
@@ -221,11 +217,12 @@ public class MatWablyFunctionInformation {
         return reachingDefinitions;
     }
 
-    public void setGCInstructionMapping(Map<ASTNode,GCInstructions> GCInstructionMapping) {
-        this.gcInstructionMapping = GCInstructionMapping;
-    }
 
-    public Map<ASTNode, GCInstructions> getGCInstructionMapping() {
-        return gcInstructionMapping;
+
+    public void setFunctionHookMap(FunctionStmtHookMap hookMap) {
+        this.functionHookMap = hookMap;
+    }
+    public FunctionStmtHookMap getFunctionHookMap() {
+        return this.functionHookMap;
     }
 }

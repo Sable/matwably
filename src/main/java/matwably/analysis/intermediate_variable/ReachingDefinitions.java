@@ -80,9 +80,7 @@ public class ReachingDefinitions extends TIRAbstractSimpleStructuralForwardAnaly
 
     private void processDef(Name name, Def def) {
         String varName = name.getID();
-        if(currentOutSet.containsKey(varName)){
-            currentOutSet.remove(varName);
-        }
+        currentOutSet.remove(varName);
         Set<Def> tmpDefs = new HashSet<>();
         tmpDefs.add(def);
         currentOutSet.put(varName, tmpDefs);
@@ -96,16 +94,16 @@ public class ReachingDefinitions extends TIRAbstractSimpleStructuralForwardAnaly
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
-    @Override
-    public void caseTIRForStmt(TIRForStmt stmt){
-        inFlowSets.put(stmt, copy(currentInSet));
-        currentOutSet = copy(currentInSet);
-//        this.caseAssignStmt(stmt.getAssignStmt());
-        super.caseAssignStmt(stmt.getAssignStmt());
-//        processDef(stmt.getLoopVarName(),stmt.getAssignStmt());
-        super.caseTIRForStmt(stmt);
-        outFlowSets.put(stmt, copy(currentOutSet));
-    }
+//    @Override
+//    public void caseTIRForStmt(TIRForStmt stmt){
+//        inFlowSets.put(stmt, copy(currentInSet));
+//        currentOutSet = copy(currentInSet);
+////        this.caseAssignStmt(stmt.getAssignStmt());
+//        super.caseAssignStmt(stmt.getAssignStmt());
+////        processDef(stmt.getLoopVarName(),stmt.getAssignStmt());
+//        super.caseTIRForStmt(stmt);
+//        outFlowSets.put(stmt, copy(currentOutSet));
+//    }
     @Override
     public void caseAssignStmt(AssignStmt stmt){
         inFlowSets.put(stmt, copy(currentInSet));

@@ -3,7 +3,7 @@ package matwably.code_generation;
 import ast.ASTNode;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
-public class MatWablyError extends Error {
+public abstract class  MatWablyError extends Error {
 
     public MatWablyError(String msg, ASTNode node){
         super(msg+"\nat TamerIR: "+node.getPrettyPrinted()
@@ -49,6 +49,12 @@ public class MatWablyError extends Error {
     public static class TooManyOutputArguments extends MatWablyError {
         public TooManyOutputArguments(String callName, ASTNode node) {
             super("Error using "+callName+"\nToo many output arguments.", node);
+
+        }
+    }
+    public static class IndexExceedsMatrixDimensions extends MatWablyError {
+        public IndexExceedsMatrixDimensions(String callName, ASTNode node) {
+            super("Error using "+callName+"\nMatrix exceeds matrix dimensions.", node);
 
         }
     }

@@ -6,6 +6,8 @@ import matwably.code_generation.MatWablyError;
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
+import natlab.tame.valueanalysis.components.shape.Shape;
+
 
 public class Size extends MatrixQuery {
     /**
@@ -49,27 +51,45 @@ public class Size extends MatrixQuery {
 
         if(arguments.size() > 2 ) throw new MatWablyError.TooManyInputArguments(callName, node);
         if(arguments.size() == 0) throw  new MatWablyError.NotEnoughInputArguments(callName, node);
+        if(arguments.size() == 2 &&
+                targets.size() > 1) throw new MatWablyError.TooManyOutputArguments(callName, node);
 
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         // Getting the length of a particular dimension
         if(arguments.size() == 2){
-            if(targets.size() > 1) throw new MatWablyError.TooManyOutputArguments(callName, node);
             Double dimArg = valueUtil.getDoubleConstant(arguments.getNameExpresion(1),node);
-            if(dimArg!=null && dimArg<1) throw new MatWablyError.
+            if(dimArg!=null && dimArg < 1) throw new MatWablyError.
                     DimensionArgumentMustBeAPositiveScalar(callName, node);
             if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)){
                 if(dimArg!=null){
                     // generate 1 constant load
                     result.addInstruction(new ConstLiteral(new F64(),1));
                 }else{
-                    result.addInstructions(
-                            expressionGenerator
-                                    .genExpr(arguments.getNameExpresion(0),node));
-                    result.addInstructions(
-                            expressionGenerator
-                                    .genExpr(arguments.getNameExpresion(1),node));
+                   result.add(generateInputs());
                     // Generate dynamic code
                     result.addInstruction(new Call(new Idx("size_SM")));
+                }
+            }else{
+                if(dimArg != null){
+                    Shape shape = valueUtil.getShape(arguments.getNameExpresion(1),node,true);
+                    if(shape != null && shape.getDimensions().size() <= dimArg.intValue()
+                        && shape.getDimensions().get(dimArg.intValue()-1)
+                            .hasIntValue()){
+                        result.addInstruction(new ConstLiteral(new F64(),
+                                shape.getDimensions().get(dimArg.intValue()-1)
+                                .getIntValue()));
+                    }else{
+                        result.add(generateInputs());
+                        result.addInstruction(new Call(new Idx("size_MS")));
+                    }
+                }else if(valueUtil.isScalar(arguments.getNameExpresion(1),
+                        node,
+                        true)){
+                    result.add(generateInputs());
+                    result.addInstruction(new Call(new Idx("size_MS")));
+                }else{
+                    result.add(generateInputs());
+                    result.addInstruction(new Call(new Idx("size_MM")));
                 }
             }
         }else{

@@ -71,7 +71,8 @@ public class Vertcat extends Concat {
                 result.addInstruction(new Call(new Idx("vertcat")));
             }
         }else{
-            this.result.addInstructions(MatWablyArray.createEmptyArray(2));
+            System.out.println("here");
+            result.addInstructions(MatWablyArray.createEmptyArray(2));
         }
         return result;
     }

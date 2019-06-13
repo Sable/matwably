@@ -32,7 +32,18 @@ public class Randi extends ShapeConstructor {
         result.addInstruction(new Call(new Idx("randi_S")));
         return result;
     }
-
+    /**
+     *
+     * To be implemented by actual Builtin. Specifies whether the built-in expression returns boxed scalar.
+     * i.e. whether the generated built-in call does  not have specialization for the scalar cases. Saving by having
+     * shape constructor
+     *
+     * @return Specifies whether the built-in expression returns boxed scalar.
+     */
+    @Override
+    public boolean expressionHasSpecializationForScalar() {
+        return arguments.size() == 1;
+    }
     @Override
     public MatWablyBuiltinGeneratorResult generateExpression() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
@@ -46,7 +57,8 @@ public class Randi extends ShapeConstructor {
             result.addInstructions(expressionGenerator.genNameExpr(arguments.getNameExpresion(0),node));
             result.addInstruction(new Call(new Idx("check_boxed_scalar_value")));
         }
-        TIRCommaSeparatedList tempArgs = new TIRCommaSeparatedList(arguments.copy());
+        TIRCommaSeparatedList tempArgs = arguments;
+        arguments = new TIRCommaSeparatedList(arguments.copy());
         arguments.removeChild(0);
         result.add(super.generateExpression());
         arguments = tempArgs;

@@ -2,8 +2,8 @@ package matwably.analysis.memory_management.hybrid;
 
 import ast.ASTNode;
 import ast.Stmt;
-import matwably.analysis.memory_management.GCInstructions;
 import matwably.ast.*;
+import matwably.code_generation.stmt.StmtHook;
 import natlab.tame.tir.TIRForStmt;
 import natlab.tame.tir.TIRFunction;
 import natlab.tame.tir.TIRNode;
@@ -16,14 +16,14 @@ import java.util.*;
  */
 public class HybridGCCallInsertionMap {
 
-    public static Map<ASTNode,GCInstructions> generateInstructions(TIRFunction function, HybridRCGarbageCollectionAnalysis gcA) {
+    public static Map<ASTNode, StmtHook> generateInstructions(TIRFunction function, HybridRCGarbageCollectionAnalysis gcA) {
         return (new HybridGCCallInsertionBuilder(function, gcA)).build();
     }
 
     private static class HybridGCCallInsertionBuilder extends TIRAbstractNodeCaseHandler {
         private final TIRFunction function;
         private HybridRCGarbageCollectionAnalysis analysis;
-        private Map<ASTNode, GCInstructions> map_instructions = new HashMap<>();
+        private Map<ASTNode, StmtHook> map_instructions = new HashMap<>();
         private Set<Integer> initial_sites_processed = new HashSet<>();
         private Map<ASTNode<? extends ASTNode>, String> initial_dynamic_sites = new HashMap<>();
 
@@ -31,7 +31,7 @@ public class HybridGCCallInsertionMap {
             this.analysis = gcA;
             this.function = function;
         }
-        Map<ASTNode,GCInstructions> build(){
+        Map<ASTNode, StmtHook> build(){
             function.analyze(this);
             buildInitialSites();
             return map_instructions;
@@ -50,7 +50,7 @@ public class HybridGCCallInsertionMap {
         @Override
         public void caseTIRForStmt(TIRForStmt tirForStmt) {
             HybridReferenceCountMap inMap = this.analysis.getInFlowSets().get(tirForStmt);
-            GCInstructions gcInstructions = new GCInstructions();
+            StmtHook gcInstructions = new StmtHook();
             String varLoop = tirForStmt.getLoopVarName().getID();
             if(inMap.getStaticMemorySites().containsKey(varLoop)){
                 // check ref count if 1, free site.
@@ -58,7 +58,7 @@ public class HybridGCCallInsertionMap {
                 if(site.getReferenceCount() == 1){
                     gcInstructions.addInBetweenStmtInstructions(
                             new GetLocal(new Idx(varLoop+"_i32")),
-                            new Call(new Idx("gcFreeSite")));
+                            new Call(new Idx("free_macharray")));
                 }
 
                 // if not one, do nothing.
@@ -83,30 +83,30 @@ public class HybridGCCallInsertionMap {
         @Override
         public void caseStmt(Stmt stmt) {
             HybridReferenceCountMap outMap = this.analysis.getOutFlowSets().get(stmt);
-            GCInstructions gcInstructions = new GCInstructions();
+            StmtHook gcInstructionsHook = new StmtHook();
 
             getInitiatedSites(stmt);
 
             // Increase site
             outMap.getDynamicCheckExternalToDecreaseReferenceSites()
-                    .forEach((String name)-> gcInstructions.addInBetweenStmtInstructions(
+                    .forEach((String name)-> gcInstructionsHook.addInBetweenStmtInstructions(
                     new GetLocal(new Idx(name+"_i32")),
                     new Call(new Idx("gcCheckExternalToDecreaseRCSite"))));
             outMap.getDynamicInternalDecreaseReferenceSites()
-                    .forEach((String name)-> gcInstructions.addInBetweenStmtInstructions(
+                    .forEach((String name)-> gcInstructionsHook.addInBetweenStmtInstructions(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcDecreaseRCSite"))));
 
             outMap.getDynamicInternalSetSiteAsExternal()
                     .forEach((String name)->{
-                        gcInstructions.addBeforeInstruction(
+                        gcInstructionsHook.addBeforeInstruction(
                                 new ConstLiteral(new I32(), 1),
                                 new GetLocal(new Idx(name+"_i32")),
                                 new Call(new Idx("gcSetExternalFlag")));
                     });
             outMap.getDynamicInternalSetSiteAsExternal()
                     .forEach((String name)->{
-                        gcInstructions.addInBetweenStmtInstructions(
+                        gcInstructionsHook.addInBetweenStmtInstructions(
                                 new ConstLiteral(new I32(), 0),
                                 new GetLocal(new Idx(name+"_i32")),
                                 new Call(new Idx("gcSetExternalFlag")));
@@ -114,14 +114,14 @@ public class HybridGCCallInsertionMap {
 
             outMap.getDynamicCheckExternalToSetSiteAsExternal()
                     .stream().sorted().forEach((String name)->{
-                    gcInstructions.addBeforeInstruction(
+                    gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcGetExternalFlag")));
                     });
 
             outMap.getDynamicCheckExternalToSetSiteAsExternal()
                     .stream().sorted(Collections.reverseOrder()).forEach((String name)->{
-                gcInstructions.addInBetweenStmtInstructions(
+                gcInstructionsHook.addInBetweenStmtInstructions(
                         new GetLocal(new Idx(name+"_i32")),
                         new Call(new Idx("gcSetExternalFlag")));
             });
@@ -129,59 +129,59 @@ public class HybridGCCallInsertionMap {
 
             // Dynamic internal increase site, increase reference count only if not external
             outMap.getDynamicCheckExternalToIncreaseReferenceSites()
-                    .forEach((String name)-> gcInstructions.addAfterInstructions(
+                    .forEach((String name)-> gcInstructionsHook.addAfterInstructions(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcCheckExternalToIncreaseRCSite"))));
             // Dynamic internal increase site, increase reference count.
             outMap.getDynamicInternalIncreaseReferenceSites()
-                    .forEach((String name)-> gcInstructions.addAfterInstructions(
+                    .forEach((String name)-> gcInstructionsHook.addAfterInstructions(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcIncreaseRCSite"))));
             // Internal dynamic site, set return flag to prevent accidental freeing
             outMap.getDynamicInternalSetRCToZero()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcSetRCToZero"))));
 
             outMap.getDynamicInternalSetReturnFlagAndRCToZero()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcSetReturnFlagAndSetRCToZero"))));
             // Dynamic Return value, ambiguous external flag, make sure that is external and set return flag to 1
             // along with RC
             outMap.getDynamicCheckExternalSetReturnFlagAndRCToZero()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcCheckExternalToSetReturnFlagAndSetRCZero"))));
 
             // Freeing results, only contained within mandatory return statements.
             // Static site freeing
             outMap.getDynamicInternalFreeMemorySite()
-                    .forEach((String name)-> gcInstructions.addInBetweenStmtInstructions(
+                    .forEach((String name)-> gcInstructionsHook.addInBetweenStmtInstructions(
                             new GetLocal(new Idx(name+"_i32")),
-                            new Call(new Idx("gcFreeSite"))));
+                            new Call(new Idx("free_macharray"))));
             // Dynamic but internal site freeing. Since is dynamic, have to check return flag
             outMap.getDynamicInternalCheckReturnFlagToFreeSites()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcCheckReturnFlagToFreeSite"))));
             // Dynamic but ambiguous external state site. Since is dynamic, have to check return flag
             outMap.getDynamicCheckExternalAndReturnFlagToFreeSites()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcCheckExternalAndReturnFlagToFreeSite"))));
 
             // Restore return flags results
             outMap.getDynamicInternalSetReturnFlagAndRCToZero()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcResetReturnFlag"))));
 
             outMap.getDynamicCheckExternalSetReturnFlagAndRCToZero()
-                    .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("gcCheckExternalToResetReturnFlag"))));
-            map_instructions.put(stmt, gcInstructions);
+            map_instructions.put(stmt, gcInstructionsHook);
             this.caseASTNode(stmt);
         }
 
@@ -198,8 +198,7 @@ public class HybridGCCallInsertionMap {
         private void getInitiatedSites(Stmt stmt){
             this.analysis.getInFlowSets()
                     .get(stmt).getDynamicMemorySites()
-                    .entrySet().stream()
-                    .map(Map.Entry::getValue)
+                    .values().stream()
                     .map(DynamicSite::getStaticDefinitions)
                     .flatMap(Collection::stream)
                     .forEach((MemorySite site)->{

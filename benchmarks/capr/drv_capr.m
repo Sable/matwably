@@ -13,9 +13,9 @@ tol=1.3e-13; % Tolerance.
 rel=0.90; % Relaxation parameter.
 tic();
 for i=1:scale
-a=(0.3257463)*2;
 cap=capacitor(a, b, c, d, n, tol, rel);
 end
+disp(cap)
 t = toc();
 disp(t);
 end

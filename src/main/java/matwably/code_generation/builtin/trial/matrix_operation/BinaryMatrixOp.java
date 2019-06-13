@@ -54,9 +54,11 @@ public class BinaryMatrixOp extends MatrixOp {
     }
     public MatWablyBuiltinGeneratorResult generateExpression(){
         validateInput();
-        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)||
+        if(valueUtil.isScalar(arguments.getNameExpresion(0),node,true)&&
             valueUtil.isScalar(arguments.getNameExpresion(1),node,true)) {
-            return super.generateExpression();
+            MatWablyBuiltinGeneratorResult res = super.generateInputs();
+            res.add(super.generateCall());
+            return res;
         }else{
             throw new MatWablyError.UnsupportedBuiltinCallWithArguments(callName, node, arguments);
         }

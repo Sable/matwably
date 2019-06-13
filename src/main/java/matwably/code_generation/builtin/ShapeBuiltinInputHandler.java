@@ -38,8 +38,8 @@ public class ShapeBuiltinInputHandler extends BuiltinInputHandler {
         if(sizeArgs == 0){
             result.addInstructions(MatWablyArray.createF64Vector(2));
             result.addInstruction(new SetLocal(new Idx(input_arg)));
-            result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 0, new ConstLiteral(new F64(), 1)));
-            result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, new ConstLiteral(new F64(), 1)));
+            result.addInstructions(MatWablyArray.setArrayIndexF64NoCheck(input_arg, 0, new ConstLiteral(new F64(), 1)));
+            result.addInstructions(MatWablyArray.setArrayIndexF64NoCheck(input_arg, 1, new ConstLiteral(new F64(), 1)));
         }else if(sizeArgs == 1){
             NameExpr nameExpr = (NameExpr)arguments.getChild(0);
             BasicMatrixValue bmv = Util.getBasicMatrixValue(valueAnalysis,(ast.ASTNode)stmt,
@@ -48,8 +48,8 @@ public class ShapeBuiltinInputHandler extends BuiltinInputHandler {
                 result.addInstructions(MatWablyArray.createF64Vector(2));
                 result.addInstruction(new SetLocal(new Idx(input_arg)));
                 String expr1 = Util.getTypedLocalF64(((NameExpr)args.getChild(0)).getName().getID());
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 0, new GetLocal(new Idx(expr1))));
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, 1, new GetLocal(new Idx(expr1))));
+                result.addInstructions(MatWablyArray.setArrayIndexF64NoCheck(input_arg, 0, new GetLocal(new Idx(expr1))));
+                result.addInstructions(MatWablyArray.setArrayIndexF64NoCheck(input_arg, 1, new GetLocal(new Idx(expr1))));
             }else if(bmv.hasShape()&&!bmv.getShape().isRowVector()) {
                 throw new Error("Size vector should be a row vector with real elements.");
             }
@@ -64,7 +64,7 @@ public class ShapeBuiltinInputHandler extends BuiltinInputHandler {
                 if(!matVal.hasShape() || !matVal.getShape().isScalar()){
                     throw new Error("Size inputs must be scalar.");
                 }
-                result.addInstructions(MatWablyArray.setArrayIndexF64(input_arg, i,
+                result.addInstructions(MatWablyArray.setArrayIndexF64NoCheck(input_arg, i,
                         new GetLocal(new Idx(Util.getTypedLocalF64(nameExpr)))));
                 i++;
             }

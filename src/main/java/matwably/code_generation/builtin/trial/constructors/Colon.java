@@ -69,6 +69,7 @@ public class Colon extends Constructor {
         return false;
     }
     public MatWablyBuiltinGeneratorResult generateExpression(){
+        if( shouldNotGenerate() ) return result;
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
         // Throw static errors when possible
         if(arguments.size() < 2) throw new MatWablyError.NotEnoughInputArguments(callName,node);
@@ -76,7 +77,11 @@ public class Colon extends Constructor {
         if(targets.size() > 1) throw new MatWablyError.TooManyOutputArguments(callName, node);
 
         // targets must be larger than
-        Shape targetShape = valueUtil.getShape(targets.getName(0).getID(),node,false);
+        Shape targetShape = valueUtil.getShape(targets
+                .getNameExpresion(0)
+                .getName()
+                .getID(),node,false);
+
         if(targetShape!=null) {
             if (targetShape.isScalar()) {
                 // Use low value to generate scalar value
@@ -87,8 +92,7 @@ public class Colon extends Constructor {
                 }
             }
         }
-        if(targetShape == null || !targetShape.isConstant()||(targetShape.isConstant()
-                &&targetShape.getHowManyElements(0)>0)){
+        if(targetShape == null || !targetShape.isConstant() || targetShape.getHowManyElements(0) > 0){
             // Check if all arguments are scalar, if they are generate them without boxing the scalar.
             if(argumentsAreScalar()){
                 // Input args
@@ -108,7 +112,7 @@ public class Colon extends Constructor {
             }
         }else{
             // Generate empty vector since we know for a fact that the number of elements returned is 0
-            result.addInstructions(MatWablyArray.createI32Vector(0));
+            result.addInstructions(MatWablyArray.createF64Vector(0));
         }
         return result;
     }

@@ -11,4 +11,5 @@ for i = 1:scale
 end
 t = toc();
 disp(t);
+disp(max_num)
 end

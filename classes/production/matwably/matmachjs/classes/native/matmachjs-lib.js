@@ -1,6 +1,53 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const util_1 = require("util");
+// import { TextDecoder } from 'util';
+if (typeof module == "undefined") {
+    module = {};
+}
+if (typeof TextDecoder === "undefined") {
+    function TextDecoder() {
+    }
+    TextDecoder.prototype.decode = function (octets) {
+        var string = "";
+        var i = 0;
+        while (i < octets.length) {
+            var octet = octets[i];
+            var bytesNeeded = 0;
+            var codePoint = 0;
+            if (octet <= 0x7F) {
+                bytesNeeded = 0;
+                codePoint = octet & 0xFF;
+            }
+            else if (octet <= 0xDF) {
+                bytesNeeded = 1;
+                codePoint = octet & 0x1F;
+            }
+            else if (octet <= 0xEF) {
+                bytesNeeded = 2;
+                codePoint = octet & 0x0F;
+            }
+            else if (octet <= 0xF4) {
+                bytesNeeded = 3;
+                codePoint = octet & 0x07;
+            }
+            if (octets.length - i - bytesNeeded > 0) {
+                var k = 0;
+                while (k < bytesNeeded) {
+                    octet = octets[i + k + 1];
+                    codePoint = (codePoint << 6) | (octet & 0x3F);
+                    k += 1;
+                }
+            }
+            else {
+                codePoint = 0xFFFD;
+                bytesNeeded = octets.length - i;
+            }
+            string += String.fromCodePoint(codePoint);
+            i += bytesNeeded + 1;
+        }
+        return string;
+    };
+}
 // Object to fit to WebAssembly Runtime
 exports.MatMachNativeLib = {};
 if (typeof console === "undefined") {
@@ -292,13 +339,13 @@ function printArrayDouble(arr_ptr, length) {
  */
 function printError(offset, length) {
     var bytes = new Uint8Array(exports.MatMachNativeLib.wasmMemory.buffer, offset, length);
-    var string = new util_1.TextDecoder('utf8').decode(bytes);
+    var string = new TextDecoder('utf8').decode(bytes);
     throw new Error(string);
 }
 // Prints a string in memory.
 function printString(offset, length) {
     var bytes = new Uint8Array(exports.MatMachNativeLib.wasmMemory.buffer, offset, length);
-    var string = new util_1.TextDecoder('utf8').decode(bytes);
+    var string = new TextDecoder('utf8').decode(bytes);
     console.log(string);
 }
 /**

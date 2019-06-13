@@ -43,6 +43,7 @@ public class ProgramGenerator {
      */
     public ProgramGenerator(ValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis,
                             MatWablyCommandLineOptions opts) {
+
         this.analysis = funcAnalysis;
         this.interproceduralFunctionQuery = new InterproceduralFunctionQuery(analysis);
         this.opts = opts;

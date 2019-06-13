@@ -77,8 +77,9 @@ public abstract class  McLabBuiltinGenerator<Res extends McLabBuiltinGenerationR
      * this is for cases of user defined functions.
      * @return Returns whether the function is a known as pure.
      */
-    boolean isPure() {
+    protected boolean isPure() {
         // Traverse through class hierarchy with reflection, to check for pure class
+        if(Builtin.getInstance(this.callName) == null) return false;
         Class<?> classObj = Builtin.getInstance(this.callName).getClass();
         while(classObj!= null){
             if(classObj.getName().contains("Pure")) return true;

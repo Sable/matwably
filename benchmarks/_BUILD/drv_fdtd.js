@@ -122,4 +122,367 @@ async function loader() {
 }
 module.exports.loadModule = loader();
 
-loader().then((mod)=>mod.exports.drv_fdtd_S(10));
+loader().then((mod)=>mod.exports.drv_fdtd_S(10));var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);
+var t1 = Date.now();
+drv_fdtd(1)
+var t2 = Date.now();
+console.log((t2 - t1) / 1000);

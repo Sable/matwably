@@ -20,7 +20,6 @@ function propert(a)
     disp(b)
     % matrix
     a = rand(a)
-     disp(b)
     b = length(a)
      disp(b)
     b = isscalar(a)

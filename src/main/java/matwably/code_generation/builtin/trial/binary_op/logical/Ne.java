@@ -31,7 +31,7 @@ public class Ne  extends LogicalBinaryOp {
     @Override
     public MatWablyBuiltinGeneratorResult generateScalarCall() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-        result.addInstruction(new matwably.ast.Lt(new F64(), true));
+        result.addInstruction(new matwably.ast.Ne(new F64()));
         return result;
     }
 }

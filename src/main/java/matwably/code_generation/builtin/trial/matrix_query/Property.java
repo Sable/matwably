@@ -21,7 +21,7 @@ public abstract class Property extends MatrixQuery {
     }
     @Override
     public boolean isSpecialized() {
-        return true;
+        return false;
     }
     /**
      * To be implemented by actual Builtin. Specifies whether the built-in expression returns boxed scalar.

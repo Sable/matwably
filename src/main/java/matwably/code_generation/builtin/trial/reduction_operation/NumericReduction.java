@@ -39,7 +39,7 @@ public class NumericReduction extends MatWablyBuiltinGenerator{
      */
     @Override
     public boolean expressionHasSpecializationForScalar() {
-        return valueUtil.isScalar(arguments.getNameExpresion(0),node,true);
+        return false;
     }
     /**
      * Function used to query whether the builtin function returns void

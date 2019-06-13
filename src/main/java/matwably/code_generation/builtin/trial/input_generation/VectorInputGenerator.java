@@ -44,11 +44,11 @@ public class VectorInputGenerator extends AbstractInputGenerator {
                 // Scalar to boxed scalar.
                 if(valueAnalysisUtil.isScalar(nameExpr,stmt, true)){
                     String i32_boxed_scalar = result.generateBoxedScalar(this.name_expression_generator.genNameExpr(nameExpr, stmt));
-                    result.addInstructions(MatWablyArray.setArrayIndexI32(vectorInputI32, i,
+                    result.addInstructions(MatWablyArray.setArrayIndexI32NoCheck(vectorInputI32, i,
                             new GetLocal(new Idx(i32_boxed_scalar))));
                 }else{
                     // Vector instructions
-                    result.addInstructions(MatWablyArray.setArrayIndexI32(vectorInputI32, i,
+                    result.addInstructions(MatWablyArray.setArrayIndexI32NoCheck(vectorInputI32, i,
                             name_expression_generator.genNameExpr(nameExpr,stmt)));
                 }
             }else if(expr instanceof ColonExpr){

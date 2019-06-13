@@ -46,8 +46,7 @@ public class Equals extends LogicalBinaryOp {
             result.add(generateScalarCall());
 
         }else{
-            result = MatWablyBuiltinGeneratorResult.
-                    merge(result,super.generateCall());
+            result.add(super.generateCall());
         }
         return result;
     }

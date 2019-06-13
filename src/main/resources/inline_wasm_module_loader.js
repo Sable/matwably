@@ -18,10 +18,15 @@ async function loader() {
     return Module;
 }
 
-module.exports.matlabModule = loader;
+Module.matlabModule = loader;
 function hexStringByteArray(str){
     let a = [];
     for (let i = 0, len = str.length; i < len; i+=2)
         a.push(parseInt(str.substr(i,2),16));
     return new Uint8Array(a);
 }
+(async ()=>{
+    let mod = await loader();
+    mod.exports.%s_S(1000);
+})();
+

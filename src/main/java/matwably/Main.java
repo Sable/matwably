@@ -73,7 +73,6 @@ public class Main {
         Module module = pg.genProgram();
         // Pretty print program
         PrettyPrinter prettyPrinter = new PrettyPrinter(module);
-
         // Call Peephole optimizer works at the Wasm level.
         if(opts.peephole){
             PeepholeOptimizer peep = new PeepholeOptimizer(module);
@@ -120,10 +119,9 @@ public class Main {
                 outfileBuilder.append("let wasmModuleHexString = \"");
                 outfileBuilder.append(readStreamIntoHexString(new FileInputStream(new File(wasmFile))));
                 outfileBuilder.append("\";\n");
-            }else{
-                File temp = new File(wasmFile);
-                loader = String.format(loader, temp.getName());
             }
+
+//            loader = String.format(loader, opts.basename_output_file);
             // Append library
             outfileBuilder.append(js_support_lib);
             // Append loader
