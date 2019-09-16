@@ -108,7 +108,7 @@ public class HybridReferenceCountMap {
                 newDimSite = DynamicSite.newInternalSite(newDynName,
                         first.getStaticSite(newDynName),
                         second.getStaticSite(newDynName));
-//                newDynamicSites.put(newDynName, newDimSite);
+                newDynamicSites.put(newDynName, newDimSite);
             }else if( siteInSecondSet ){
                 newDimSite = DynamicSite.newInternalSite(newDynName,
                         second.getStaticSite(newDynName));
@@ -118,10 +118,10 @@ public class HybridReferenceCountMap {
                 if(first.getDynamicMemorySites().containsKey(newDynName)){
                     newDimSite = newDimSite.merge(first.getDynamicMemorySites().
                             get(newDynName));
-//                    newDynamicSites.put(newDynName, newDimSite);
+                    newDynamicSites.put(newDynName, newDimSite);
                 }else{
                    // If the other set has a null site
-//                   newMapPointInfo.put(newDynName, second.getStaticSite(newDynName));
+                   newMapPointInfo.put(newDynName, second.getStaticSite(newDynName));
                 }
             }else {
                 newDimSite = DynamicSite.newInternalSite(newDynName,
@@ -131,13 +131,13 @@ public class HybridReferenceCountMap {
                 if(second.getDynamicMemorySites().containsKey(newDynName)){
                     newDimSite = newDimSite.merge(second.getDynamicMemorySites().
                             get(newDynName));
-//                    newDynamicSites.put(newDynName, newDimSite);
+                    newDynamicSites.put(newDynName, newDimSite);
                 }else{
-//                    newMapPointInfo.put(newDynName,
-//                            first.getStaticSite(newDynName));
+                    newMapPointInfo.put(newDynName,
+                            first.getStaticSite(newDynName));
                 }
             }
-            newDynamicSites.put(newDynName, newDimSite);
+//            newDynamicSites.put(newDynName, newDimSite);
         }
         // Now add all the dynamic ones from both ReferenceMaps,
         // two PointToInformation objects
