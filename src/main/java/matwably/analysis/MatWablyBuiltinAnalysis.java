@@ -9,9 +9,9 @@ import matwably.ast.Instruction;
 import matwably.ast.List;
 import matwably.ast.TypeUse;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
-import matwably.code_generation.builtin.trial.MatWablyBuiltinGeneratorFactory;
+import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorFactory;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 
@@ -67,7 +67,7 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      * @param functionInformation Constructor takes all the analyses for the Function call
      */
     public MatWablyBuiltinAnalysis(MatWablyFunctionInformation functionInformation){
-        if(functionInformation == null) throw new Error("Must have analyses to generate builtin");
+        if(functionInformation == null) throw new Error("Must have analyses to generateInstructions builtin");
         this.functionInformation = functionInformation;
         this.matlabFunction = functionInformation.getFunction();
         this.expr_elim_analysis = functionInformation.getTreeExpressionBuilderAnalysis();
@@ -90,18 +90,19 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
      */
     @Override
     public void caseTIRCallStmt(TIRCallStmt callStmt) {
-        MatWablyBuiltinGenerator generator;
-        generator = MatWablyBuiltinGeneratorFactory.getGenerator(callStmt, callStmt.getArguments(),
-                                callStmt.getTargets(), callStmt.getFunctionName().getID(), functionInformation);
-        MatWablyBuiltinGeneratorResult result;
-        if(!this.skip_variable_elim && this.expr_elim_analysis.isStmtRedundant(callStmt)){
-//            result = generator.generateExpression();
-//            this.locals.addAll(result.getLocals());
-        }else{
-//            result = generator.generate();
-            // Add free/alloc instructions to loop.
+        MatWablyBuiltinGenerator generator = MatWablyBuiltinGeneratorFactory.getGenerator(callStmt,
+                        callStmt.getArguments(),callStmt.getTargets(),
+                callStmt.getFunctionName().getID(), functionInformation);
 
-        }
+//        MatWablyBuiltinGeneratorResult result;
+//        if(!this.skip_variable_elim && this.expr_elim_analysis.isStmtRedundant(callStmt)){
+////            result = generator.generateExpression();
+////            this.locals.addAll(result.getLocals());
+//        }else{
+////            result = generator.generateInstructions();
+//            // Add free/alloc instructions to loop.
+//
+//        }
 //        addLoopInstructions(result);
         // Put the built-in generator in map for later use
         callGeneratorMap.put(callStmt, generator);
@@ -114,8 +115,12 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
     @Override
     public void caseTIRArraySetStmt(TIRArraySetStmt setStmt){
         /* TODO (Dherre3) handle logic here where we avoid the statement generation for a colon expression, since
-         * TODO we can avoid it if is in the get, I need to someone map them with statements to not generate in the compiler*/
-        MatWablyBuiltinGenerator generator;
+         * TODO we can avoid it if is in the get, I need to someone map them with statements to not generateInstructions in the compiler*/
+        MatWablyBuiltinGenerator generator = MatWablyBuiltinGeneratorFactory.getGenerator(setStmt,
+                setStmt.getIndices(),new TIRCommaSeparatedList(),
+                "subsref", functionInformation);
+        callGeneratorMap.put(setStmt, generator);
+
 //        generator = MatWablyBuiltinGeneratorFactory.getGenerator(setStmt, setStmt.getIndices(),
 //                null, "subsasgn", functionInformation);
 //        if(generator != null){
@@ -130,7 +135,13 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
     @Override
     public void caseTIRArrayGetStmt(TIRArrayGetStmt getStmt){
         /* TODO (Dherre3) handle logic here where we avoid the statement generation for a colon expression, since
-        * TODO we can avoid it if is in the get, I need to someone map them with statements to not generate in the compiler*/
+           TODO we can avoid it if is in the get, I need to someone map them with statements to not generateInstructions in the compiler*/
+        MatWablyBuiltinGenerator generator = MatWablyBuiltinGeneratorFactory.getGenerator(getStmt,
+                getStmt.getIndices(),getStmt.getTargets(),
+                "subsasgn", functionInformation);
+        callGeneratorMap.put(getStmt, generator);
+
+
 //        TIRCommaSeparatedList indices = getStmt.getIndices();
 //        // Go through each, if index ReachingDefs only has one definition, tag that as statement as one not to be
 //        // generated. Make sure that the call for get actually handles this case.
@@ -181,8 +192,8 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
 
         if(!this.currentLoopStack.isEmpty()){
             Stmt currentLoopStmt = this.currentLoopStack.peek();
-            this.loopAllocationInstructions.get(currentLoopStmt).addAll(result.getAlloc_input_vec_instructions());
-            this.loopFreeingInstructions.get(currentLoopStmt).addAll(result.getFree_input_vec_instructions());
+            this.loopAllocationInstructions.get(currentLoopStmt).addAll(result.getAllocInstructions());
+            this.loopFreeingInstructions.get(currentLoopStmt).addAll(result.getFreeingInstructions());
         }else{
             result.mergeAllocationInstructions();
         }

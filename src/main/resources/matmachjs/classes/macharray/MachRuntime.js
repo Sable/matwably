@@ -62,7 +62,12 @@ class MachRuntime {
                 shape = data._shape;
             }
             else {
-                shape = [1, data.length];
+                if (data.length == 0) {
+                    shape = [0, 0];
+                }
+                else {
+                    shape = [1, data.length];
+                }
             }
         }
         let shape_input_header = this._wi.create_mxvector(shape.length);
@@ -76,8 +81,10 @@ class MachRuntime {
         let newData;
         if (offset < 0)
             throw new Error("Offset must be larger than 0 when creating a MachArray");
-        length = (length) ? length : dataLength - offset;
-        if (length > 0) {
+        if (typeof length === "undefined") {
+            length = dataLength - offset;
+        }
+        if (length >= 0) {
             if (length > dataLength)
                 throw new Error(`Length: ${length} must be less than the data content: ${dataLength}`);
             if (length !== totalElem)

@@ -2,12 +2,17 @@ package matwably.code_generation.stmt;
 
 import matwably.ast.Instruction;
 import matwably.ast.List;
+import matwably.ast.TypeUse;
+import matwably.util.Util;
 
 /**
  * Places Stmt hooks together
  */
 public class StmtHook implements IStmtHook<List<Instruction>> {
-
+    /**
+     * Locals for the stmt hook
+     */
+    private List<TypeUse> localList = new List<>();
 
     private List<Instruction> beforeStmtInstructions = new List<>();
     private List<Instruction> afterStmtInstructions = new List<>();
@@ -23,6 +28,7 @@ public class StmtHook implements IStmtHook<List<Instruction>> {
     public static StmtHook merge(StmtHook other, StmtHook stmtHook){
         List<Instruction> beforeStmtInstructions = new List<>();
         List<Instruction> afterStmtInstructions = new List<>();
+        List<TypeUse> locals = new List<>();
         // Special case with user defined functions, we must set external flag.
         List<Instruction> inBetweenCallStmtInstructions = new List<>();
         beforeStmtInstructions.addAll(other.beforeStmtInstructions);
@@ -31,16 +37,21 @@ public class StmtHook implements IStmtHook<List<Instruction>> {
         beforeStmtInstructions.addAll(stmtHook.beforeStmtInstructions);
         afterStmtInstructions.addAll(stmtHook.afterStmtInstructions);
         inBetweenCallStmtInstructions.addAll(stmtHook.inBetweenCallStmtInstructions);
+        locals.addAll(stmtHook.localList);
+        locals.addAll(other.localList);
         return new StmtHook(beforeStmtInstructions,
-                afterStmtInstructions, inBetweenCallStmtInstructions);
+                afterStmtInstructions,
+                inBetweenCallStmtInstructions,
+                locals);
     }
 
     public StmtHook(){ }
     public StmtHook(List<Instruction> bef, List<Instruction> aft,
-                    List<Instruction> inBet){
+                    List<Instruction> inBet, List<TypeUse> locals){
         this.beforeStmtInstructions = new List<Instruction>().addAll(bef);
         this.afterStmtInstructions = new List<Instruction>().addAll(aft);
         this.inBetweenCallStmtInstructions = new List<Instruction>().addAll(inBet);
+        this.localList = new List<TypeUse>().addAll(locals);
 
     }
 
@@ -63,6 +74,7 @@ public class StmtHook implements IStmtHook<List<Instruction>> {
         beforeStmtInstructions.addAll(other.beforeStmtInstructions);
         afterStmtInstructions.addAll(other.afterStmtInstructions);
         inBetweenCallStmtInstructions.addAll(other.inBetweenCallStmtInstructions);
+        localList.addAll(other.localList);
         return this;
     }
 
@@ -108,6 +120,19 @@ public class StmtHook implements IStmtHook<List<Instruction>> {
         afterStmtInstructions.addAll(instructions);
     }
 
+    public String addI32Local(){
+        TypeUse local = Util.genI32TypeUse();
+        this.localList.add(local);
+        return local.getIdentifier().getName();
+    }
 
+    public String addF64Local(){
+        TypeUse local = Util.genF64TypeUse();
+        this.localList.add(local);
+        return local.getIdentifier().getName();
+    }
 
+    public List<TypeUse> getLocalList() {
+        return localList;
+    }
 }

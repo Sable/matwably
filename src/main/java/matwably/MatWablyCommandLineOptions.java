@@ -39,20 +39,30 @@ public final class MatWablyCommandLineOptions {
     @Parameter(names = {"--omit-copy-insertion","-ci"},
             description = "Option to omit copy insertion")
     public boolean omit_copy_insertion = false;
+
     @Parameter(names = {"--verbose","-v"},
             description = "Verbose information for program")
     public boolean verbose = false;
-    @Parameter(names = {"--gen-wast"},
-            description = "Option to also generate a wat file for the resulting wasm, default is true")
+
+    @Parameter(names = {"--gen-wast","-w"},
+            description = "Option to also generateInstructions a wat file for the resulting wasm, default is true")
     public boolean generate_wat_file = false;
+
     // TODO: Actually add support for this.
     @Parameter(names = {"--inline-builtins"},description = "Inlines built-in calls where possible")
     public boolean inline_builtins = false;
+
     // TODO: Place flag in code to make it viable.
-    @Parameter(names = {"--opt-alloc-params","-oa"}, description = "Optimizes allocations for built-in call parameters")
-    public boolean opt_alloc_params = false;
-    // TODO: Place flag in code to allow or disallow memory freeing.
-    @Parameter(names = {"--disallow-free", "--nofree"}, description = "Takes away free calls from code, results in memory leakage")
+    @Parameter(names = {"--opt-loop-alloc","-la"}, description = "Optimizes allocations " +
+            "for intermediate parameters in built-in call " +
+            "by pushing allocation outside loops")
+    public boolean opt_loop_alloc = false;
+
+    @Parameter(names = {"--opt-builtin-alloc","-ba"}, description = "Optimizes allocations for built-in call " +
+            "re-using particular sites")
+    public boolean opt_builtin_alloc_sites = false;
+
+    @Parameter(names = {"--disallow-free", "-nf"}, description = "Takes away free calls from code, results in memory leakage")
     public boolean disallow_free = false;
 
     @Parameter(names = {"--skip-variable-elimination","-e"},
@@ -74,6 +84,8 @@ public final class MatWablyCommandLineOptions {
     @Parameter(names={ "--gc-dynamic" ,"-gcd"}, description="Dynamic GC, applies a completely dynamic garbage collection strategy")
     public boolean gc_dynamic = false;
 
+    @Parameter(names={ "--print-memory-info" ,"-m"}, description="Print memory information")
+    public boolean print_memory_information = false;
     /**
      * Parses the entry function parameters and prints usage if it gails.
      * @param commander {@link JCommander} object

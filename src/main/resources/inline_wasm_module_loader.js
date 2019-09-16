@@ -25,8 +25,8 @@ function hexStringByteArray(str){
         a.push(parseInt(str.substr(i,2),16));
     return new Uint8Array(a);
 }
-(async ()=>{
-    let mod = await loader();
-    mod.exports.%s_S(1000);
-})();
+// (async ()=>{
+//     let mod = await loader();
+//     mod.exports.%s_S(1000);
+// })();
 

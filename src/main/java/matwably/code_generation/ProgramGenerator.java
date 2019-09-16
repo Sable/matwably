@@ -50,7 +50,7 @@ public class ProgramGenerator {
     }
 
     /**
-     * Method to generate the WebAssembly module given the results for the InterproceduralValueAnalysis.
+     * Method to generateInstructions the WebAssembly module given the results for the InterproceduralValueAnalysis.
      * @return Returns the resulting wasm program module.
      */
     public Module genProgram(){
@@ -65,6 +65,14 @@ public class ProgramGenerator {
             String builtInDeclations =
                     readStreamIntoString(Main.class.
                             getResourceAsStream("/matmachjs/matmachjs.wat"));
+            if(opts.print_memory_information){
+                builtInDeclations = builtInDeclations.
+                        replace(";; %gc_free",
+                                "get_local 0\n\tcall $gcRecordFreeing");
+                builtInDeclations = builtInDeclations.
+                        replace(";; %gc_malloc",
+                                "get_local 0\n\tcall $gcRecordAllocation");
+            }
             wasmModule.addImportedWat(new ImportedWat(builtInDeclations));
         }catch(IOException ex){
             throw new Error("MatMachJS library .wat file is missing from resources"+
@@ -82,6 +90,7 @@ public class ProgramGenerator {
                         interproceduralFunctionQuery, opts);
             // Get function name
             String gen_function_name = gen.genFunctionName();
+
             if (!generatedSoFar.contains(gen_function_name)) {
                 gen.generate();
                 Function func_wasm = gen.getAst();

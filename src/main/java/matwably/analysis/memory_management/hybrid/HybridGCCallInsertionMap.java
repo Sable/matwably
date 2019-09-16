@@ -82,7 +82,8 @@ public class HybridGCCallInsertionMap {
 
         @Override
         public void caseStmt(Stmt stmt) {
-            HybridReferenceCountMap outMap = this.analysis.getOutFlowSets().get(stmt);
+            HybridReferenceCountMap outMap = this.analysis.
+                    getOutFlowSets().get(stmt);
             StmtHook gcInstructionsHook = new StmtHook();
 
             getInitiatedSites(stmt);
@@ -156,21 +157,38 @@ public class HybridGCCallInsertionMap {
 
             // Freeing results, only contained within mandatory return statements.
             // Static site freeing
-            outMap.getDynamicInternalFreeMemorySite()
-                    .forEach((String name)-> gcInstructionsHook.addInBetweenStmtInstructions(
+            Set<String> dynamicInternalFreeMemorySite = outMap.getDynamicInternalFreeMemorySite();
+            dynamicInternalFreeMemorySite
+                    .forEach((String name)->
+                            gcInstructionsHook.addInBetweenStmtInstructions(
                             new GetLocal(new Idx(name+"_i32")),
                             new Call(new Idx("free_macharray"))));
-            // Dynamic but internal site freeing. Since is dynamic, have to check return flag
-            outMap.getDynamicInternalCheckReturnFlagToFreeSites()
-                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
-                            new GetLocal(new Idx(name+"_i32")),
-                            new Call(new Idx("gcCheckReturnFlagToFreeSite"))));
-            // Dynamic but ambiguous external state site. Since is dynamic, have to check return flag
-            outMap.getDynamicCheckExternalAndReturnFlagToFreeSites()
-                    .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
-                            new GetLocal(new Idx(name+"_i32")),
-                            new Call(new Idx("gcCheckExternalAndReturnFlagToFreeSite"))));
+            boolean produceLocalStackForReturn =
+                    outMap.getDynamicInternalCheckReturnFlagToFreeSites()
+                            .size()>0
+                    || outMap.getDynamicCheckExternalAndReturnFlagToFreeSites()
+                            .size()>0;
+            if( produceLocalStackForReturn ){
+                String local_stack_top = gcInstructionsHook.addI32Local();
+                gcInstructionsHook.addBeforeInstruction(
+                        new GetGlobal(new Idx("STACKTOP")),
+                        new TeeLocal(new Idx(local_stack_top)),
+                        new ConstLiteral(new I32(), 0),
+                        new Store(new I32(),new Opt<>(),new Opt<>()));
+                // Dynamic but internal site freeing. Since is dynamic, have to check return flag
+                outMap.getDynamicInternalCheckReturnFlagToFreeSites()
+                        .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
+                                new GetLocal(new Idx(local_stack_top)),
+                                new GetLocal(new Idx(name+"_i32")),
+                                new Call(new Idx("gcCheckReturnFlagToFreeSite"))));
+                // Dynamic but ambiguous external state site. Since is dynamic, have to check return flag
+                outMap.getDynamicCheckExternalAndReturnFlagToFreeSites()
+                        .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(
+                                new GetLocal(new Idx(local_stack_top)),
+                                new GetLocal(new Idx(name+"_i32")),
+                                new Call(new Idx("gcCheckExternalAndReturnFlagToFreeSite"))));
 
+            }
             // Restore return flags results
             outMap.getDynamicInternalSetReturnFlagAndRCToZero()
                     .forEach((String name)-> gcInstructionsHook.addBeforeInstruction(

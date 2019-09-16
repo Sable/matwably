@@ -108,7 +108,13 @@ public class ReachingDefinitions extends TIRAbstractSimpleStructuralForwardAnaly
     public void caseAssignStmt(AssignStmt stmt){
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
-        processDef(((NameExpr) stmt.getLHS()).getName(), stmt);
+        // FOR STMT
+        TIRForStmt forStmt = NodeFinder.findParent(TIRForStmt.class, stmt);
+        if(forStmt.getAssignStmt() == stmt) {
+            processDef(((NameExpr) stmt.getLHS()).getName(), forStmt);
+        }else{
+            processDef(((NameExpr) stmt.getLHS()).getName(), stmt);
+        }
         outFlowSets.put(stmt, copy(currentOutSet));
     }
     /**

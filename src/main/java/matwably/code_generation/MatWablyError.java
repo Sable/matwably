@@ -77,6 +77,12 @@ public abstract class  MatWablyError extends Error {
             super("Uses of logical built-in call: "+msg+ " must be a condition", node);
         }
     }
+    public static class DimensionArgumentMustBeARowVector extends MatWablyError{
+
+        public DimensionArgumentMustBeARowVector(String msg, ASTNode node) {
+            super("In built-in call: "+msg+", dimension argument must be a row vector", node);
+        }
+    }
 
 
 }

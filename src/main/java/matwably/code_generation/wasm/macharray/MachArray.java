@@ -7,7 +7,8 @@ public class MachArray {
     public static List<Instruction> getLength(List<Instruction> array){
         List<Instruction> res = new List<>();
         res.addAll(array);
-        res.add(new Load(new I32()));
+        res.add(new Load(new I32(), new Opt<>(new MemArg((short)4,(short)4)),
+                new Opt<>(), new Opt<>()));
         return res;
     }
 

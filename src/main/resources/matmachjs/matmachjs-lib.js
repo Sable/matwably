@@ -392,6 +392,56 @@ function printTime(time){
     console.warn(`Elapsed time is ${time/1000} seconds.`);
     return time;
 }
+/**
+ * Helper function to print the header for a macharray.
+ * @param {number} arr_ptr MachArray pointer
+ * @param {boolean} flag_print_data Boolean indicating whether to print
+ * array contents
+ */
+function printMachArrayHeader(arr_ptr, flag_print_data=false){
+  if(arr_ptr!= null && arr_ptr!= 0 ){
+    let arr = new Int32Array(Module.wasmMemory.buffer, arr_ptr, 6);
+    let attribute = new Uint8Array(Module.wasmMemory.buffer, arr_ptr, 4);
+    let length = arr[1];
+    let data;
+    if(flag_print_data){
+      let data_ptr = arr[2];
+      data = new Float64Array(Module.wasmMemory.buffer,
+         data_ptr,
+          length);
+    }
+    let dimensions = new Float64Array(Module.wasmMemory.buffer, arr[4],arr[3]);
+    let strides = new Float64Array(Module.wasmMemory.buffer, arr[5],arr[3]); 
+    let gc_info = new Uint8Array(Module.wasmMemory.buffer, arr_ptr+24, 2);
+    console.log({
+      "id":attribute,
+      "offset":arr_ptr,
+      "length":arr[1],
+      "data":(flag_print_data)?data:"ommitted",
+      "ndim":arr[3],
+      "dims": dimensions,
+      "strides": strides,
+      "gc_info":gc_info
+    });
+  }
+}
+/**
+ * Prints memory information about the program.
+ * @param {number} alloc_number Total number of elements allocated
+ * @param {number} dealloc_number Total number of elements deallocated
+ * @param {number} alloc_memory Total memory requested to $malloc
+ * @param {number} dealloc_memory Total memory freed by $free
+ */
+function gcPrintMemoryUsage(alloc_number=0, dealloc_number=0, 
+    total_memory_budget=0, avg_object_size = 0){
+    console.warn(JSON.stringify({
+      "total_objects_allocated":alloc_number,
+      "total_objects_deallocated":dealloc_number,
+      "total_objects_not_freed":alloc_number-dealloc_number,
+      "total_memory_budget":`${total_memory_budget}(+-${alloc_number}) bytes`,
+      "avg_size_per_object": `${avg_object_size} bytes`
+    }).replace("{","[").replace("}","]"));
+}
 
 /**
  * DEFINITION OF MODULE IMPORTS
@@ -401,12 +451,15 @@ Module.js = {
     "printTime":printTime,
     "printError":printError,
     "printString":printString,
+    "printMachArrayHeader":printMachArrayHeader,
     "printDouble":printDouble,
     "printDoubleNumber":printDouble,
     "assert_header":1,
     "print_array_f64":printArrayDouble,
     "time": ()=> performance.now()
 };
+
+
 // Debugging calls.
 Module.debug = {
     printMarker:()=>console.log("MARKER")
@@ -446,7 +499,8 @@ Module.env = {
         "getTotalMemory": getTotalMemory,
         "abortOnCannotGrowMemory": abortOnCannotGrowMemory,
         "abortStackOverflow": abortStackOverflow,
-        "___setErrNo": ___setErrNo
+        "___setErrNo": ___setErrNo,
+        "gcPrintMemoryUsage":gcPrintMemoryUsage
 };
 
 module.exports = Module;

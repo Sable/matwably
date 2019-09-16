@@ -69,5 +69,5 @@ task copyMatmachjsLib(type: Copy) {
     }
 
 }
-task make_jar dependsOn(build, copyToLib, copyMatmachjsLib)
+task make_jar dependsOn(copyMatmachjsLib,copyToLib,build)
 

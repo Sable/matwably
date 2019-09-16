@@ -46,7 +46,7 @@ public class FunctionStmtHookMap {
     }
 
 
-    private static class Initializer extends TIRAbstractNodeCaseHandler{
+    private static class Initializer extends TIRAbstractNodeCaseHandler {
 
         private Map<ASTNode, StmtHook> hookMap = new HashMap<>();
 

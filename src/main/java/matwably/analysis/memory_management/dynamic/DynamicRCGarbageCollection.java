@@ -1,10 +1,12 @@
 package matwably.analysis.memory_management.dynamic;
 
 import ast.*;
+import matwably.analysis.intermediate_variable.ReachingDefinitions;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
+import natlab.toolkits.analysis.core.Def;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,6 +17,7 @@ import java.util.stream.Collectors;
 public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     private final ValueAnalysisUtil valueUtil;
     private final InterproceduralFunctionQuery functionQuery;
+    private final ReachingDefinitions reachingDefs;
 
     /**
      * Set keeps track of currently defined sites in the program
@@ -39,12 +42,16 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      * @param valueAnalysisUtil parameters helps us find out whether the variable is an array or a scalar
      * @param functionQuery Function query to determine dynamic calls
      */
-    public DynamicRCGarbageCollection(ASTNode<? extends ASTNode> node, ValueAnalysisUtil valueAnalysisUtil, InterproceduralFunctionQuery functionQuery) {
+    public DynamicRCGarbageCollection(ASTNode<? extends ASTNode> node,
+                                      ValueAnalysisUtil valueAnalysisUtil,
+                                      InterproceduralFunctionQuery functionQuery,
+                                      ReachingDefinitions reachingDefinitions) {
         this.functionQuery = functionQuery;
         if(node instanceof Function){
             this.function = (Function) node;
         }
         this.node = node;
+        this.reachingDefs = reachingDefinitions;
         this.valueUtil = valueAnalysisUtil;
     }
     /**
@@ -54,9 +61,11 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      * @param functionQuery Function query to determine dynamic calls
      */
     public DynamicRCGarbageCollection(TIRFunction function, ValueAnalysisUtil valueAnalysisUtil,
-                                      InterproceduralFunctionQuery functionQuery) {
+                                      InterproceduralFunctionQuery functionQuery,
+                                      ReachingDefinitions reachingDefs) {
         this.function = function;
         this.valueUtil = valueAnalysisUtil;
+        this.reachingDefs = reachingDefs;
         this.node = function;
         this.functionQuery = functionQuery;
     }
@@ -80,14 +89,16 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     @Override
     public void caseFunction(Function tirFunction) {
         TIRFunction func = (TIRFunction) tirFunction;
-        DynamicRCSet set = initializeSites();
-        // Mapp function to input parameters
+        DynamicRCSet set = new DynamicRCSet();
+        // Map function to input parameters
         stmt_mapping.put(func, set);
         super.caseFunction(func);
-        if( tirFunction.getStmtList().getChild(tirFunction.getStmtList()
-                .getNumChild()-1).getClass()
+        ASTNode lastNode = tirFunction.getStmtList()
+                .getChild(tirFunction.getStmtList()
+                .getNumChild()-1);
+        if( lastNode.getClass()
                 != TIRReturnStmt.class) {
-            DynamicRCSet ret = processReturn();
+            DynamicRCSet ret = processReturn(lastNode);
             TIRStatementList stmtList = func.getStmtList();
             Stmt lastStmt = stmtList.getChild(stmtList.getNumChild() - 1);
             stmt_mapping.get(lastStmt)
@@ -95,24 +106,6 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
         }
     }
 
-    /**
-     * Adds all the initial set which is composed of the arguments. In terms of arguments,
-     * we never modify external sites.
-     * @return Set of GC calls that initializes the sites
-     */
-    private DynamicRCSet initializeSites(){
-        DynamicRCSet set = new DynamicRCSet();
-        definedSites.addAll(function.getInputParamList().getNameExpressions()
-                .stream().map(NameExpr::getVarName).filter((String param)->{
-                    if(!valueUtil.isScalar(param, function, true)){
-                        // To not touch external sites.
-                        addDefinedSite(param);
-                        return true;
-                    }
-                    return false;
-                }).collect(Collectors.toSet()));
-        return set;
-    }
 
     /**
      * Getter for map of nodes to GcCallSets
@@ -163,15 +156,12 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      */
     private void addDefGCCalls(DynamicRCSet res, String name, ASTNode node){
         // If is already defined, decrease the reference for the site already defined
-        if(isSiteDefined(name))
+        if(isSiteDefined(name, node))
             res.decreaseReference(name);
         // If is
         boolean isScalar = valueUtil.isScalar(name, node,false);
         if(!isScalar){
             res.increaseReference(name);
-            addDefinedSite(name);
-        }else{
-            removeDefinedSite(name);
         }
     }
 
@@ -217,21 +207,22 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     public void caseTIRForStmt(TIRForStmt tirForStmt) {
         DynamicRCSet res = new DynamicRCSet();
         // We know the loop variables is a scalar
-        if(isSiteDefined(tirForStmt.getLoopVarName().getID()))
+        if(isSiteDefined(tirForStmt.getLoopVarName().getID(), tirForStmt))
             res.decreaseReference(tirForStmt.getLoopVarName().getID());
         super.caseTIRForStmt(tirForStmt);
         stmt_mapping.put(tirForStmt,res);
     }
 
     /**
-     * Process return statement {@link DynamicRCGarbageCollection#processReturn()}
+     * Process return statement
+     * {@link DynamicRCGarbageCollection#processReturn(ASTNode)}
      * @param tirReturnStmt TIRReturnStmt node
      */
     @Override
     public void caseTIRReturnStmt(TIRReturnStmt tirReturnStmt) {
-        stmt_mapping.put(tirReturnStmt, processReturn());
+        stmt_mapping.put(tirReturnStmt, processReturn(tirReturnStmt));
     }
-    private DynamicRCSet processReturn(){
+    private DynamicRCSet processReturn(ASTNode node){
         DynamicRCSet res = new DynamicRCSet();
         // For all defined variables not part of return values,
         // free unless external
@@ -241,29 +232,46 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
         Set<String> outParams = function
                 .getOutputParamList()
                 .stream().map(Name::getID).collect(Collectors.toSet());
-        outParams = outParams.stream().filter(this::isSiteDefined)
+        outParams = outParams.stream().filter((s)->this.isSiteDefined(s, node))
                 .peek(res::addCheckExternalAndSetReturnFlagToSetRCToZero)
                 .collect(Collectors.toSet());
         // For the rest of sites, check that they are not external
         // free if they not call.
-        Set<String> restSites = new HashSet<>(definedSites);
+        Set<String> restSites = new HashSet<>(getDefinedSites(node));
         restSites.removeAll(outParams);
         restSites.forEach(res::addCheckExternalAndCheckReturnFlagToFree);
         return res;
     }
 
-    private boolean isSiteDefined(String varName) {
-        return definedSites.contains(varName);
+    private boolean isSiteDefined(String varName, ASTNode node) {
+        Set<Def> sites;
+        if(node instanceof TIRWhileStmt){
+            sites = reachingDefs.getOutFlowSets().get(node).get(varName);
+        }else{
+            sites =  reachingDefs.getInFlowSets().get(node).get(varName);
+        }
+
+        return (sites != null
+                && sites.stream()
+                .anyMatch((Def def)->{
+                    if(def instanceof Name){
+                        return !valueUtil.isArgumentScalar((Name) def);
+                    }else {
+                        return !valueUtil.isScalar( varName,(ASTNode) def,
+                                false);
+                    }
+                }));
     }
 
-    private void addDefinedSite(String site){
-        definedSites.add(site);
-    }
 
-    private void removeDefinedSite(String site){
-        definedSites.remove(site);
+    private Set<String> getDefinedSites(ASTNode node){
+        Set<String> definedSitesSet = this.reachingDefs.getOutFlowSets().
+                get(node).keySet();
+        return definedSitesSet.stream().filter((n)-> {
+           return  !valueUtil.isScalar(n, node,
+                false);
+        }).collect(Collectors.toSet());
     }
-
     @Override
     public void caseASTNode(ASTNode astNode) {
         for(int i = 0; i < astNode.getNumChild(); ++i) {

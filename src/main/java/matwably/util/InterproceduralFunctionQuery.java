@@ -37,4 +37,8 @@ public class InterproceduralFunctionQuery {
         }
         return false;
     }
+    public boolean isMainFunction(Function matlabFunc){
+        return programAnalysis.getMainNode().getFunction().getAst()
+                == matlabFunc;
+    }
 }

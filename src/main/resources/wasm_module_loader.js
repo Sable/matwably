@@ -22,7 +22,8 @@ async function loader() {
 }
 
 Module.matlabModule = loader;
-// (async ()=>{
-//     let mod = await loader();
-//     mod.exports.%s_S(1000);
-// })();
+(async ()=>{
+    let mod = await loader();
+    // console.log(mod.exports);
+    mod.exports.%s_S(100);
+})();

@@ -1,9 +1,7 @@
 package matwably.analysis.memory_management.dynamic;
 
 import ast.ASTNode;
-import matwably.ast.Call;
-import matwably.ast.GetLocal;
-import matwably.ast.Idx;
+import matwably.ast.*;
 import matwably.code_generation.stmt.StmtHook;
 
 import java.util.Collections;
@@ -13,7 +11,8 @@ import java.util.Map;
 public class DynamicGCCallInsertion {
 
     private final DynamicRCGarbageCollection analysis;
-    public static Map<ASTNode, StmtHook> generate(DynamicRCGarbageCollection analysis){
+
+    public static Map<ASTNode, StmtHook> generateInstructions(DynamicRCGarbageCollection analysis){
         return (new DynamicGCCallInsertion(analysis)).collectInstruction();
     }
 
@@ -45,6 +44,12 @@ public class DynamicGCCallInsertion {
                             new Call(new Idx("gcGetExternalFlag")));
 
                 });
+        gcSet.getCheckAndAddExternalFlagSet().stream().sorted()
+                .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                        new ConstLiteral(new I32(), 1),
+                        new GetLocal(new Idx(name+"_i32")),
+                        new Call(new Idx("gcSetExternalFlag"))));
+
         gcSet.getCheckAndAddExternalFlagSet().stream().
                 sorted(Collections.reverseOrder()).forEach((String name)->
                 gcInstructions.addInBetweenStmtInstructions(
@@ -55,11 +60,34 @@ public class DynamicGCCallInsertion {
         gcSet.getCheckExternalToSetReturnFlagAndSetRCToZero()
                 .forEach((String name)-> gcInstructions.addBeforeInstruction(
                         new GetLocal(new Idx(name+"_i32")),
-                        new Call(new Idx("gcCheckExternalToSetReturnFlagAndSetRCZero"))));
+                        new Call(new Idx(
+                                "gcCheckExternalToSetReturnFlagAndSetRCZero"))));
 
-        gcSet.getCheckExternalAndCheckReturnFlagToFree()
-                .forEach((String name)-> gcInstructions.addBeforeInstruction(new GetLocal(new Idx(name+"_i32")),
-                        new Call(new Idx("gcCheckExternalAndReturnFlagToFreeSite"))));
+
+        boolean produceLocalStackForReturn =
+                gcSet.getCheckExternalAndCheckReturnFlagToFree()
+                        .size()>0;
+        if(produceLocalStackForReturn) {
+            String local_stack_top = gcInstructions.addI32Local();
+            gcInstructions.addBeforeInstruction(
+                    new GetGlobal(new Idx("STACKTOP")),
+                    new TeeLocal(new Idx(local_stack_top)),
+                    new ConstLiteral(new I32(), 0),
+                    new Store(new I32(), new Opt<>(), new Opt<>()));
+
+
+            gcSet.getCheckExternalAndCheckReturnFlagToFree()
+                    .forEach((String name) -> gcInstructions.addBeforeInstruction(
+                            new GetLocal(new Idx(local_stack_top)),
+                            new GetLocal(new Idx(name + "_i32")),
+                            new Call(new Idx(
+                                    "gcCheckExternalAndReturnFlagToFreeSite"))));
+        }
+        gcSet.getCheckExternalToSetReturnFlagAndSetRCToZero()
+                .forEach((String name)-> gcInstructions.addBeforeInstruction(
+                        new GetLocal(new Idx(name+"_i32")),
+                        new Call(new Idx(
+                                "gcResetReturnFlag"))));
         return gcInstructions;
     }
 

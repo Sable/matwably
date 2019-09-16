@@ -1,5 +1,8 @@
-function  recursion(i)
-  if i == 10
-    recursion(ones(3,3))
+function recursion(i)
+
+  if i == 100
+    recursion(i+ones(2,2))
   end
+  s = 3
+
 end

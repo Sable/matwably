@@ -188,7 +188,7 @@ final public class MemorySite {
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if(!(obj instanceof MemorySite)) return false;
-        MemorySite that = (MemorySite)obj;
+        MemorySite that = (MemorySite) obj;
         return that.getReferenceCount() == this.reference_count && that.getAliasingNames().equals(this.aliasing_names)
                 && that.isDynamic() == this.isDynamic();
     }

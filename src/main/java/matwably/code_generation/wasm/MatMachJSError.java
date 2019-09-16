@@ -3,10 +3,10 @@ package matwably.code_generation.wasm;
 import matwably.ast.*;
 
 public enum MatMachJSError {
-    ARRAY_ACCESS_ZERO_OR_NEGATIVE_INDEX(3, "Subscript indices must either be " +
+    ARRAY_ACCESS_ZERO_OR_NEGATIVE_INDEX(4, "Subscript indices must either be " +
             "real positive integers or logicals"),
-    ARRAY_ACCESS_EXCEEDS_DIMENSION(4, "Index exceeds matrix dimensions");
-
+    ARRAY_ACCESS_EXCEEDS_DIMENSION(3, "Index exceeds matrix dimensions"),
+    SUBSCRIPTED_ASSIGNMENT_DIMENSION_MISMATCH(9,"Subscripted assignment dimension mismatch.");
     private final String description;
     private final int code;
 
@@ -16,6 +16,12 @@ public enum MatMachJSError {
     }
 
 
+    public static List<Instruction> generateThrowError(MatMachJSError errorCode){
+        If ifStmt = new If();
+        ifStmt.addInstructionsIf(new ConstLiteral(new I32(), errorCode.getCode()));
+        ifStmt.addInstructionsIf(new Call(new Idx("throwError")));
+        return new List<>(ifStmt);
+    }
     public static List<Instruction> generateThrowError(MatMachJSError errorCode,
                                                        List<Instruction> condition){
         If ifStmt = new If();
@@ -24,6 +30,7 @@ public enum MatMachJSError {
         condition.addAll(ifStmt);
         return condition;
     }
+
 
     public String getDescription() {
         return description;

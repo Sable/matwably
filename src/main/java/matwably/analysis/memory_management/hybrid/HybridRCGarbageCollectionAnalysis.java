@@ -29,7 +29,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
      * Base constructor for the analysis
      * @param astNode Function node
      * @param valueAnalysisUtil ValueAnalysisUtility
-     * @param functionQuery Interprocedural Query Analysis
+     * @param functionQuery Inter-procedural Query Analysis
      */
     public HybridRCGarbageCollectionAnalysis(TIRFunction astNode,
                                              ValueAnalysisUtil valueAnalysisUtil,
@@ -141,22 +141,33 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
                             .get(name).getAliasingNames());
             }
             if(currentOutSet.getDynamicMemorySites().containsKey(name)){
-                DynamicSite site = currentOutSet.getDynamicMemorySites().get(name);
+                DynamicSite site = currentOutSet.
+                        getDynamicMemorySites().get(name);
                 if(site.isInternal()){
-                    currentOutSet.addDynamicInternalSetReturnFlagAndRCToZero(name);
+                    currentOutSet.
+                            addDynamicInternalSetReturnFlagAndRCToZero(name);
                 }else if (site.isMaybeExternal()){
-                    currentOutSet.addDynamicCheckExternalSetReturnFlagAndRCToZero(name);
+                    currentOutSet.
+                            addDynamicCheckExternalSetReturnFlagAndRCToZero(name);
                 }
             }
         });
 
-        // Free rest of arguments.
+        // Free rest of arguments check aliases before freeing.
+
         // Process static freeing
-        Set<String> free_static_sites_set = new HashSet<>(currentOutSet.getStaticMemorySites().keySet());
+        Set<String> free_static_sites_set = new HashSet<>(currentOutSet.
+                getStaticMemorySites().keySet());
         free_static_sites_set.removeAll(output);
         free_static_sites_set.removeAll(processed);
-
-        currentOutSet.addInternalFreeMemorySite(free_static_sites_set);
+        HashSet<String> processed2 = new HashSet<>();
+        free_static_sites_set.forEach((String name)->{
+            if ( !processed2.contains(name) ) {
+                currentOutSet.addInternalFreeMemorySite(name);
+                processed2.addAll(currentOutSet.getStaticMemorySites().
+                        get(name).getAliasingNames());
+            }
+        });
         // Process dynamic freeing
         Set<String> dynamic_site_names = new HashSet<>(currentOutSet.
                 getDynamicMemorySites().keySet());
@@ -188,7 +199,8 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
                 currentOutSet.decreaseReference(tirNode.getTargetName().getID());
                 currentOutSet.addNewStaticSite(tirNode.getTargetName().getID(), tirNode);
             } else {
-                if(!tirNode.getSourceName().getID().equals(tirNode.getTargetName().getID())){
+                if(!tirNode.getSourceName().getID()
+                        .equals(tirNode.getTargetName().getID())){
                     currentOutSet.writeReference(tirNode.getSourceName().getID(),
                             tirNode.getTargetName().getID(), tirNode);
                 }
@@ -286,7 +298,8 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
 
         // Handle output targets we only need to handle output arguments.
         for(NameExpr name: tirNode.getTargets().getNameExpressions()){
-            if(!valueAnalysisUtil.isScalar(name.getName().getID(),tirNode,false)) {
+            if(!valueAnalysisUtil.isScalar(name.getName()
+                    .getID(),tirNode,false)) {
                 currentOutSet.decreaseReference(name.getVarName());
                 currentOutSet.addNewStaticSite(name.getName().getID(), tirNode);
             }else{
@@ -314,7 +327,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
 
     /**
      * Hack to amend McSAF, parent does not call caseStmt.
-     * @param tirBreakStmt
+     * @param tirBreakStmt TIRNode for the break stmt.
      */
     @Override
     public void caseTIRBreakStmt(TIRBreakStmt tirBreakStmt) {

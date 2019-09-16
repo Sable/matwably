@@ -1,12 +1,11 @@
 package matwably.util;
 
-import ast.ASTNode;
-import ast.Function;
-import ast.Name;
-import ast.NameExpr;
+import ast.*;
 import matjuice.transformer.MJCopyStmt;
 import matwably.analysis.intermediate_variable.UseDefDefUseChain;
+import natlab.tame.tir.TIRCommentStmt;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
+import natlab.tame.valueanalysis.ValueFlowMap;
 import natlab.tame.valueanalysis.ValueSet;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
@@ -15,6 +14,7 @@ import natlab.toolkits.analysis.core.Def;
 import natlab.utils.NodeFinder;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ValueAnalysisUtil {
     private final UseDefDefUseChain udChain;
@@ -26,10 +26,8 @@ public class ValueAnalysisUtil {
     }
 
     public boolean isScalar(String name, ASTNode node, boolean isRHS) {
-
         BasicMatrixValue val = getMatrixValue(name, node, isRHS);
-        boolean isScalar =  val != null && val.hasShape() && val.getShape().isScalar();
-        return isScalar;
+        return val != null && val.hasShape() && val.getShape().isScalar();
     }
 
     /**
@@ -122,8 +120,7 @@ public class ValueAnalysisUtil {
      * @return Returns double from a nameExpr if its a constant.
      */
     public boolean isScalar(NameExpr name, ASTNode node, boolean isRHS) {
-
-        BasicMatrixValue val = getMatrixValue(name.getName().getID(), node, isRHS);
+        BasicMatrixValue val = getMatrixValue(name.getVarName(), node, isRHS);
         return val != null && val.hasShape() && val.getShape().isScalar();
     }
     private BasicMatrixValue getArgumentMatrixValue(int argIndex){
@@ -149,6 +146,15 @@ public class ValueAnalysisUtil {
         BasicMatrixValue val = this.getArgumentMatrixValue(argIndex);
         return val != null && val.hasShape() && val.getShape().isScalar();
     }
+    public boolean isArgumentScalar(Name name){
+        for(int i = 0; i < this.analysisFunction.getTree()
+                .getInputParamList().getNumChild(); i++){
+            Name argName = this.analysisFunction.getTree().
+                    getInputParam(i);
+            if(argName == name) return this.isArgumentScalar(i);
+        }
+        return false;
+    }
     /**
      * Returns whether the nameExpr
      *
@@ -167,7 +173,7 @@ public class ValueAnalysisUtil {
      * If the value is a scalar, a constant, and a double, it returns the scalar.
      *
      * @param name  String name to analyze
-     * @param node  TIRNode node where there NameExpression happes
+     * @param node  TIRNode node where there NameExpression happens
      * @param isRHS whether we want to analyze the inFlow or OutFlow. i.e. parameters or. arguments to calls.
      * @return Returns double from a nameExpr if its a constant.
      */
@@ -207,7 +213,7 @@ public class ValueAnalysisUtil {
                 boolean allScalar = defs.stream().allMatch((Def def) ->
                         this.isScalar(stmt.getSourceName().getID(),
                                 (ASTNode) def, false));
-                if(allScalar&&defs.size() > 0){
+                if(allScalar && defs.size() > 0){
                     return getMatrixValue(stmt.getSourceName().getID(), (ASTNode) defs.toArray()[0], false);
                 }else{
                     return null;
@@ -272,5 +278,18 @@ public class ValueAnalysisUtil {
 
     public BasicMatrixValue getBasicMatrixValue(String name, ASTNode node, boolean isRHS) {
         return getMatrixValue(name, node, isRHS);
+    }
+
+    public void mapNewReturn() {
+        java.util.List<Stmt> list =
+                this.analysisFunction.getTree().getStmtList()
+                .stream().filter((s)->!(s instanceof TIRCommentStmt)).
+                collect(Collectors.toList());
+        Stmt ret = list.get(list.size()-1);
+        ValueFlowMap<AggrValue<BasicMatrixValue>> mapIn =
+                this.analysisFunction.getOutFlowSets().get(
+                list.get(list.size()-2));
+        this.analysisFunction.getInFlowSets().put(ret, mapIn);
+        this.analysisFunction.getOutFlowSets().put(ret, mapIn);
     }
 }

@@ -1,10 +1,11 @@
 function [a] = get_index(size)
+%   disp(size)
   b = randn(3,7,2)
-  c = b(42)
+  a = b(42)
+  disp(a)
   a = b(12)
-  a = b(1,7,size)
-  a = b([1],7,size)
-  a = 4
-  %a = a(1)
+  disp(a)
+  a = b(3,7,2)
+  disp(a)
 
 end

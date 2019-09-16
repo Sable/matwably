@@ -71,7 +71,8 @@ public class HybridReferenceCountMap {
         HashMap<String, MemorySite> newMapPointInfo = new HashMap<>();
         Set<String> namesFirst = first.getStaticMemorySites().keySet();
         Set<String> namesSecond = second.getStaticMemorySites().keySet();
-        // Get the insersection between the two PointsTo static sites.
+
+        // Get the intersection between the two PointsTo static sites.
         Set<String> intersection = new HashSet<>(namesFirst);
         intersection.retainAll(namesSecond);
 
@@ -99,21 +100,30 @@ public class HybridReferenceCountMap {
         // For the previously static sites that have become dynamic, add them to the new dynamic map.
         for(String newDynName: newDyn){
             DynamicSite newDimSite;
+            boolean siteInFirstSet = first.staticSitesContainKey(newDynName);
+            boolean siteInSecondSet = second.staticSitesContainKey(newDynName);
+
             // First argument
-            if(first.staticSitesContainKey(newDynName) && second.staticSitesContainKey(newDynName)){
-                    newDimSite = DynamicSite.newInternalSite(newDynName,
-                            first.getStaticSite(newDynName),
-                            second.getStaticSite(newDynName));
-            }else if(second.staticSitesContainKey(newDynName)){
+            if( siteInFirstSet && siteInSecondSet){
+                newDimSite = DynamicSite.newInternalSite(newDynName,
+                        first.getStaticSite(newDynName),
+                        second.getStaticSite(newDynName));
+//                newDynamicSites.put(newDynName, newDimSite);
+            }else if( siteInSecondSet ){
                 newDimSite = DynamicSite.newInternalSite(newDynName,
                         second.getStaticSite(newDynName));
+
                 // Checks if there is already a dynamic site for that variable.
                 // if there isn't the variable is not defined yet, merges the two DynSites
                 if(first.getDynamicMemorySites().containsKey(newDynName)){
                     newDimSite = newDimSite.merge(first.getDynamicMemorySites().
                             get(newDynName));
+//                    newDynamicSites.put(newDynName, newDimSite);
+                }else{
+                   // If the other set has a null site
+//                   newMapPointInfo.put(newDynName, second.getStaticSite(newDynName));
                 }
-            }else{
+            }else {
                 newDimSite = DynamicSite.newInternalSite(newDynName,
                         first.getStaticSite(newDynName));
                 // Checks if there is already a dynamic site for that variable.
@@ -121,11 +131,12 @@ public class HybridReferenceCountMap {
                 if(second.getDynamicMemorySites().containsKey(newDynName)){
                     newDimSite = newDimSite.merge(second.getDynamicMemorySites().
                             get(newDynName));
+//                    newDynamicSites.put(newDynName, newDimSite);
+                }else{
+//                    newMapPointInfo.put(newDynName,
+//                            first.getStaticSite(newDynName));
                 }
             }
-            // Add to current map.
-            // Node -> Set<String> variables to initialize as dynamic.
-
             newDynamicSites.put(newDynName, newDimSite);
         }
         // Now add all the dynamic ones from both ReferenceMaps,
@@ -367,6 +378,9 @@ public class HybridReferenceCountMap {
 
     public void addInternalFreeMemorySite(Set<String> free_static_sites_set) {
         this.dynamicInternalFreeMemorySite.addAll(free_static_sites_set);
+    }
+    public void addInternalFreeMemorySite(String free_static_sites_set) {
+        this.dynamicInternalFreeMemorySite.add(free_static_sites_set);
     }
 
     public Set<String> getDynamicInternalCheckReturnFlagToFreeSites() {

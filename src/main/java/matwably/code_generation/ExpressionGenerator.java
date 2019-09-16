@@ -7,8 +7,8 @@ import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.ast.*;
 import matwably.ast.List;
-import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.trial.MatWablyBuiltinGenerator;
+import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
 import matwably.util.LogicalVariableUtil;
 import matwably.util.Util;
 import matwably.util.ValueAnalysisUtil;
@@ -47,8 +47,18 @@ public class ExpressionGenerator {
         this.variable_expression_map = expressionBuilderAnalysis.getUsesToExpressionMap();
         if(Debug) log();
     }
+
+    public ExpressionGenerator(ValueAnalysisUtil valueAnalysisUtil,
+                               AmbiguousVariableUtil amb_var_util,
+                               LogicalVariableUtil logicalVariableUtil) {
+        this.valueAnalysisUtil  = valueAnalysisUtil;
+        this.ambVariableUtil = amb_var_util;
+        this.logicalVariableUtil = logicalVariableUtil;
+
+    }
+
     /**
-     * Flag to indicate whether to build expression tree, or simple generate the NameExpr as is. i.e.
+     * Flag to indicate whether to build expression tree, or simple generateInstructions the NameExpr as is. i.e.
      * <pre>
      *     get_local $name_expr_id
      * </pre>
@@ -114,7 +124,8 @@ public class ExpressionGenerator {
                res = genName(((TIRCopyStmt) mapped_stmt).getSourceName(), mapped_stmt);
             } else if(mapped_stmt instanceof TIRCallStmt) {
                 MatWablyBuiltinGenerator generator = builtinAnalysis.getGenerator(mapped_stmt);
-                MatWablyBuiltinGeneratorResult result = generator.getGeneratedExpressionResult();
+                MatWablyBuiltinGeneratorResult result = generator.
+                        getGeneratedExpression();
                 res.addAll(result.getInstructions());
             }
             cached_expression_rebuild.put(name, res);

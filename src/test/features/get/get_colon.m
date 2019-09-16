@@ -1,5 +1,6 @@
 function get_colon(s)
     a = rand(3,3)
-    a(1:2,2) = [1,2];
-
+    b = a(1:2,2)
+    disp(a)
+    disp(b)
 end

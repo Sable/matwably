@@ -47,7 +47,8 @@ aspect AST {
      public String F64.getTypeString(){
          return "f64";
      }
-      public abstract int ValueType.getTypeValue();
+     public abstract int ValueType.getTypeValue();
+     public abstract int ValueType.getByteLength();
 
      public  int I32.getTypeValue(){
         return 0;
@@ -56,11 +57,23 @@ aspect AST {
         return 1;
      }
      public  int F32.getTypeValue(){
-            return 2;
-        }
-        public int F64.getTypeValue(){
-            return 3;
-        }
+        return 2;
+    }
+    public int F64.getTypeValue(){
+        return 3;
+    }
+     public  int I32.getByteLength(){
+        return 4;
+     }
+     public  int I64.getByteLength(){
+        return 8;
+     }
+     public  int F32.getByteLength(){
+        return 4;
+    }
+    public int F64.getByteLength(){
+        return 8;
+    }
 
 
     public interface IReturnType {

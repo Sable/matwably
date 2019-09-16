@@ -103,7 +103,7 @@ public class Main {
             if(exitFlag == 1)
                 throw new Error("Error: compilation of wat file failed: \n"+
                         readStreamIntoString(process.getErrorStream()));
-            // Do not generate wat file based on command line opt.
+            // Do not generateInstructions wat file based on command line opt.
             if(!opts.generate_wat_file)
                     Runtime.getRuntime().exec("rm "+opts.basename_output_file+".wat");
 
@@ -120,8 +120,13 @@ public class Main {
                 outfileBuilder.append(readStreamIntoHexString(new FileInputStream(new File(wasmFile))));
                 outfileBuilder.append("\";\n");
             }
+            if(opts.inline_wasm){
+                loader = String.format(loader, opts.basename_output_file);
+            }else{
+                loader = String.format(loader,  wasmFile,
+                        opts.basename_output_file);
 
-//            loader = String.format(loader, opts.basename_output_file);
+            }
             // Append library
             outfileBuilder.append(js_support_lib);
             // Append loader

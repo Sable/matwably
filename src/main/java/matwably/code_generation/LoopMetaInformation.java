@@ -4,10 +4,8 @@ import ast.Stmt;
 import matwably.ast.Idx;
 import matwably.ast.Instruction;
 import matwably.ast.List;
-import matwably.util.Util;
+import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.TIRForStmt;
-import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
 /**
@@ -19,12 +17,40 @@ public class LoopMetaInformation {
     private Idx endLoop;
     private Stmt loop;
     private List<Instruction> conditionCode;
+    private List<Instruction> instructionsPostLoop = new List<>();
+    private List<Instruction> instructionsInitialization = new List<>();
 
     public LoopMetaInformation(Stmt loop, Idx startLoop, Idx endLoop, List<Instruction> conditionCode) {
         this.startLoop = startLoop;
         this.endLoop = endLoop;
         this.loop = loop;
         this.conditionCode = conditionCode;
+    }
+
+    /**
+     * Adds instructions, which will be added to the beginning of the loop.
+     * @param initInst Instructions to add to initialization
+     */
+    public void addInstructionsInitialization(List<Instruction> initInst){
+        this.instructionsInitialization =
+                this.instructionsInitialization.addAll(initInst);
+    }
+
+    /**
+     * Adds instructions, which will be added to the end of the loop
+     * @param postLoop List of instructions to add to end
+     */
+    public void addInstructionsPostLoop(List<Instruction> postLoop){
+        this.instructionsPostLoop =
+                this.instructionsPostLoop.addAll(postLoop);
+    }
+
+    public List<Instruction> getInstructionsPostLoop() {
+        return instructionsPostLoop;
+    }
+
+    public List<Instruction> getInstructionsInitialization() {
+        return instructionsInitialization;
     }
 
     public List<Instruction> getConditionCode() {
@@ -52,19 +78,25 @@ public class LoopMetaInformation {
 
 
     public static LoopDirection getLoopDirection(TIRForStmt tirStmt,
-                                                 IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>>
-                                                         analysisFunction) {
-        BasicMatrixValue valRangeLeft = Util.getBasicMatrixValue(analysisFunction, tirStmt, tirStmt.getLowerName().getID());
-        BasicMatrixValue valRangeRight = Util.getBasicMatrixValue(analysisFunction, tirStmt, tirStmt.getUpperName().getID());
-        if(valRangeRight.hasRangeValue()&&valRangeLeft.hasRangeValue()){
+                                                 ValueAnalysisUtil valueAnalysisUtil) {
+        BasicMatrixValue valRangeLeft =
+                valueAnalysisUtil.getBasicMatrixValue(
+                        tirStmt.getLowerName().getID(), tirStmt, true);
+        BasicMatrixValue valRangeRight =
+                valueAnalysisUtil.getBasicMatrixValue(
+                        tirStmt.getUpperName().getID(), tirStmt, true);
+
+
+        if(valRangeRight.hasRangeValue() && valRangeLeft.hasRangeValue()){
             if (valRangeRight.getRangeValue()
                     .isBothBoundsKnown()) {
                 int valRight = valRangeRight.getRangeValue().getLowerBound().getIntValue();
                 int valLeft =  valRangeLeft.getRangeValue().getUpperBound().getIntValue();
                 if(valLeft == valRight) return LoopDirection.NonMoving;
                 if(tirStmt.hasIncr()){
-                    BasicMatrixValue val = Util.getBasicMatrixValue(analysisFunction, tirStmt, tirStmt.getIncName().getID());
-                    if(val.hasRangeValue()){
+                    BasicMatrixValue val = valueAnalysisUtil.getBasicMatrixValue(
+                            tirStmt.getIncName().getID(), tirStmt, true);
+                    if(val !=null && val.hasRangeValue()){
                         if(val.getRangeValue().isRangeValueNegative()){
                             //e.g. -5:-1:5
                             if(valRight > valLeft) return LoopDirection.Empty;
@@ -75,7 +107,6 @@ public class LoopMetaInformation {
                             return LoopDirection.Ascending;
                         }
                     }else return LoopDirection.Unknown;
-
                 }
                 if(valRight > valLeft){
                     return LoopDirection.Ascending;

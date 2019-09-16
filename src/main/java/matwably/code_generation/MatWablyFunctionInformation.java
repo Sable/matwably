@@ -40,6 +40,8 @@ public class MatWablyFunctionInformation {
     private MatWablyBuiltinAnalysis builtinAnalysis;
     private HybridRCGarbageCollectionAnalysis hybridRCGarbageCollectionAnalysis;
     private FunctionStmtHookMap functionHookMap;
+    private String i32_scrap_local;
+    private String f64_scrap_local;
 
 
     public MatWablyFunctionInformation(Function tree,
@@ -72,7 +74,7 @@ public class MatWablyFunctionInformation {
  *                              information
      * @param reachingDefs  Reaching Definitions analysis for the current program
      * @param valueAnalysisUtil Is a ValueAnalysisUtility that allows easy query of variables from IntraproceduralValueAnalysis.
-     * @param expressionGenerator This is the expression generator for MatWably, is used throughout to generate expressions
+     * @param expressionGenerator This is the expression generator for MatWably, is used throughout to generateInstructions expressions
      * @param opts Command line options for the program
      */
     public MatWablyFunctionInformation(
@@ -224,5 +226,16 @@ public class MatWablyFunctionInformation {
     }
     public FunctionStmtHookMap getFunctionHookMap() {
         return this.functionHookMap;
+    }
+
+    public void setScrapLocals(String i32_scrap_local, String f64_scrap_local) {
+        this.i32_scrap_local = i32_scrap_local;
+        this.f64_scrap_local = f64_scrap_local;
+    }
+    public String getF64ScrapLocal() {
+        return f64_scrap_local;
+    }
+    public String getI32ScrapLocal() {
+        return i32_scrap_local;
     }
 }
