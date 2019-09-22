@@ -175,7 +175,7 @@ public class ProgramGenerator {
 
     /**
      * Getter for the main generated MatWably function in the Analysis
-     * @return
+     * @return Returns main generated node for the Program
      */
     public MatWablyFunction getMainNode() {
         if( mainNode == null ) throw new Error("Generation of Main function has" +

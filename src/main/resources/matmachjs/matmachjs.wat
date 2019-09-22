@@ -6678,6 +6678,7 @@ return)
 (export "free_macharray" (func $free_macharray))
 (func $free_macharray (param $arr_ptr i32)
     (local $ptr i32)
+    ;; %gc-time-start
     get_local $arr_ptr
     call $is_null
     i32.eqz
@@ -6726,6 +6727,7 @@ return)
         get_local $arr_ptr
         call $free    
     end
+    ;; %gc-time-end
 )
 (export "colon" (func $colon))
 (func $colon (param $parameters i32)(result i32)

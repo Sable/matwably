@@ -84,8 +84,9 @@ public class HybridGCCallInsertionMap {
         private void analyzeInputParameters() {
             this.function.getInputParamList().
                     forEach((Name name)->{
-                        if(
-                        this.isArgumentSiteDynamic(name)){
+                        if( this.analysis.getCurrentInSet().
+                                dynamicSitesContainKey(name.getID())
+                        && this.argumentSiteHasAmbiguousUse(name)){
                             TypeUse typeUse = Util.genI32TypeUse();
                             input_set_external.addAll(setExternalFlag(name.getID(), typeUse.
                                     getIdentifier().getName()));
@@ -110,7 +111,7 @@ public class HybridGCCallInsertionMap {
          * @param name parameter name to check
          * @return
          */
-        private boolean isArgumentSiteDynamic(Name name){
+        private boolean argumentSiteHasAmbiguousUse(Name name){
             // If any of the uses have two definitions, and the definitions are
             // not external.
             return this.uddu.getUses(name).stream().
