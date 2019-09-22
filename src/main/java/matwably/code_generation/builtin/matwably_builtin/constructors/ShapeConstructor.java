@@ -11,9 +11,13 @@ import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
 /**
- * TODO Javadoc
+ * Class serves as a base class for shape constructors
+ * Example: ones(), zeros(), randn(), randi(), rand(), eye()
  */
 public abstract class ShapeConstructor extends Constructor {
+    /**
+     * Name for the constructor in 2D
+     */
     private final String constructor2DName;
 
     /**
@@ -58,7 +62,18 @@ public abstract class ShapeConstructor extends Constructor {
     }
 
     /**
-     * TODO Add generation explanation
+     * Generation strategy.
+     *  Input: ones(2,2), ones(2)
+     *  Description: MatMachJS support library offers 2D specializations
+     *       for the constructors, these functions take two arguments indicating the
+     *       size of the dimensions, i.e. ones(2,2), results in a 2x2 matrix of ones.
+     *
+     *  Input: ones(), ones(1,1)
+     *  Description: We in-line directly the ConstLiteral 1, no calls are made.
+     *
+     *  Input: ones(M), ones(2,2,2), ones(M1,M2)
+     *  Description: We call the more general constructor in MatMachJS,
+     *  these constructor creates a temporary vector to load the inputs.
      */
     public MatWablyBuiltinGeneratorResult generateExpression() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();

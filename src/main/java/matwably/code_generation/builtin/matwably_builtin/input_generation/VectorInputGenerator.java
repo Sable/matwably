@@ -34,7 +34,6 @@ public class VectorInputGenerator extends AbstractInputGenerator {
     @Override
     public MatWablyBuiltinGeneratorResult generate() {
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-        // TODO Refactor once subsasgn and subsref are implemented
         String vectorInputI32 = result.generateI32Local();
         result.addAllocationInstructions(MachArrayIndexing.createI32Vector(arguments.size(),
                 vectorInputI32));

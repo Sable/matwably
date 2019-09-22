@@ -272,7 +272,6 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
         result.addInstructions(MachArrayIndexing.freeMachArray(res_name));
         return result;
     }
-    public boolean hasResultPointerAsLastArgument(){ return false; }
     /**
      * Returns whether all the arguments are statically known scalar
      * @return Returns whether all the arguments are scalar

@@ -26,7 +26,6 @@ public class Not extends LogicalUnaryOp {
      * To be implemented by child classes, this function generates the scalar instruction or scalar call
      * e.g. if the operation is binary addition,
      * this function adds the instruction `f64.add` to the return object
-     * TODO Check if we can avoid this f64 comparison with an i32 eqz
      */
     @Override
     public MatWablyBuiltinGeneratorResult generateScalarCall() {

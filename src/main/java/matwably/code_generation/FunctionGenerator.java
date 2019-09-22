@@ -44,7 +44,6 @@ import java.util.Stack;
 /**
  * Class generates TIRFunctions given the ValueAnalysis, the index of the function inside the analysis to be generated
  * and the command line options for the generation. i.e. what optimizations to apply
- * TODO: Globals are not supported
  */
 public class FunctionGenerator {
 
@@ -275,7 +274,6 @@ public class FunctionGenerator {
 
     /**
      * Generates the return instructions for the Matlab function
-     * TODO Add freeing instruction for boxing to the
      * @return Returns Corresponding generated WebAssembly node.
      * @apiNote Does not support Globals.
      */
@@ -631,8 +629,7 @@ public class FunctionGenerator {
     }
 
     /**
-     * // TODO This function is right when for i=a:b:c; end; and i=[], for now, since handling this correctly significant
-     * // TODO worsens performance, we do not use it.
+     * // TODO This function is right when for i=a:b:c; end; and i=[], for now, since handling this correctly significant worsens performance, we do not use it.
      * @param tirStmt For loop to generateInstructions
      * @return List of instructions generated for a non-moving for-loop.
      */
@@ -1082,20 +1079,6 @@ public class FunctionGenerator {
         }
         return instructions;
     }
-    // TODO: Tree_expr opt
-    private boolean isSlicingOperation(ASTNode tirStmt, TIRCommaSeparatedList indices) {
-        for (ast.Expr index : indices) {
-            if (index instanceof ast.ColonExpr)
-                return true;
-            if (index instanceof ast.NameExpr) {
-                ast.Name indexName = ((ast.NameExpr) index).getName();
-                BasicMatrixValue bmv = Util.getBasicMatrixValue(analysisFunction, tirStmt, indexName.getID());
-                if (bmv!=null && !bmv.getShape().isScalar())
-                    return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * Generator for TIRLiteralStmt
@@ -1148,15 +1131,14 @@ public class FunctionGenerator {
         // For return variable it should, if not defined in function, return a null array.
         // When we generateInstructions call then, make this determination again for the output arguments to throw run-time error.
 
+        // TODO(dherre3) Fix this, this is an error only if we query the function for the non-defined return parameter. If we return i.e. [a,b,c] = ret1() and ret1() does not defined b, its an error, instead if [a] = ret1(), this is not an error.
         for(Name name: func.getOutputParamList()){
             if(!valueAnalysisUtil.hasBasicMatrixValue(name.getID(), func, false)){
-                // TODO(dherre3) Fix this, this is an error only if we query the function for the non-defined return parameter.
-                // TODO(dherre3) If we return i.e. [a,b,c] = ret1() and ret1() does not defined b, its an error, instead if [a] = ret1(), this is not an error.
                 throw new Error("Return variable: \""+ name.getID()+"\" is never defined in function context: "
                 + func.getName().getID());
             }
-            // TODO:(dherre3) Refactor this!
-            TypeUse typeUse = new TypeUse(valueAnalysisUtil.genTypedName(name.getID(), func, false),
+            TypeUse typeUse = new TypeUse(valueAnalysisUtil.
+                    genTypedName(name.getID(), func, false),
                     (valueAnalysisUtil.isScalar(name.getID(),func, false))?new F64():new F32());
             ValueType valueType = typeUse.getType();
             returnVals.add(valueType);

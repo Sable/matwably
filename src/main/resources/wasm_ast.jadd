@@ -154,7 +154,6 @@ aspect AST {
    // }
 
    // Add abstract methods to DescType
-  // TODO: All comparison operators for DescTypes
 
     public abstract <T> T DescType.match(java.util.function.Function<GlobalType, T> glob, java.util.function.Function<MemoryType, T> mem, java.util.function.Function<FuncType,T> func, java.util.function.Function<TableType, T> tab);
     public <T> T GlobalType.match(java.util.function.Function<GlobalType, T> glob, java.util.function.Function<MemoryType, T> mem, java.util.function.Function<FuncType,T> func, java.util.function.Function<TableType, T> tab) {

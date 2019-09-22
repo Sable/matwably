@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+// TODO: Tree_expr opt for Get/Set scalars
 /**
  * Class performs an analysis over the AST collecting a map of Variable names to expressions, and statements to be
  * eliminated. The actual transformation is performed by the code_generation package:

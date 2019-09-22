@@ -7,7 +7,6 @@ import natlab.toolkits.filehandling.GenericFile;
 
 import java.io.File;
 import java.util.ArrayList;
-//TODO javadoc for this class
 
 /**
  * Command line options class for the MatWably compiler, based on
@@ -15,16 +14,20 @@ import java.util.ArrayList;
  */
 @Parameters(separators = "=")
 public final class MatWablyCommandLineOptions {
+    // Contains the list of input files to process
     @Parameter(description = "The list of files to process")
     public ArrayList<String> input_files = new ArrayList<String>();
+
+    // Help parameter
     @Parameter(names = {"-h","--help"}, hidden = true)
     public boolean help = false;
 
-    @Parameter(names = {"--disallow-logical"}, description = "Flag to disallow logical variable in the program")
+    @Parameter(names = {"--disallow-logical"},
+            description = "Flag to disallow logical variable in the program")
     public boolean disallow_logicals = false;
 
     @Parameter(names = {"--opt-peephole"},
-            description = "Option to turn on peephole optimizer, default is on")
+            description = "Option to turn on the peephole optimizer, default is on")
     public boolean peephole = false;
 
     // TODO: Add this capability to the main file.
@@ -71,13 +74,15 @@ public final class MatWablyCommandLineOptions {
 
     @Parameter(names = {"-o","--output-file"},description = "Outfile to place code")
     public String output_file;
-    public String basename_output_file;
+
+
     // TODO Check args for entry function are empty
     @Parameter(names = {"-a","--args"},
             description = "Arguments for entry function, e.g."+"'[\"DOUBLE&1*1&REAL\",\"DOUBLE&1*1&REAL\"]'\n"+
             "\t\t\t\t\t   Representing two parameters, both, double, 1-by-1, real Matlab matrices", required = true)
     public String args = "";
 
+    // TODO: Measure compilation time and time for each optimization
     @Parameter(names={ "--time" }, arity=1, description="time compilation time")
     public boolean timeCompilation = false;
 
@@ -86,6 +91,10 @@ public final class MatWablyCommandLineOptions {
 
     @Parameter(names={ "--print-memory-info" ,"-m"}, description="Print memory information")
     public boolean print_memory_information = false;
+    /**
+     * Basename for input file
+     */
+    public String basename_output_file;
     /**
      * Parses the entry function parameters and prints usage if it gails.
      * @param commander {@link JCommander} object

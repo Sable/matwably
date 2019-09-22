@@ -316,6 +316,11 @@ public class HybridGCCallInsertionMap {
                     });
         }
 
+        /**
+         * Method adds the instructions to reset the external flag for the
+         * input sites.
+         * @param tirReturnStmt TameIR return stmt
+         */
         @Override
         public void caseTIRReturnStmt(TIRReturnStmt tirReturnStmt) {
             // Process all sites

@@ -27,7 +27,6 @@ import static matwably.util.FileUtility.readStreamIntoString;
  */
 public class ProgramGenerator {
 
-
     /**
      * Reference to the ValueAnalysis result for the Matlab program
      */
@@ -96,7 +95,6 @@ public class ProgramGenerator {
 
         // Add MatMachJS library
         try{
-            //TODO Finish with the beaver front-end to construct the built-ins in WasmIR.
             String builtInDeclations = loadMatMachJSLibrary();
             wasmModule.addImportedWat(new ImportedWat(builtInDeclations));
         }catch(IOException ex){
@@ -110,7 +108,15 @@ public class ProgramGenerator {
         return wasmModule;
     }
 
-    private MatWablyFunction generateFunction( InterproceduralAnalysisNode<
+
+    /**
+     * Method generates the actual MatWablyFunction, API may be used to generate
+     * a particular node in the analysis
+     * @param node Analysis node containing the results for the given
+     *            function in ValueAnalysis {@link InterproceduralAnalysisNode}
+     * @return Returns a MatWably function containing function results.
+     */
+    public MatWablyFunction generateFunction( InterproceduralAnalysisNode<
                                           IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>>,
                                           Args<AggrValue<BasicMatrixValue>>,
                                           Res<AggrValue<BasicMatrixValue>>> node ) {
@@ -140,9 +146,9 @@ public class ProgramGenerator {
     /**
      * Loads the MatMachJS library, inserts calls to measure RC statistics inside
      * the library
-     * TODO: Hack loads it as a string, in a more through version, this will load as wasmIR
      * @return returns string with library call
      * @throws IOException if library file is not present
+     * TODO Finish with the beaver front-end to construct the built-ins in WasmIR. Hack loads it as a string, in a more through version, this will load as wasmIR
      */
     private String loadMatMachJSLibrary() throws IOException {
         String builtInDeclations =

@@ -36,9 +36,6 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
         return true;
     }
 
-    public boolean hasResultPointerAsLastArgument(){
-        return true;
-    }
     /**
      * To be implemented by child classes, this function generates the scalar instruction or scalar call
      * e.g. if the operation is binary addition,

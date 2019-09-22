@@ -158,7 +158,6 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
         element_segment.getOffset().accept( this );
         new_line = true;
         sb.append(") ");
-        // TODO: Take care of initial ConstantExpression
     }
     public void visit(Memory mem) {
         indent();
