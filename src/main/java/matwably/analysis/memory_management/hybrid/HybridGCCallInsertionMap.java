@@ -1,12 +1,17 @@
 package matwably.analysis.memory_management.hybrid;
 
 import ast.ASTNode;
+import ast.Name;
 import ast.Stmt;
+import matwably.analysis.intermediate_variable.UseDefDefUseChain;
+import matwably.ast.List;
 import matwably.ast.*;
 import matwably.code_generation.stmt.StmtHook;
+import matwably.util.Util;
 import natlab.tame.tir.TIRForStmt;
 import natlab.tame.tir.TIRFunction;
 import natlab.tame.tir.TIRNode;
+import natlab.tame.tir.TIRReturnStmt;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 
 import java.util.*;
@@ -16,28 +21,105 @@ import java.util.*;
  */
 public class HybridGCCallInsertionMap {
 
-    public static Map<ASTNode, StmtHook> generateInstructions(TIRFunction function, HybridRCGarbageCollectionAnalysis gcA) {
-        return (new HybridGCCallInsertionBuilder(function, gcA)).build();
+    public static Map<ASTNode, StmtHook> generateInstructions(TIRFunction function,
+                                                              HybridRCGarbageCollectionAnalysis gcA,
+                                                              UseDefDefUseChain udChain ) {
+        return (new HybridGCCallInsertionBuilder(function, udChain, gcA))
+                .build();
     }
 
     private static class HybridGCCallInsertionBuilder extends TIRAbstractNodeCaseHandler {
         private final TIRFunction function;
+        private final UseDefDefUseChain uddu;
         private HybridRCGarbageCollectionAnalysis analysis;
         private Map<ASTNode, StmtHook> map_instructions = new HashMap<>();
         private Set<Integer> initial_sites_processed = new HashSet<>();
         private Map<ASTNode<? extends ASTNode>, String> initial_dynamic_sites = new HashMap<>();
-
-        HybridGCCallInsertionBuilder(TIRFunction function, HybridRCGarbageCollectionAnalysis gcA){
+        private List<Instruction> input_set_external = new List<>();
+        private List<Instruction> input_reset_external = new List<>();
+        private List<TypeUse> locals_input_parameters = new List<>();
+        HybridGCCallInsertionBuilder(TIRFunction function,
+                                     UseDefDefUseChain udChain,
+                                     HybridRCGarbageCollectionAnalysis gcA){
             this.analysis = gcA;
+            this.uddu = udChain;
             this.function = function;
         }
-        Map<ASTNode, StmtHook> build(){
+        private void analyze(){
+            analyzeInputParameters();
             function.analyze(this);
-            buildInitialSites();
+
+        }
+        Map<ASTNode, StmtHook> build(){
+            analyze();
+            insertInputParameterExternalCalls();
+            insertDynamicSiteInitialization();
             return map_instructions;
         }
 
-        private void buildInitialSites(){
+        /**
+         * Inserts the input parameters calls to set them as external
+         */
+        private void insertInputParameterExternalCalls() {
+            if(this.function.hasStmt()){
+                StmtHook stmtHookFunctionTop =
+                        map_instructions.get(this.function.getStmt(0));
+                stmtHookFunctionTop.addLocals(this.locals_input_parameters);
+                stmtHookFunctionTop.insertBeforeInstructions(input_set_external);
+            }
+        }
+        private List<Instruction> setExternalFlag( String nameArgument, String nameLocal ) {
+            List<Instruction> res = new List<>();
+            res.addAll( new GetLocal(new Idx(nameArgument+"_i32")),
+                    new SetLocal(new Idx(nameLocal)),
+                    new GetLocal(new Idx(nameLocal)),
+                    new Call(new Idx("gcGetExternalFlag")),
+                    new ConstLiteral(new I32(), 1),
+                    new GetLocal(new Idx(nameLocal)),
+                    new Call(new Idx("gcSetExternalFlag")));
+
+            return res;
+        }
+        // Analyze input parameters and use locals
+        private void analyzeInputParameters() {
+            this.function.getInputParamList().
+                    forEach((Name name)->{
+                        if(
+                        this.isArgumentSiteDynamic(name)){
+                            TypeUse typeUse = Util.genI32TypeUse();
+                            input_set_external.addAll(setExternalFlag(name.getID(), typeUse.
+                                    getIdentifier().getName()));
+                            input_reset_external.addAll(resetExternalFlat(typeUse.
+                                    getIdentifier().getName()));
+                            locals_input_parameters.add(typeUse);
+                        }
+                    });
+
+
+        }
+
+        private List<Instruction> resetExternalFlat(String name) {
+            List<Instruction> res = new List<>();
+            res.addAll( new GetLocal(new Idx(name)),
+                        new Call(new Idx("gcSetExternalFlag")));
+            return res;
+        }
+
+        /**
+         * This site
+         * @param name parameter name to check
+         * @return
+         */
+        private boolean isArgumentSiteDynamic(Name name){
+            // If any of the uses have two definitions, and the definitions are
+            // not external.
+            return this.uddu.getUses(name).stream().
+                    anyMatch(( use )-> this.uddu.getDefs(use).size() > 1);
+        }
+
+
+
+        private void insertDynamicSiteInitialization(){
             initial_dynamic_sites.forEach((key, value) -> map_instructions.get(key)
                     .addAfterInstructions(
                             new GetLocal(new Idx(value+"_i32")),
@@ -222,13 +304,24 @@ public class HybridGCCallInsertionMap {
                     .forEach((MemorySite site)->{
                         int processed =
                                 site.getDefinition().hashCode()+
-                                        site.getInitialVariableName().hashCode()+site.getLatestAliasAdded().hashCode();
+                                        site.getInitialVariableName().hashCode()
+                                        +site.getLatestAliasAdded().hashCode();
                         if(!initial_sites_processed.contains(processed)){
-                            initial_dynamic_sites.put(site.getLatestAliasAdded(), (new ArrayList<>(site.getAliasingNames()).get(0)));
+                            initial_dynamic_sites.put(site.getLatestAliasAdded(),
+                                    (new ArrayList<>(site.getAliasingNames()).get(0)));
                             initial_sites_processed.add(processed);
                         }
 
                     });
+        }
+
+        @Override
+        public void caseTIRReturnStmt(TIRReturnStmt tirReturnStmt) {
+            // Process all sites
+            super.caseTIRReturnStmt(tirReturnStmt);
+            // Process all the set external flags
+           this.map_instructions.get(tirReturnStmt).
+                   addBeforeInstruction(this.input_reset_external);
         }
 
         @Override

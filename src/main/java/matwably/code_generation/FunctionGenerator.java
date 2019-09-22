@@ -25,12 +25,11 @@ import matwably.ast.*;
 import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
 import matwably.code_generation.stmt.StmtHook;
-import matwably.code_generation.wasm.macharray.MachArrayIndexing;
 import matwably.code_generation.wasm.SwitchStatement;
+import matwably.code_generation.wasm.macharray.MachArrayIndexing;
 import matwably.util.*;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
@@ -78,11 +77,6 @@ public class FunctionGenerator {
     private Function function;
 
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
-    /**
-     * @deprecated
-     * TODO Get rid of this once we finalize get and set in the compiler.
-     */
-    private ValueAnalysis<AggrValue<BasicMatrixValue>> programAnalysis;
     private InterproceduralFunctionQuery interproceduralFunctionQuery;
     private ExpressionGenerator expressionGenerator;
     private MatWablyFunctionInformation functionAnalyses;
@@ -92,17 +86,13 @@ public class FunctionGenerator {
      * procedural analysis, the index of the function i from the
      * analysis and the compilation options.
      * @param analysisFunction IntraproceduralValueAnalysis for the function being generated
-     * @param analysis ValueAnalysis with shape information
      * @param functionQuery Function query object, allows to query elim_var_analysis procedural information.
      * @param opts Command-line options to apply optimizations
      */
-    public FunctionGenerator(
-                             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
-                             ValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
+    public FunctionGenerator( IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
                              InterproceduralFunctionQuery functionQuery,
                              MatWablyCommandLineOptions opts){
         this.opts = opts;
-        this.programAnalysis = analysis;
         this.analysisFunction = analysisFunction;
         this.matlabFunction = analysisFunction.getTree();
         this.interproceduralFunctionQuery = functionQuery;
@@ -212,14 +202,15 @@ public class FunctionGenerator {
                         valueAnalysisUtil,interproceduralFunctionQuery, opts);
                 gcA.analyze();
                 hookMap.addHookMap(HybridGCCallInsertionMap.
-                        generateInstructions(matlabFunction, gcA));
+                        generateInstructions(matlabFunction, gcA, udChain));
             }else{
                 DynamicRCGarbageCollection dynGC = new
-                        DynamicRCGarbageCollection(this.analysisFunction.getTree(),
+                        DynamicRCGarbageCollection(matlabFunction,
                         valueAnalysisUtil, interproceduralFunctionQuery, defs);
                 dynGC.analyze();
                 hookMap.addHookMap(DynamicGCCallInsertion.
-                        generateInstructions(dynGC));
+                        generateInstructions(matlabFunction, dynGC,
+                                valueAnalysisUtil));
             }
         }
 
@@ -249,7 +240,7 @@ public class FunctionGenerator {
      * Function generator method, takes a tamer function as input
      * and generates a WebAssembly function
      */
-    public void generate(){
+    public Function genFunction(){
         // Adds return statement as the last stmt of
         boolean returnAdded = checkAndAddReturnStmt(matlabFunction);
         runAnalyses(returnAdded);
@@ -279,7 +270,7 @@ public class FunctionGenerator {
 
         Expression exp = new Expression(instructions);
         // Setting return function, automatically adds return statements for variables
-        this.function =  new Function(new Opt<>(new Identifier(function_name)),funcType, locals, exp );
+        return new Function(new Opt<>(new Identifier(function_name)),funcType, locals, exp );
     }
 
     /**
@@ -374,19 +365,18 @@ public class FunctionGenerator {
     private List<Instruction> genStmtList(TIRStatementList stmtList) {
         List<Instruction> instructionList = new List<>();
         for(ast.Stmt stmt: stmtList){
+            locals.addAll(this.functionAnalyses
+                    .getFunctionHookMap().getHook(stmt)
+                    .getLocalList());
+            instructionList.addAll(this.functionAnalyses
+                    .getFunctionHookMap().getHook(stmt)
+                    .getBeforeStmtInstructions());
             if(shouldGenerateStmt(stmt)) {
-                locals.addAll(this.functionAnalyses
-                        .getFunctionHookMap().getHook(stmt)
-                        .getLocalList());
-                instructionList.addAll(this.functionAnalyses
-                        .getFunctionHookMap().getHook(stmt)
-                        .getBeforeStmtInstructions());
                 instructionList.addAll(genStmt(stmt));
-                instructionList.addAll(this.functionAnalyses
-                        .getFunctionHookMap().getHook(stmt)
-                        .getAfterStmtInstructions());
             }
-
+            instructionList.addAll(this.functionAnalyses
+                    .getFunctionHookMap().getHook(stmt)
+                    .getAfterStmtInstructions());
         }
         return instructionList;
     }

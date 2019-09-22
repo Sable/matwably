@@ -27,6 +27,6 @@ function hexStringByteArray(str){
 }
 // (async ()=>{
 //     let mod = await loader();
-//     mod.exports.%s_S(1000);
+//     mod.exports.%s(1000);
 // })();
 

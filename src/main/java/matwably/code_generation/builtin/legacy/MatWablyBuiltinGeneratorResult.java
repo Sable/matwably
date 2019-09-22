@@ -167,15 +167,15 @@ public class MatWablyBuiltinGeneratorResult implements McLabBuiltinGenerationRes
         return input_arg;
     }
 
-    public String generateBoxedScalar( List<Instruction> scalar_instruction){
+    public String generateBoxedScalar( List<Instruction> value){
         String input_arg = Util.genTypedLocalI32();
         TypeUse input_argType = new TypeUse(new Opt<>(new Identifier(input_arg)),new I32());
         this.addLocal(input_argType);
         this.addVectorInputInstructions(
                 MachArrayIndexing.createF64Vector(1, input_arg),
                 MachArrayIndexing.freeMachArray(input_arg));
-        this.addInstructions(MachArrayIndexing.setArrayIndexF64(input_arg, 0,
-                scalar_instruction));
+        this.addInstructions(MachArrayIndexing.setArrayIndexF64NoCheck(input_arg, 0,
+                value));
         return input_arg;
     }
 

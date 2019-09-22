@@ -9,13 +9,15 @@ import matwably.util.Util;
  * Places Stmt hooks together
  */
 public class StmtHook implements IStmtHook<List<Instruction>> {
+
     /**
      * Locals for the stmt hook
      */
     private List<TypeUse> localList = new List<>();
-
     private List<Instruction> beforeStmtInstructions = new List<>();
     private List<Instruction> afterStmtInstructions = new List<>();
+
+
     // Special case with user defined functions, we must set external flag.
     private List<Instruction> inBetweenCallStmtInstructions = new List<>();
 
@@ -57,6 +59,9 @@ public class StmtHook implements IStmtHook<List<Instruction>> {
 
 
 
+    public List<Instruction> getInBetweenCallStmtInstructions() {
+        return inBetweenCallStmtInstructions;
+    }
 
     public boolean hasBeforeStmtInstructions(){
         return beforeStmtInstructions.getNumChild() > 0;
@@ -77,7 +82,12 @@ public class StmtHook implements IStmtHook<List<Instruction>> {
         localList.addAll(other.localList);
         return this;
     }
-
+    public void insertBeforeInstructions(List<Instruction> instructions) {
+        List<Instruction> res = new List<>();
+        res.addAll(instructions);
+        res.addAll(this.beforeStmtInstructions);
+        this.beforeStmtInstructions = res;
+    }
 
     public void addBeforeInstruction(List<Instruction> instructions){
         beforeStmtInstructions.addAll(instructions);
@@ -90,6 +100,9 @@ public class StmtHook implements IStmtHook<List<Instruction>> {
 
     public void addInBetweenStmtInstructions(List<Instruction> instructions){
         inBetweenCallStmtInstructions.addAll(instructions);
+    }
+    public void addLocals(List<TypeUse> typeUse){
+        this.localList.addAll(typeUse);
     }
 
     @Override

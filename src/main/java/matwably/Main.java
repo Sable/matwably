@@ -121,17 +121,17 @@ public class Main {
                 outfileBuilder.append("\";\n");
             }
             if(opts.inline_wasm){
-                loader = String.format(loader, opts.basename_output_file);
+                loader = String.format(loader,
+                        pg.getMainNode().getGeneratedFunctionName());
             }else{
                 loader = String.format(loader,  wasmFile,
-                        opts.basename_output_file);
+                        pg.getMainNode().getGeneratedFunctionName());
 
             }
             // Append library
             outfileBuilder.append(js_support_lib);
             // Append loader
             outfileBuilder.append(loader);
-
             // Load file in
             FileWriter wasmOut= new FileWriter(opts.basename_output_file+".js");
             wasmOut.write(outfileBuilder.toString());

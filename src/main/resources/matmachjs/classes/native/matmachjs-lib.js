@@ -410,14 +410,19 @@ function printMachArrayHeader(arr_ptr, flag_print_data = false) {
  * @param {number} dealloc_number Total number of elements deallocated
  * @param {number} alloc_memory Total memory requested to $malloc
  * @param {number} dealloc_memory Total memory freed by $free
+ * @param {number} time_gc Total time spent by the GC
+ * @param {number} total_calls_gc Total number of gc calls
  */
-function printMemoryUsage(alloc_number = 0, dealloc_number = 0, total_memory_budget = 0) {
-    console.log({
+function gcPrintMemoryUsage(alloc_number = 0, dealloc_number = 0, total_memory_budget = 0, avg_object_size = 0, total_calls_gc = 0, time_gc = 0) {
+    console.warn(JSON.stringify({
         "total_objects_allocated": alloc_number,
         "total_objects_deallocated": dealloc_number,
         "total_objects_not_freed": alloc_number - dealloc_number,
-        "total_memory_budget": `${total_memory_budget}(+-${alloc_number}) bytes`
-    });
+        "total_memory_budget": `${total_memory_budget}(+-${alloc_number}) bytes`,
+        "avg_size_per_object": `${avg_object_size} bytes`,
+        "gc_total_number_calls": `${total_calls_gc}`,
+        "gc_total_time": `${time_gc}s`
+    }).replace("{", "[").replace("}", "]"));
 }
 /**
  * DEFINITION OF MODULE IMPORTS
@@ -474,5 +479,5 @@ exports.MatMachNativeLib.env = {
     "abortOnCannotGrowMemory": abortOnCannotGrowMemory,
     "abortStackOverflow": abortStackOverflow,
     "___setErrNo": ___setErrNo,
-    "gcPrintMemoryUsage": printMemoryUsage
+    "gcPrintMemoryUsage": gcPrintMemoryUsage
 };

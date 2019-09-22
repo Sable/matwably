@@ -14,6 +14,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Class analysis nodes for GC purposes using a naive strategy. i.e. it always
+ * treats the sites agnostic of static knowledge, this leaves to a large amount of
+ * gc calls.
+ */
 public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
     private final ValueAnalysisUtil valueUtil;
     private final InterproceduralFunctionQuery functionQuery;
@@ -129,18 +134,18 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
             addDefGCCalls(res, nameExpr.getVarName(), tirAbstractAssignToListStmt);
         });
         // If is a call stmt and is a used_defined function
-        if(tirAbstractAssignToListStmt instanceof TIRCallStmt)
-        {
-            TIRCallStmt callStmt = (TIRCallStmt)tirAbstractAssignToListStmt;
-            if(this.functionQuery.isUserDefinedFunction(callStmt.
-                    getFunctionName().getID())){
-                callStmt.getArguments()
-                    .getNameExpressions().stream().map(NameExpr::getName).map(Name::getID)
-                    .filter((String name)-> !valueUtil.isScalar(name, callStmt, true))
-                    .forEach(res::checkAndAddExternalFlag);
-            }
-
-        }
+//        if(tirAbstractAssignToListStmt instanceof TIRCallStmt)
+//        {
+//            TIRCallStmt callStmt = (TIRCallStmt)tirAbstractAssignToListStmt;
+//            if(this.functionQuery.isUserDefinedFunction(callStmt.
+//                    getFunctionName().getID())){
+//                callStmt.getArguments()
+//                    .getNameExpressions().stream().map(NameExpr::getName).map(Name::getID)
+//                    .filter((String name)-> !valueUtil.isScalar(name, callStmt, true))
+//                    .forEach(res::checkAndAddExternalFlag);
+//            }
+//
+//        }
         stmt_mapping.put(tirAbstractAssignToListStmt, res);
     }
 
@@ -151,16 +156,15 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
      *        and if its not defined in set, add name to defined variables.
      *      - If variable is a scalar, remove from defined sites.
      * @param res Result set for the GC operation
-     * @param name Name of variable being defiend
+     * @param name Name of variable being defined
      * @param node TameIR node for definition
      */
     private void addDefGCCalls(DynamicRCSet res, String name, ASTNode node){
         // If is already defined, decrease the reference for the site already defined
         if(isSiteDefined(name, node))
             res.decreaseReference(name);
-        // If is
-        boolean isScalar = valueUtil.isScalar(name, node,false);
-        if(!isScalar){
+        // If the rhs is not scalar, increase reference
+        if(!valueUtil.isScalar(name, node,false)){
             res.increaseReference(name);
         }
     }
@@ -263,7 +267,11 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
                 }));
     }
 
-
+    /**
+     * Gets set of defined sites for a given node, used for AssignStmt's
+     * @param node ASTNode, normally an AssignStmt
+     * @return Returns set of names for the defined site that are not scalars.
+     */
     private Set<String> getDefinedSites(ASTNode node){
         Set<String> definedSitesSet = this.reachingDefs.getOutFlowSets().
                 get(node).keySet();
@@ -272,6 +280,11 @@ public class DynamicRCGarbageCollection extends TIRAbstractNodeCaseHandler{
                 false);
         }).collect(Collectors.toSet());
     }
+
+    /**
+     * General traverse method
+     * @param astNode TameIR ASTNode
+     */
     @Override
     public void caseASTNode(ASTNode astNode) {
         for(int i = 0; i < astNode.getNumChild(); ++i) {

@@ -47,16 +47,12 @@ public class VectorInputGenerator extends AbstractInputGenerator {
                 NameExpr nameExpr = (NameExpr) expr;
                 // Scalar to boxed scalar.
                 if(valueAnalysisUtil.isScalar(nameExpr,stmt, true)){
-                    String boxed_scalar = result.generateI32Local();
-                    result.addAllocationInstructions(MachArrayIndexing.createF64Vector(1,
-                            boxed_scalar));
-                    result.addInstructions(
-                            MachArrayIndexing.setArrayIndexF64(boxed_scalar, 1,
-                            name_expression_generator.genNameExpr(nameExpr,stmt)));
+                    String boxed_scalar = result.generateBoxedScalar(
+                            name_expression_generator.genNameExpr(nameExpr,stmt));
                     // Vector instructions
-                    result.addInstructions(MachArrayIndexing.setArrayIndexI32NoCheck(vectorInputI32, i,
+                    result.addInstructions(MachArrayIndexing.
+                            setArrayIndexI32NoCheck(vectorInputI32, i,
                             new GetLocal(new Idx(boxed_scalar))));
-                    result.addDellocationInstructions(MachArrayIndexing.freeMachArray(boxed_scalar));
 
                 }else{
                     // Vector instructions
@@ -117,12 +113,16 @@ public class VectorInputGenerator extends AbstractInputGenerator {
                 );
 
                 if(arguments.size() == 1){
+                    String tmp = Util.genTypedLocalI32();
 
                     result.addAllocationInstructions(
                         new GetLocal(new Idx(name)),
+                        new TeeLocal(new Idx(tmp)),
                         new Call(new Idx("transpose_M")),
                         new SetLocal(new Idx(name))
                     );
+                    result.addDellocationInstructions(MachArrayIndexing.
+                            freeMachArray(tmp));
                 }
                 result.addAllocationInstructions( MachArrayIndexing.setArrayIndexI32NoCheck(
                         vectorInputI32, i,new GetLocal(new Idx(name))) );
