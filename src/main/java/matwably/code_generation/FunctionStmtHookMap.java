@@ -23,6 +23,12 @@ public class FunctionStmtHookMap {
         return new FunctionStmtHookMap(builder.getHookMap());
     }
 
+    /**
+     * Function to merge stmt hooks
+     * @param stmt
+     * @param hook
+     * @return
+     */
     public FunctionStmtHookMap addHook(ASTNode stmt, StmtHook hook){
         if(!stmtHookMatWablyMap.containsKey(stmt)){
             stmtHookMatWablyMap.put(stmt, new StmtHook(hook));

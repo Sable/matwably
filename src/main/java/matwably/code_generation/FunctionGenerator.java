@@ -1,6 +1,5 @@
 package matwably.code_generation;
 
-import ast.ASTNode;
 import ast.Name;
 import ast.NameExpr;
 import ast.Stmt;
@@ -32,7 +31,6 @@ import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
-import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.tame.valueanalysis.value.Args;
 import natlab.toolkits.rewrite.TempFactory;
 
@@ -139,10 +137,8 @@ public class FunctionGenerator {
 
         // Requires chain for
         this.valueAnalysisUtil = new ValueAnalysisUtil(this.analysisFunction,
-                this.udChain);
-        if( returnAdded ){
-            this.valueAnalysisUtil.mapNewReturn();
-        }
+                this.udChain, returnAdded);
+
         this.functionAnalyses.setValueAnalysisUtil(valueAnalysisUtil);
         this.functionAnalyses.setReachingDefinitions(defs);
 
@@ -212,11 +208,6 @@ public class FunctionGenerator {
                                 valueAnalysisUtil));
             }
         }
-
-
-
-        // Generate instruction object.
-
     }
     /**
      * Node adds a return stmt as the last stmt, only if the
@@ -437,6 +428,12 @@ public class FunctionGenerator {
         );
     }
 
+    /**
+     * Generates instructions for the TameIR TIRCallStmt node
+     *  using the built-in framework
+     * {@link MatWablyBuiltinGenerator}
+     * @param tirStmt TameIR node
+     */
     private List<Instruction> genCallStmt(TIRCallStmt tirStmt) {
         List<Instruction> res = new List<>();
         StmtHook gcInst = this.functionAnalyses
@@ -477,6 +474,13 @@ public class FunctionGenerator {
         return res;
     }
 
+    /**
+     * Helper method to generate instructions in between gc instructions
+     * @param gcInst StmtHook
+     * @param returnsATarget Whether the function returns a target
+     * @param arrayTarget Whether the return value is an array target
+     * @return
+     */
     private List<Instruction> produceInBetweenExpressionGCIntructions(StmtHook gcInst,boolean returnsATarget, boolean arrayTarget) {
         List<Instruction> res = new List<>();
         if( returnsATarget ){
@@ -534,6 +538,12 @@ public class FunctionGenerator {
         }
         return res;
     }
+
+    /**
+     * Generates instructions for the TameIR TIRWhileStmt node
+     * @param tirStmt TameIR node
+     * @return generated instructions for TameIR node
+     */
     private List<Instruction> genCondition(Stmt tirStmt, Name name){
         List<Instruction> res = new List<>();
         // Condition
@@ -572,7 +582,11 @@ public class FunctionGenerator {
         }
         return res;
     }
-
+    /**
+     * Generates instructions for the TameIR TIRContinueStmt node
+     * @param tirStmt TameIR node
+     * @return generated instructions for TameIR node
+     */
     private List<Instruction> genContinueStmt(TIRContinueStmt tirStmt) {
         List<Instruction> res = new List<>();
         StmtHook gcInst = this.functionAnalyses
@@ -586,7 +600,11 @@ public class FunctionGenerator {
 
         return res;
     }
-
+    /**
+     * Generates instructions for the TameIR TIRBreakStmt node
+     * @param tirStmt TameIR node
+     * @return generated instructions for TameIR node
+     */
     private List<Instruction> genBreakStmt(TIRBreakStmt tirStmt) {
         List<Instruction> res = new List<>();
         StmtHook gcInst = this.functionAnalyses
@@ -594,6 +612,12 @@ public class FunctionGenerator {
         if(gcInst.hasInBetweenStmtInstructions()) res.addAll(gcInst.getInBetweenStmtInstructions());
         return res.add(new Br(loopStack.peek().getEndLoop()));
     }
+
+    /**
+     * Generates instructions for the TameIR TIRWhileStmt node
+     * @param tirStmt TameIR node
+     * @return generated instructions for TameIR node
+     */
     private List<Instruction> genWhileStmt(TIRWhileStmt tirStmt) {
         List<Instruction> res = new List<>();
 
@@ -638,7 +662,11 @@ public class FunctionGenerator {
         res.add(new SetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.getLoopVarName().getID(), tirStmt, false))));
         return res;
     }
-
+    /**
+     * Generation instructions for the TIRForStmt
+     * @param tirStmt TIRForStmt
+     * @return Returns list of instructions for generated loop
+     */
     private List<Instruction> genForStmt(TIRForStmt tirStmt) {
         List<Instruction> res =new List<>();
         res.addAll(this.functionAnalyses.getFunctionHookMap()
@@ -691,7 +719,11 @@ public class FunctionGenerator {
                 .getHook(tirStmt).getAfterStmtInstructions());
         return res;
     }
-
+    /**
+     * Generates loop that is completely dynamic
+     * @param tirStmt TIRForStmt
+     * @return Returns list of instructions for generated loop
+     */
     @SuppressWarnings("unchecked")
     private List<Instruction> genDynamicForLoop(TIRForStmt tirStmt) {
         List<Instruction> res = new List<>();
@@ -801,6 +833,11 @@ public class FunctionGenerator {
         return typedLow;
     }
 
+    /**
+     * Generation of non-empty loop
+     * @param tirStmt TIRForStmt
+     * @return Returns list of instructions for generated loop
+     */
     private List<Instruction> genNonMovingForloop(TIRForStmt tirStmt) {
         Block block = new Block();
         Idx endLabel = new Idx("block_"+TempFactory.genFreshTempString()) ;
@@ -987,62 +1024,6 @@ public class FunctionGenerator {
                 getFreeingInstructions());
 
         return res;
-    }
-    private List<Instruction> computeIndexWasm(ASTNode node, String arrayName, TIRCommaSeparatedList indices){
-        List<Instruction> res = new List<>();
-        String typedArrayName = Util.getTypedLocalI32(arrayName);
-        if ( indices.size() == 1) {
-            NameExpr idx = (NameExpr) indices.getChild(0);
-            res.add(new GetLocal(new Idx(Util.getTypedLocalF64(idx.getName().getID()))));
-        }else {
-            Integer[] stride = computeStride(node, arrayName);
-            // Compute index
-            res.addAll(new List<>( new GetLocal(new Idx(
-                    Util.getTypedLocalF64(((NameExpr)indices.getChild(0)).getName().getID()))),
-                    new ConstLiteral(new F64(),1),
-                    new Sub(new F64())));
-            for (int i = 1; i < indices.size(); ++i) {
-                if (stride[i] != null) {
-                    res.add(new ConstLiteral(new F64(), stride[i]));
-                } else {
-                    res.addAll(new List<>(
-                            new GetLocal(new Idx(typedArrayName)),
-                            new ConstLiteral(new F64(), i),
-                            new Call(new Idx("get_array_stride"))
-                    ));
-                }
-                res.add(new GetLocal(new Idx(Util.getTypedLocalF64(
-                        ((NameExpr)indices.getChild(i)).getName().getID()))));
-                res.add(new ConstLiteral(new F64(), 1));
-                res.add(new Sub(new F64()));
-                res.add(new Mul(new F64()));
-                res.add(new Add(new F64()));
-            }
-            // Add one to index
-            res.addAll(new List<>(
-                    new ConstLiteral(new F64(),1),
-                    new Add(new F64())));
-            // Convert final index to i32
-        }
-        res.add(new CvTrunc(new I32(), new F64(), true));
-        return res;
-    }
-    private Integer[] computeStride(ASTNode node, String arrayName) {
-        BasicMatrixValue bmv = Util.getBasicMatrixValue(analysisFunction, node, arrayName);
-        int numDimensions = bmv.getShape().getDimensions().size();
-        Integer[] stride = new Integer[numDimensions];
-        stride[0] = 1;
-
-        for (int i = 1; i < numDimensions; ++i) {
-            DimValue dv = bmv.getShape().getDimensions().get(i-1);
-            if (dv.hasIntValue()) {
-                stride[i] = stride[i-1] * dv.getIntValue();
-            } else {
-                break;
-            }
-        }
-
-        return stride;
     }
 
     /**

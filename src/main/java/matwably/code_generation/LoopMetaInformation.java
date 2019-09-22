@@ -115,7 +115,7 @@ public class LoopMetaInformation {
     public Idx getEndLoop() {
         return endLoop;
     }
-    
+
     /**
      * Getter condition instructions
      * @return Returns loop stmt

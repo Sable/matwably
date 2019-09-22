@@ -20,9 +20,11 @@ public class ValueAnalysisUtil {
     private final UseDefDefUseChain udChain;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction;
 
-    public ValueAnalysisUtil(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction, UseDefDefUseChain udChain) {
+    public ValueAnalysisUtil(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
+                             UseDefDefUseChain udChain, boolean returnAdded) {
         this.analysisFunction = analysisFunction;
         this.udChain = udChain;
+        if ( returnAdded ) this.mapNewReturn();
     }
 
     public boolean isScalar(String name, ASTNode node, boolean isRHS) {
