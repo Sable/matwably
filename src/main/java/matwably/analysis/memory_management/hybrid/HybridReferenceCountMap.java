@@ -289,9 +289,9 @@ public class HybridReferenceCountMap {
     private void increaseDynamicCount(String name) {
         // if
         if(dynamic_memory_sites.get(name).isInternal()){
-            dynamicInternalDecreaseReferenceSites.add(name);
+            dynamicInternalIncreaseReferenceSites.add(name);
         }else if(dynamic_memory_sites.get(name).isMaybeExternal()){
-            dynamicCheckExternalToDecreaseReferenceSites.add(name);
+            dynamicCheckExternalToIncreaseReferenceSites.add(name);
         }
     }
 

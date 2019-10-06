@@ -285,13 +285,20 @@ public class ValueAnalysisUtil {
     public void mapNewReturn() {
         java.util.List<Stmt> list =
                 this.analysisFunction.getTree().getStmtList()
-                .stream().filter((s)->!(s instanceof TIRCommentStmt)).
-                collect(Collectors.toList());
+                        .stream().filter((s)->!(s instanceof TIRCommentStmt)).
+                        collect(Collectors.toList());
         Stmt ret = list.get(list.size()-1);
-        ValueFlowMap<AggrValue<BasicMatrixValue>> mapIn =
-                this.analysisFunction.getOutFlowSets().get(
-                list.get(list.size()-2));
-        this.analysisFunction.getInFlowSets().put(ret, mapIn);
-        this.analysisFunction.getOutFlowSets().put(ret, mapIn);
+        if(list.size() > 1){
+            ValueFlowMap<AggrValue<BasicMatrixValue>> mapIn =
+                    this.analysisFunction.getOutFlowSets().get(
+                            list.get(list.size()-2));
+            this.analysisFunction.getInFlowSets().put(ret, mapIn);
+            this.analysisFunction.getOutFlowSets().put(ret, mapIn);
+        }else{
+            ValueFlowMap<AggrValue<BasicMatrixValue>> mapIn =
+                    this.analysisFunction.getCurrentOutSet();
+                    this.analysisFunction.getInFlowSets().put(ret, mapIn);
+            this.analysisFunction.getOutFlowSets().put(ret, mapIn);
+        }
     }
 }

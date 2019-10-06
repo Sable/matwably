@@ -733,15 +733,16 @@ public class FunctionGenerator {
         // Add checks for empty arrays, if arrays.
         String typedLow;
         typedLow = valueAnalysisUtil.genTypedName(tirStmt.getLowerName().getID(),tirStmt,true);
-        if(!opts.skip_variable_elimination && this.elim_var_analysis.isVariableEliminated(tirStmt.getLowerName())) {
+        if(!opts.skip_variable_elimination &&
+                this.elim_var_analysis.isVariableEliminated(tirStmt.getLowerName())) {
+            res.addAll(expressionGenerator.genName(tirStmt.getLowerName(), tirStmt));
             if(valueAnalysisUtil.isScalar(tirStmt.getLowerName().getID(),tirStmt,true)){
                 typedLow = Util.genTypedLocalF64();
                 locals.add(Ast.genF64TypeUse(typedLow));
             }else{
                 typedLow = Util.genTypedLocalI32();
-                locals.add(Ast.genF64TypeUse(typedLow));
+                locals.add(Ast.genI32TypeUse(typedLow));
             }
-            res.addAll(expressionGenerator.genName(tirStmt.getLowerName(), tirStmt));
             res.add(new SetLocal(new Idx(typedLow)));
         }
         if(!valueAnalysisUtil.isScalar(tirStmt.getLowerName().getID(),tirStmt, true)){
@@ -750,19 +751,19 @@ public class FunctionGenerator {
                     MachArrayIndexing.getArrayIndexF64CheckBounds(typedLow, 1);
             typedLow = setLoopBoundFromArray(res, isEmptyFlag, get_first_elem);
         }
-        String typedHigh;
+        String typedHigh = valueAnalysisUtil.genTypedName(tirStmt.getUpperName().getID(),
+                tirStmt,true);
         if(!opts.skip_variable_elimination&&this.elim_var_analysis.isVariableEliminated(tirStmt.getUpperName())){
+            res.addAll(expressionGenerator.genName(tirStmt.getUpperName(),tirStmt));
             if(valueAnalysisUtil.isScalar(tirStmt.getUpperName().getID(),tirStmt,true)){
                 typedHigh = Util.genTypedLocalF64();
                 locals.add(Ast.genF64TypeUse(typedHigh));
             }else{
                 typedHigh = Util.genTypedLocalI32();
-                locals.add(Ast.genF64TypeUse(typedHigh));
+                locals.add(Ast.genI32TypeUse(typedHigh));
             }
-            res.addAll(expressionGenerator.genName(tirStmt.getUpperName(),tirStmt));
             res.add(new SetLocal(new Idx(typedHigh)));
         }
-        typedHigh = valueAnalysisUtil.genTypedName(tirStmt.getUpperName().getID(),tirStmt,true);
         if(!valueAnalysisUtil.isScalar(tirStmt.getUpperName().getID(),tirStmt, true)){
             res.addAll(MachArrayIndexing.isEmpty(typedHigh));
             List<Instruction> get_first_elem = MachArrayIndexing.getArrayIndexF64CheckBounds(typedHigh, 1);
@@ -823,14 +824,15 @@ public class FunctionGenerator {
     }
 
     private String setLoopBoundFromArray(List<Instruction> res, String isEmptyFlag, List<Instruction> get_first_elem) {
-        String typedLow;
-        typedLow = Util.genTypedLocalF64();
-        get_first_elem.add(new SetLocal(new Idx(typedLow)));
+        String newLoopVar;
+        newLoopVar = Util.genTypedLocalF64();
+        get_first_elem.add(new SetLocal(new Idx(newLoopVar)));
         res.add(new If(new Opt<>(),new Opt<>(),
-                new List<>(new ConstLiteral(new I32(), 1), new SetLocal(new Idx(isEmptyFlag)))
+                new List<>(new ConstLiteral(new I32(), 1),
+                        new SetLocal(new Idx(isEmptyFlag)))
                 ,get_first_elem));
-        locals.add(new TypeUse(typedLow, new F64()));
-        return typedLow;
+        locals.add(new TypeUse(newLoopVar, new F64()));
+        return newLoopVar;
     }
 
     /**

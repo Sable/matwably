@@ -165,9 +165,12 @@ public class ProgramGenerator {
                     replace(";; %gc_free",
                             "get_local 0\n\tcall $gcRecordFreeing");
             builtInDeclations = builtInDeclations.
+                    replace(";; %gc-macharray-allocation",
+                            "get_local 0\n\tcall $gcMachArrayAllocation");
+            builtInDeclations = builtInDeclations.
                     replace(";; %gc_malloc",
                             "get_local 0\n\tcall $gcRecordAllocation");
-        }
+        };;
         return builtInDeclations;
     }
 

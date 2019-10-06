@@ -3,7 +3,7 @@
 (type $2 (func (result i32)))
 (type $3 (func (param i32)))
 (type $4 (func (param i32 i32) (result i32)))
-(type $5 (func (param i32 i32 i32 i32 i32 f64)))
+(type $5 (func (param i32 i32 i32 i32 i32 i32 f64)))
 
 (import "env" "DYNAMICTOP_PTR" (global $2 i32))
 (import "env" "STACKTOP" (global $5 i32))
@@ -12203,6 +12203,7 @@ return)
         i32.shr_u
         i32.eqz
         if
+            ;; %gc-macharray-allocation
             get_local 0
             get_local 0
             i32.load8_u offset=24 align=1
@@ -12455,6 +12456,7 @@ return)
     ;; %gc-time-start
     get_local 0
     if
+        ;; %gc-macharray-allocation
         get_local 0
         get_local 0
         i32.load8_u offset=24 align=1
@@ -12605,6 +12607,7 @@ return)
  )
 
 (global $TOTAL_ALLOCATION (mut i64) (i64.const 0))
+(global $TOTAL_ALLOCATED_MACHARRAYS (mut i32) (i32.const 0))
 (global $TOTAL_FREEING (mut i64) (i64.const 0))
 (global $TOTAL_DEALLOCATED_OBJECTS (mut i32) (i32.const 0))
 (global $TOTAL_ALLOCATED_OBJECTS (mut i32) (i32.const 0))
@@ -12635,6 +12638,7 @@ return)
     (local $temp i32)
     get_global $TOTAL_ALLOCATED_OBJECTS
     get_global $TOTAL_DEALLOCATED_OBJECTS
+    get_global $TOTAL_ALLOCATED_MACHARRAYS
     get_global $TOTAL_ALLOCATION
     get_global $TOTAL_FREEING
     i64.sub
@@ -12667,8 +12671,18 @@ return)
     i64.add
     set_global $TOTAL_ALLOCATION
 )
-
-
+;; We know its a brand new macharray if the RC is 0 so far.
+(func $gcMachArrayAllocation (param i32)
+    get_local 0 
+    call $gcGetRC
+    i32.eqz
+    if
+        get_global $TOTAL_ALLOCATED_MACHARRAYS
+        i32.const 1
+        i32.add
+        set_global $TOTAL_ALLOCATED_MACHARRAYS
+    end
+)
 
 (func $gcRecordFreeing (param i32)
     (local $temp i64)

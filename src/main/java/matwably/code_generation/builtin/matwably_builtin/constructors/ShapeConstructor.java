@@ -58,6 +58,11 @@ public abstract class ShapeConstructor extends Constructor {
      */
     @Override
     public boolean expressionHasSpecializationForScalar() {
+        if( arguments.size() == 1 ){
+            Double valueConstant = this.valueUtil.getDoubleConstant(this.arguments.
+                    getNameExpresion(0),node);
+            return (valueConstant != null && valueConstant == 1);
+        }
         return arguments.size() == 0;
     }
 
@@ -86,6 +91,9 @@ public abstract class ShapeConstructor extends Constructor {
             if(this.valueUtil.isScalar(nameExpr, node,true)){
                 Double valueConstant = this.valueUtil.getDoubleConstant(nameExpr,node);
                 if(valueConstant != null){
+                    if(valueConstant == 1){
+                        return this.generateScalarExpression();
+                    }
                     result.addInstructions(new ConstLiteral(new F64(),
                                 valueConstant));
                     result.addInstructions(new ConstLiteral(new F64(),
@@ -113,7 +121,8 @@ public abstract class ShapeConstructor extends Constructor {
         }else if(sizeArgs == 2) {
             NameExpr arg1 = arguments.getNameExpresion(0);
             NameExpr arg2 = arguments.getNameExpresion(1);
-            if(this.valueUtil.isScalar(arg1,node,true) && this.valueUtil.isScalar(arg2, node,true)){
+            if(this.valueUtil.isScalar(arg1,node,true) &&
+                    this.valueUtil.isScalar(arg2, node,true)){
                 result.addInstructions(expressionGenerator.genNameExpr(arg1, node));
                 result.addInstructions(expressionGenerator.genNameExpr(arg2, node));
             }else{ // We must have run-time boxed scalars

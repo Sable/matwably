@@ -2,13 +2,17 @@ group 'mclab'
 apply plugin: 'java'
 apply plugin: 'jastadd'
 apply plugin: 'application'
-
-//sourceSets.main.java.srcDirs = ['src']
+apply plugin: 'idea'
 mainClassName = "matwably.Main"
-//matwably_matmachjs_lib_path=""
 sourceCompatibility = 1.8
 repositories {
     mavenCentral()
+}
+idea {
+    module {
+        // Marks the already(!) added srcDir as "generated"
+        generatedSourceDirs += file('build/generated-src/ast')
+    }
 }
 buildscript {
     repositories.mavenCentral()
@@ -31,43 +35,51 @@ jastadd {
     module = "matwably"
 
     astPackage = "matwably.ast"
-//    scanner.genDir = "src/gen/AST"
-//    parser.name = "StateMachineParser"
-//    parser.genDir = "src/gen"
+
+}
+sourceSets {
+    generated {
+        java.srcDir "${buildDir}/generated-src/"
+    }
+}
+
+
+compileJava{
+    classpath += sourceSets.generated.java
 }
 dependencies {
-    // https://mvnrepository.com/artifact/org.jastadd/jastaddgradle
     compile group: 'org.jastadd', name: 'jastaddgradle', version: '1.13.0'
-
-    // https://mvnrepository.com/artifact/com.beust/jcommander
-//    compile group: 'com.beust', name: 'jcommander', version '1.71'
+    testImplementation('org.junit.jupiter:junit-jupiter:5.5.2')
+    testCompile("org.junit.jupiter:junit-jupiter-api:5.5.2")
     compile group: 'com.beust', name: 'jcommander', version: '1.7'
     compile name: 'McLabCore'
     compile name: 'matjuice', ext:'jar'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 task copyToLib(type: Copy) {
-    into "$buildDir/lib"
-    from configurations.runtime
-}
-task myRun(type: JavaExec) {
-    classpath sourceSets.main.runtimeClasspath
-    main = "matwably.Main"
-    if (project.hasProperty('myargs')) {
-        args(myargs.split(','))
+    println "Copying to project dependencies"
+    doFirst{
+        into "$buildDir/lib"
+        from configurations.runtime
     }
-//    args "./src/test/matlab_files/bubble/drv_bubble.m" "-o" "./drv_bubble.js" "-a" "'[\"DOUBLE&1*1&REAL\"]'"
 }
 
 tasks.withType(Jar) {
     destinationDir = file("$buildDir/lib")
 }
 task copyMatmachjsLib(type: Copy) {
-    if(project.hasProperty("MATMACHJS_LIB")){
-        from project.MATMACHJS_LIB
-        into "src/main/resources/matmachjs"
+    println "Copying MatMachJS library"
+    doFirst{
+        if(project.hasProperty("MATMACHJS_LIB")){
+            from project.getProperty("MATMACHJS_LIB")
+            into "src/main/resources/matmachjs"
+        }
     }
 
 }
-task make_jar dependsOn(copyMatmachjsLib,copyToLib,build)
 
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}

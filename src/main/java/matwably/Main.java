@@ -46,8 +46,7 @@ public class Main {
             optParse = new JCommander(opts, argv);
         }catch(ParameterException e)
         {
-            System.err.println(e.getMessage());
-            System.exit(1);
+            throw new Error(e.getMessage());
         }
         optParse.setProgramName("MatWably");
 

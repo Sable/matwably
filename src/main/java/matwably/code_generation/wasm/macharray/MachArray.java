@@ -11,6 +11,11 @@ public class MachArray {
                 new Opt<>(), new Opt<>()));
         return res;
     }
+    public static List<Instruction> isEmpty(List<Instruction> array){
+        List<Instruction> res = getLength(array);
+        res.addAll(new Eqz(new I32()));
+        return res;
+    }
 
     public static List<Instruction> isScalar(List<Instruction> array){
 

@@ -4,4 +4,4 @@
 #cd -
 
 # Finally call gradle build jar task
-gradle make_jar -PMATMACHJS_LIB="/Users/davidherrera/Documents/Research/Thesis/code/mc2wasm-lib/bin"
+gradle build -x test -PMATMACHJS_LIB=/Users/davidherrera/Documents/Research/Thesis/code/mc2wasm-lib/bin

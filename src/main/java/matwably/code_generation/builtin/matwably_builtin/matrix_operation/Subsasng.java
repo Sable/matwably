@@ -41,8 +41,10 @@ public class Subsasng extends MatrixIndexing {
      * @return Specifies whether the built-in expression returns boxed scalar.
      */
     @Override
-    public boolean expressionHasSpecializationForScalar() {
-        return true;
+    public boolean expressionHasSpecializationForScalar(){
+        return !isSlicingOperation() ||
+                this.valueUtil.isScalar(arrayName.getID(),
+                        node, true);
     }
 
     /**

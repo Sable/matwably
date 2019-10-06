@@ -16,10 +16,10 @@ INCORRECT=()
 CORRECT_COUNTER=0
 INCORRECT_COUNTER=0
 COUNTER=0
-TOTAL=`ls -1q ./src/test/features/**/*.m | wc -l`
+TOTAL=`ls ./src/test/features/**/*.m ./benchmarks/src/**/drv_*| wc -l`
 TOTAL=`echo $TOTAL |sed -e "s/[\t]*//g"`
 errorMessage=""
-for file in `ls ./src/test/features/**/*.m`; do
+for file in `ls ./src/test/features/**/*.m ./benchmarks/src/**/drv_*` ; do
     fname=$(basename $file)
     if [[ $fname == *"helper"* ]]; then
         continue
