@@ -88,6 +88,7 @@ public class Main {
             out.close();
         }catch(Exception e){
             throw new Error("Error writing to file: "+ opts.output_file+e);
+
         }
 
         try{

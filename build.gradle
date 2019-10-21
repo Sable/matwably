@@ -24,7 +24,7 @@ buildscript {
 //TODO Deal automatically with downloading the mclab-core dependency
 repositories {
     flatDir {
-        dirs 'libs/mclab-core/languages/Natlab'
+        dirs 'libs/mclab-core'
         dirs 'libs/matjuice'
     }
 }
@@ -66,17 +66,16 @@ task copyToLib(type: Copy) {
 tasks.withType(Jar) {
     destinationDir = file("$buildDir/lib")
 }
+
+
 task copyMatmachjsLib(type: Copy) {
-    println "Copying MatMachJS library"
-    doFirst{
-        if(project.hasProperty("MATMACHJS_LIB")){
-            from project.getProperty("MATMACHJS_LIB")
-            into "src/main/resources/matmachjs"
-        }
+    if(project.hasProperty("MATMACHJS_LIB")){
+        println "Copying MatMachJS library"
+        from project.MATMACHJS_LIB
+        into "src/main/resources/matmachjs"
     }
-
 }
-
+task make_jar dependsOn(copyMatmachjsLib,copyToLib,build)
 test {
     useJUnitPlatform()
     testLogging {

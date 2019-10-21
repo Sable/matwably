@@ -6683,6 +6683,7 @@ return)
     call $is_null
     i32.eqz
     if
+        ;; %gc-macharray-allocation
         ;; Free data ptr
         get_local $arr_ptr
         i32.load offset=8 align=4
@@ -12203,7 +12204,6 @@ return)
         i32.shr_u
         i32.eqz
         if
-            ;; %gc-macharray-allocation
             get_local 0
             get_local 0
             i32.load8_u offset=24 align=1
