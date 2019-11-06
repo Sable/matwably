@@ -39,7 +39,7 @@ jastadd {
 }
 sourceSets {
     generated {
-        java.srcDir "${buildDir}/generated-src/"
+        java.srcDir "${buildDir}/generated-src/ast"
     }
 }
 

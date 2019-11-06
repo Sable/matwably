@@ -19,7 +19,7 @@ public class HybridReferenceCountMap {
     /**
      * Map of variable names to static memory sites.
      */
-    private HashMap<String, MemorySite> static_memory_sites = new HashMap<>(); //Map of names to memory sites
+    private HashMap<String, MemorySite> static_memory_sites = new HashMap<>();
 
     /**
      * Dynamic memory sites of the program
@@ -88,12 +88,12 @@ public class HybridReferenceCountMap {
         for (String variable : intersection){
             // If memory sites are not equal,
             if(!first.getStaticSite(variable).equals(second.getStaticSite(variable))) {
-
                 newDyn.addAll(first.getStaticSite(variable).getAliasingNames());
                 newDyn.addAll(second.getStaticSite(variable).getAliasingNames());
             }else{
                 // If they are equal the MallocSite remains known statically
-                newMapPointInfo.put(variable,first.getStaticSite(variable));
+                newMapPointInfo.put(variable,first.getStaticSite(variable)
+                        .mergeEqualSites(second.getStaticSite(variable)));
             }
         }
         HashMap<String, DynamicSite> newDynamicSites = new HashMap<>();
@@ -181,8 +181,8 @@ public class HybridReferenceCountMap {
         for(Map.Entry<String, MemorySite> entry: static_memory_sites.entrySet()){
             if(!map.containsKey(entry.getKey())){
                 MemorySite tempSite = entry.getValue().copy();
-                for (AliasingSite temp : tempSite.getAliasingSites()) {
-                    map.put(temp.getName(), tempSite);
+                for (String name: tempSite.getAliasingNames()) {
+                    map.put(name, tempSite);
                 }
             }
         }
@@ -325,10 +325,10 @@ public class HybridReferenceCountMap {
                 dynamic_memory_sites.keySet())) return false;
         for(Map.Entry<String, MemorySite> entry: this.static_memory_sites.entrySet()){
             if(entry.getValue().getReferenceCount() !=
-                    entry.getValue().getAliasingSites().size()) return false;
-            if(!entry.getValue().getAliasingSites().stream().allMatch(
+                    entry.getValue().getAliasingNames().size()) return false;
+            if(!entry.getValue().getAliasingNames().stream().allMatch(
                     (site)-> this.static_memory_sites.
-                            get(site.getName()) == entry.getValue()))
+                            get(site) == entry.getValue()))
                 return  false;
         }
         return true;

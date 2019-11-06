@@ -33,7 +33,7 @@ public class HybridGCCallInsertionMap {
         private final UseDefDefUseChain uddu;
         private HybridRCGarbageCollectionAnalysis analysis;
         private Map<ASTNode, StmtHook> map_instructions = new HashMap<>();
-        private Set<Integer> initial_sites_processed = new HashSet<>();
+        private Set<ASTNode<? extends ASTNode>> initial_sites_processed = new HashSet<>();
         private Map<ASTNode<? extends ASTNode>, String> initial_dynamic_sites = new HashMap<>();
         private List<Instruction> input_set_external = new List<>();
         private List<Instruction> input_reset_external = new List<>();
@@ -303,17 +303,18 @@ public class HybridGCCallInsertionMap {
                     .map(DynamicSite::getStaticDefinitions)
                     .flatMap(Collection::stream)
                     .forEach((MemorySite site)->{
-                        int processed =
-                                site.getDefinition().hashCode()+
-                                        site.getInitialVariableName().hashCode()
-                                        +site.getLatestAliasAdded().hashCode();
-                        if(!initial_sites_processed.contains(processed)){
-                            initial_dynamic_sites.put(site.getLatestAliasAdded(),
-                                    (new ArrayList<>(site.getAliasingNames()).get(0)));
-                            initial_sites_processed.add(processed);
+                        if(!initial_sites_processed.
+                                containsAll(site.getLatestAliasAdded())){
+                            addInitialSites(site);
                         }
 
                     });
+        }
+        private void addInitialSites(MemorySite site){
+            initial_sites_processed.addAll(site.getLatestAliasAdded());
+            site.getLatestAliasAdded().forEach((aliasStmt)->initial_dynamic_sites
+                            .put(aliasStmt,
+                                    (new ArrayList<>(site.getAliasingNames()).get(0))));
         }
 
         /**

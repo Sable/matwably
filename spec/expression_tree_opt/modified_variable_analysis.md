@@ -12,10 +12,10 @@ This set of statements represents variable definitions, _s_, of the type `a = ..
 A variable definition _i_ defined at program point _d_ reaches given program point _p_ if in 
 all paths from _d_ to _p_, the variable definition _i_ is not modified, or redefined.
 ## Merge Operations
-Let _P1_ and _P2_ be two predecessor nodes at node _p_. We use set intersection  
+Let _P1_ and _P2_ be two predecessor nodes at definingNodes _p_. We use set intersection  
 to get the resulting set.
 ## Starting Aproximations
-The __out__ set of the entry node is the empty set as we are not
+The __out__ set of the entry definingNodes is the empty set as we are not
 interested on the parameters of the function. Every other statement _Si_ is approximated as
 _out(Si)_ = {}.
 ## Flow Equations

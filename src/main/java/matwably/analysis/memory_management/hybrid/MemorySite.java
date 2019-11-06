@@ -2,37 +2,22 @@ package matwably.analysis.memory_management.hybrid;
 
 import ast.ASTNode;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 final public class MemorySite {
-    public ASTNode<? extends ASTNode> getDefinition() {
-        return node;
+    public Set<ASTNode<? extends ASTNode>> getDefinitions() {
+        return definingNodes;
     }
 
     /**
      * ASTNode defining the malloc site, use for debugging purposes
      */
-    private final ASTNode<? extends ASTNode> node;
+    private final Set<ASTNode<? extends ASTNode>> definingNodes;
 
 
-    private ASTNode<? extends ASTNode> latestAliasAdded;
-
-    public String getInitialVariableName() {
-        return name;
-    }
-
-    /**
-     * Variable name for initial declaration, added for debugging purposes.
-     */
-    private String name;
-    /**
-     * Keeps track of the aliasing statements for debugging
-     */
-    private Set<AliasingSite> aliasing_sites = new HashSet<>(); // This is use for
+    private Set<ASTNode<? extends ASTNode>> latestAliasAdded;
 
     /**
      * Keeps track of aliasing names
@@ -51,33 +36,32 @@ final public class MemorySite {
     private int reference_count = 0;
 
 
-    private MemorySite(ASTNode<? extends ASTNode> node, String name, ASTNode<? extends ASTNode> alias, Set<AliasingSite> aliasing_sites,
+    private MemorySite(Set<ASTNode<? extends ASTNode>> definingNodes,
+                       Set<ASTNode<? extends ASTNode>> latestAliasAdded,
                        Set<String> aliasing_names,
                        boolean staticallyFreed, int reference_count) {
-        this.node = node;
-        this.latestAliasAdded = alias;
-        this.name = name;
-        this.aliasing_sites = aliasing_sites;
+        this.definingNodes = definingNodes;
+        this.latestAliasAdded = latestAliasAdded;
         this.aliasing_names = aliasing_names;
         this.reference_count = reference_count;
         this.staticallyFreed = staticallyFreed;
     }
 
-    private MemorySite( String varName, ASTNode<? extends ASTNode> node){
+    private MemorySite( String varName, ASTNode<? extends ASTNode> definingNodes){
         Objects.requireNonNull(varName, "Cannot create memory site with null variable name");
-        Objects.requireNonNull(node,"Cannot create memory site with null argument TameIR node");
-        this.node = node;
-        this.latestAliasAdded = node;
-        this.name = varName;
+        Objects.requireNonNull(definingNodes,"Cannot create memory site with null argument TameIR definingNodes");
+        this.definingNodes = new HashSet<>();
+        this.definingNodes.add(definingNodes);
+        this.latestAliasAdded = new HashSet<>();
+        this.latestAliasAdded.add(definingNodes);
         reference_count++;
-        aliasing_sites.add(new AliasingSite(varName,node));
         aliasing_names.add(varName);
     }
 
     /**
      * Factory method for MemorySite
      * @param varName variable name
-     * @param node  TamerIR node
+     * @param node  TamerIR definingNodes
      * @return Returns
      */
     public static MemorySite createMemorySite(String varName, ASTNode<? extends ASTNode> node){
@@ -88,11 +72,11 @@ final public class MemorySite {
      * Increases reference count
      */
     public void increaseReferenceCount(String varName, ASTNode<? extends ASTNode> node) {
-        assert !varName.equals(this.getInitialVariableName()):"Aliased variable names cannot be the same";
+        assert !this.aliasing_names.contains(varName):"Aliased variable names cannot be the same";
         Objects.requireNonNull(varName, "Cannot alias memory site with null variable name");
-        Objects.requireNonNull(node,"Cannot alias memory site with null argument TameIR node");
-        latestAliasAdded = node;
-        aliasing_sites.add(new AliasingSite(varName, node));
+        Objects.requireNonNull(node,"Cannot alias memory site with null argument TameIR definingNodes");
+        this.latestAliasAdded = new HashSet<>();
+        this.latestAliasAdded.add(node);
         aliasing_names.add(varName);
         reference_count++;
     }
@@ -110,7 +94,6 @@ final public class MemorySite {
                 if(reference_count > 0){
                     reference_count--;
                     aliasing_names.remove(name);
-                    aliasing_sites.remove(new AliasingSite(name,node));
                     if(reference_count == 0) staticallyFreed = true;
                 }else{
                     System.err.println("Attempting to decrease static MemorySite: "+this.toString()+" with" +
@@ -158,24 +141,10 @@ final public class MemorySite {
      * Getter for the aliasing sites of the memory site
      * @return Returns set of aliasing sites.
      */
-    public Set<AliasingSite> getAliasingSites() {
-        return aliasing_sites;
-    }
-    /**
-     * Getter for the aliasing sites of the memory site
-     * @return Returns set of aliasing sites.
-     */
     public Set<String> getAliasingNames() {
         return aliasing_names;
     }
 
-    /**
-     * Method to add AliasingSites
-     * @param sites A number of alasing sites
-     */
-    public void addAliasingSites(AliasingSite... sites){
-        aliasing_sites.addAll(Arrays.stream(sites).collect(Collectors.toSet()));
-    }
 
     /**
      * Equals implementation. A MemorySite is considered equal if:
@@ -194,24 +163,47 @@ final public class MemorySite {
     }
 
     /**
-     * This method copies memory sites, the only difference is that it passes the defining node by reference
+     * This method copies memory sites, the only difference is that it passes the defining definingNodes by reference
      * and the AliasingSite set creates a shallow copy
      * @return returns a copy of the memory site
      */
     public MemorySite copy(){
-        // Creates shallow copy of aliasing sites, passes reference to aliasing site and defining node.
-        Set<AliasingSite> thatSet = new HashSet<>(this.aliasing_sites);
+        // Creates shallow copy of aliasing sites, passes reference to aliasing site and defining definingNodes.
         Set<String> thaSet = new HashSet<>(this.aliasing_names);
-        return new MemorySite(node,name,latestAliasAdded, thatSet,thaSet,staticallyFreed, reference_count);
+        return new MemorySite(new HashSet<>(definingNodes),latestAliasAdded,
+                thaSet,staticallyFreed, reference_count);
     }
 
     @Override
     public String toString() {
-        return "Memsite:{count:"+reference_count+", defining_name:"+name+", defining_stmt: "+node.getPrettyPrinted()
-                +"aliasing_stmt: "+aliasing_sites.toString()+", lastAlias: "+latestAliasAdded.getPrettyPrinted()+"}";
+
+        String latestNodes = latestAliasAdded.stream().
+                map(ASTNode::getPrettyPrinted).
+                reduce("",(acc,strNode)-> acc + strNode);
+        String definingNodes = this.definingNodes.stream().
+                map(ASTNode::getPrettyPrinted).
+                reduce("", (acc,strNode)->acc+", "+strNode);
+        return "Memsite:{count:"+reference_count+
+                ", defining_stmts: "+ definingNodes+"aliasing_names: "+
+                aliasing_names.toString()+
+                ", lastAliasedStmts: "+latestNodes+"}";
     }
 
-    public ASTNode<? extends ASTNode> getLatestAliasAdded() {
+    public Set<ASTNode<? extends ASTNode>> getLatestAliasAdded() {
         return latestAliasAdded;
+    }
+
+    public MemorySite mergeEqualSites(MemorySite staticSite) {
+        assert staticSite.equals(this):
+                "Error: Cannot merge unequal static sites";
+        Set<ASTNode<? extends ASTNode>> definingStmtSets
+                = new HashSet<>(staticSite.getDefinitions());
+        definingStmtSets.addAll(this.getDefinitions());
+        Set<ASTNode<? extends ASTNode>> lastestAliasStmts
+                = new HashSet<>(staticSite.getLatestAliasAdded());
+        lastestAliasStmts.addAll(this.getLatestAliasAdded());
+        return new MemorySite(definingStmtSets,lastestAliasStmts,
+                new HashSet<>(aliasing_names),
+                staticallyFreed, reference_count);
     }
 }

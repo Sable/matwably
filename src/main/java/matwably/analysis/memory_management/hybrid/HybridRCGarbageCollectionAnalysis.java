@@ -24,7 +24,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
     private final InterproceduralFunctionQuery functionQuery;
     private final MatWablyCommandLineOptions opts;
     private final TIRFunction function;
-    public static boolean Debug = false;
+    public static boolean Debug = true;
 
     /**
      * Base constructor for the analysis
@@ -135,7 +135,6 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
                 .collect(Collectors.toSet());
         // Initiate the dynamic site with the argument
         Set<String> processed = new HashSet<>();
-
         output.forEach((String name)->{
             if(currentOutSet.getStaticMemorySites().containsKey(name)){
                 if(!processed.contains(name))
@@ -186,7 +185,6 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
             }
         });
     }
-
     /**
      * If the variable is a scalar, we need to simply remove the target variable
      * from the static or dynamic set.
@@ -277,30 +275,6 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
     public void caseTIRCallStmt(TIRCallStmt tirNode){
         inFlowSets.put(tirNode, copy(currentInSet));
         currentOutSet = copy(currentInSet);
-//        String callName = tirNode.getFunctionName().getID();
-
-//        if(functionQuery.isUserDefinedFunction(callName)){
-//            // Tag input matrices as external
-//            // Built-in, we only need to handle output arguments.
-//            for(NameExpr expr: tirNode.getArguments()
-//                    .getNameExpressions()){
-//                String varName = expr.getName().getID();
-//                if(!valueAnalysisUtil.isScalar(varName, tirNode,true)){
-//                    if(currentOutSet.getStaticMemorySites().containsKey(varName)){
-//                        currentOutSet.addDynamicInternalSetSiteAsExternal(varName);
-//                    }else {
-//                        DynamicSite site = currentOutSet.getDynamicMemorySites()
-//                                .get(varName);
-//                        if(site.isInternal()){
-//                            currentOutSet.addDynamicInternalSetSiteAsExternal(varName);
-//                        }else if(site.isMaybeExternal()){
-//                            currentOutSet
-//                                    .addDynamicCheckExternalToSetSiteAsExternal(varName);
-//                        }
-//                    }
-//                }
-//            }
-//        }
 
         // Handle output targets we only need to handle output arguments.
         for(NameExpr name: tirNode.getTargets().getNameExpressions()){
@@ -359,11 +333,14 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
+    /**
+     * Logger function
+     * @param map
+     */
     private void log(HybridReferenceCountMap map){
         System.out.println("Initial Flow: ");
         System.out.println(map);
     }
-
     /**
      * Logging function for debugging purposes, prints results
      * of current set.
