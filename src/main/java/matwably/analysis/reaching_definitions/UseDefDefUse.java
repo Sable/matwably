@@ -1,4 +1,4 @@
-package matwably.analysis.intermediate_variable;
+package matwably.analysis.reaching_definitions;
 
 import ast.*;
 import natlab.tame.tir.*;

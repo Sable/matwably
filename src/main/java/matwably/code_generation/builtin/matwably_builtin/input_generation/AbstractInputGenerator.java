@@ -3,7 +3,7 @@ package matwably.code_generation.builtin.matwably_builtin.input_generation;
 import ast.ASTNode;
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.ExpressionGenerator;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.TIRCommaSeparatedList;
 

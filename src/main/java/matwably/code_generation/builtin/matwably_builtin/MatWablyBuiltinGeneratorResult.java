@@ -1,7 +1,6 @@
-package matwably.code_generation.builtin.legacy;
+package matwably.code_generation.builtin.matwably_builtin;
 
 import matwably.ast.*;
-import matwably.code_generation.builtin.matwably_builtin.McLabBuiltinGenerationResult;
 import matwably.code_generation.wasm.macharray.MachArrayIndexing;
 import matwably.util.Util;
 

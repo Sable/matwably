@@ -5,6 +5,7 @@ import ast.Name;
 import ast.NameExpr;
 import matwably.ast.*;
 import matwably.code_generation.ExpressionGenerator;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.wasm.macharray.MachArrayIndexing;
 import matwably.util.Util;
 import natlab.tame.builtin.Builtin;

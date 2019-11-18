@@ -1,7 +1,7 @@
 function alloc_site1(s)
-    if s < 10000
-        a = [2,3,4];
-        [2,2]
-        disp(a)
+    a = ones(2,2,2)
+    for i=1:1000
+        a = ones(2,2,2) + a
     end
+    disp(a)
 end

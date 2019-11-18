@@ -13,16 +13,17 @@ import matwably.analysis.Locals;
 import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
-import matwably.analysis.intermediate_variable.ReachingDefinitions;
+import matwably.analysis.intermediate_variable.NodeDepthCollector;
+import matwably.analysis.reaching_definitions.ReachingDefinitions;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
-import matwably.analysis.intermediate_variable.UseDefDefUseChain;
+import matwably.analysis.reaching_definitions.UseDefDefUseChain;
 import matwably.analysis.memory_management.dynamic.DynamicGCCallInsertion;
 import matwably.analysis.memory_management.dynamic.DynamicRCGarbageCollection;
 import matwably.analysis.memory_management.hybrid.HybridGCCallInsertionMap;
 import matwably.analysis.memory_management.hybrid.HybridRCGarbageCollectionAnalysis;
 import matwably.ast.*;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.stmt.StmtHook;
 import matwably.code_generation.wasm.SwitchStatement;
 import matwably.code_generation.wasm.macharray.MachArrayIndexing;
@@ -155,25 +156,29 @@ public class FunctionGenerator {
     
         // Perform analysis
         // Run variable elimination analysis
-        if(!opts.skip_variable_elimination){
+        if(!opts.disallow_variable_elimination){
+            NodeDepthCollector depthMap = NodeDepthCollector.collectStmtDepth(this.matlabFunction);
             this.elim_var_analysis = new TreeExpressionBuilderAnalysis(
                     this.analysisFunction.getTree(),defs,
                     interproceduralFunctionQuery,
                     valueAnalysisUtil,
-                    logicalVariableUtil);
+                    logicalVariableUtil,
+                    depthMap);
             this.elim_var_analysis.analyze();
             this.functionAnalyses.setTreeExpressionBuilderAnalysis(this.elim_var_analysis);
             this.expressionGenerator = new ExpressionGenerator(
                     this.valueAnalysisUtil,
                     amb_var_util,
                     this.logicalVariableUtil,
-                    this.elim_var_analysis);
+                    this.elim_var_analysis,
+                    this.opts.disallow_logicals);
             functionAnalyses.setExpressionGenerator(this.expressionGenerator);
         }else{
             this.expressionGenerator = new ExpressionGenerator(
                     this.valueAnalysisUtil,
                     amb_var_util,
-                    this.logicalVariableUtil);
+                    this.logicalVariableUtil,
+                    this.opts.disallow_logicals);
         }
         functionAnalyses.setExpressionGenerator(this.expressionGenerator);
 
@@ -378,7 +383,7 @@ public class FunctionGenerator {
      * @return Boolean indicating whether to skip generation of stmt
      */
     private boolean shouldGenerateStmt(Stmt stmt) {
-        return opts.skip_variable_elimination || !elim_var_analysis.isStmtRedundant(stmt);
+        return opts.disallow_variable_elimination || !elim_var_analysis.isStmtRedundant(stmt);
     }
 
     /**
@@ -444,23 +449,16 @@ public class FunctionGenerator {
                 generator.getGeneratedExpression();
         locals.addAll(resultGenerator.getLocals());
         // Add the alloc instructions
-        boolean allocLoopOpt = opts.opt_loop_alloc && !loopStack.empty();
-        if(allocLoopOpt){
-            LoopMetaInformation loopInfo = loopStack.peek();
-            loopInfo.addInstructionsInitialization(
-                    resultGenerator.getAllocInstructions());
-            res.addAll(resultGenerator.getInstructions());
-            loopInfo.addInstructionsPostLoop(resultGenerator.
-                    getFreeingInstructions());
-        }else{
+        boolean allocLoopOpt = performLoopInvariantCallStmtOpt(resultGenerator);
+        if(!allocLoopOpt){
             res.addAll(resultGenerator.getAllocInstructions());
-            res.addAll(resultGenerator.getInstructions());
         }
+        res.addAll(resultGenerator.getInstructions());
 
         // GC calls
 
         if( gcInst.hasInBetweenStmtInstructions() && !generator.doesNotGenerateInstructions()){
-            res.addAll(produceInBetweenExpressionGCIntructions(gcInst,tirStmt.getTargets().size() > 0,tirStmt.getTargets().size()>1 ||
+            res.addAll(produceInBetweenExpressionInstructions(gcInst,tirStmt.getTargets().size() > 0,tirStmt.getTargets().size()>1 ||
                     (tirStmt.getTargets().size() == 1 && !valueAnalysisUtil.isScalar(tirStmt.getTargets().getNameExpresion(0),
                             tirStmt, false))));
         }
@@ -473,7 +471,17 @@ public class FunctionGenerator {
 
         return res;
     }
-
+    private boolean performLoopInvariantCallStmtOpt(MatWablyBuiltinGeneratorResult resultGenerator){
+        if(opts.opt_loop_alloc && !loopStack.isEmpty()){
+            LoopMetaInformation loopInfo = loopStack.peek();
+            loopInfo.addInstructionsInitialization(
+                    resultGenerator.getAllocInstructions());
+            loopInfo.addInstructionsPostLoop(resultGenerator.
+                    getFreeingInstructions());
+            return true;
+        }
+        return false;
+    }
     /**
      * Helper method to generate instructions in between gc instructions
      * @param gcInst StmtHook
@@ -481,7 +489,8 @@ public class FunctionGenerator {
      * @param arrayTarget Whether the return value is an array target
      * @return
      */
-    private List<Instruction> produceInBetweenExpressionGCIntructions(StmtHook gcInst,boolean returnsATarget, boolean arrayTarget) {
+    private List<Instruction> produceInBetweenExpressionInstructions(StmtHook gcInst, boolean returnsATarget,
+                                                                     boolean arrayTarget) {
         List<Instruction> res = new List<>();
         if( returnsATarget ){
             if(arrayTarget){
@@ -531,7 +540,7 @@ public class FunctionGenerator {
             res.addAll(expressionGenerator.genNameExpr((NameExpr)tirStmt.getRHS(), tirStmt));
             res.addAll(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
             if(gcInst.hasInBetweenStmtInstructions()){
-               res.addAll(produceInBetweenExpressionGCIntructions(gcInst,true, true));
+               res.addAll(produceInBetweenExpressionInstructions(gcInst,true, true));
             }
             res.addAll(new SetLocal(new Idx(valueAnalysisUtil.genTypedName(tirStmt.getTargetName().getID()
                     ,tirStmt,false))));
@@ -684,7 +693,7 @@ public class FunctionGenerator {
             String typedLow = Util.getTypedLocalF64(tirStmt.getLowerName().getID());
             String typedHigh = Util.getTypedLocalF64(tirStmt.getUpperName().getID());
             String typedInc = (tirStmt.hasIncr())?Util.getTypedLocalF64(tirStmt.getIncName().getID()):null;
-            if(!opts.skip_variable_elimination) {
+            if(!opts.disallow_variable_elimination) {
                 if(this.elim_var_analysis.isVariableEliminated(tirStmt.getLowerName())){
                     typedLow = Util.genTypedLocalF64();
                     locals.add(Ast.genF64TypeUse(typedLow));
@@ -733,7 +742,7 @@ public class FunctionGenerator {
         // Add checks for empty arrays, if arrays.
         String typedLow;
         typedLow = valueAnalysisUtil.genTypedName(tirStmt.getLowerName().getID(),tirStmt,true);
-        if(!opts.skip_variable_elimination &&
+        if(!opts.disallow_variable_elimination &&
                 this.elim_var_analysis.isVariableEliminated(tirStmt.getLowerName())) {
             res.addAll(expressionGenerator.genName(tirStmt.getLowerName(), tirStmt));
             if(valueAnalysisUtil.isScalar(tirStmt.getLowerName().getID(),tirStmt,true)){
@@ -753,7 +762,7 @@ public class FunctionGenerator {
         }
         String typedHigh = valueAnalysisUtil.genTypedName(tirStmt.getUpperName().getID(),
                 tirStmt,true);
-        if(!opts.skip_variable_elimination&&this.elim_var_analysis.isVariableEliminated(tirStmt.getUpperName())){
+        if(!opts.disallow_variable_elimination &&this.elim_var_analysis.isVariableEliminated(tirStmt.getUpperName())){
             res.addAll(expressionGenerator.genName(tirStmt.getUpperName(),tirStmt));
             if(valueAnalysisUtil.isScalar(tirStmt.getUpperName().getID(),tirStmt,true)){
                 typedHigh = Util.genTypedLocalF64();
@@ -773,7 +782,7 @@ public class FunctionGenerator {
 
         if(tirStmt.hasIncr()){
             typedInc = valueAnalysisUtil.genTypedName(tirStmt.getIncName().getID(),tirStmt,true);
-            if(tirStmt.hasIncr() && !opts.skip_variable_elimination &&
+            if(tirStmt.hasIncr() && !opts.disallow_variable_elimination &&
                     this.elim_var_analysis.isVariableEliminated(tirStmt.getIncName())){
                 if(valueAnalysisUtil.isScalar(tirStmt.getIncName().getID(),tirStmt,true)){
                     typedInc = Util.genTypedLocalF64();
@@ -855,7 +864,7 @@ public class FunctionGenerator {
         StmtHook gcInst = this.functionAnalyses.
                 getFunctionHookMap().getHook(tirStmt);
         if(gcInst.hasInBetweenStmtInstructions())
-            res.addAll(produceInBetweenExpressionGCIntructions(gcInst, true,false));
+            res.addAll(produceInBetweenExpressionInstructions(gcInst, true,false));
         res.add(new SetLocal(new Idx(valueAnalysisUtil.
                 genTypedName(tirStmt.getLoopVarName().getID(),
                         tirStmt, false))));
@@ -970,12 +979,12 @@ public class FunctionGenerator {
         MatWablyBuiltinGeneratorResult  resultGenerator =
                 generator.getGeneratedExpression();
         locals.addAll(resultGenerator.getLocals());
+        boolean loop_opt_performed = this.performLoopInvariantCallStmtOpt(resultGenerator);
         // Add the alloc instructions
-        res.addAll(resultGenerator.getAllocInstructions());
+        if(!loop_opt_performed) res.addAll(resultGenerator.getAllocInstructions());
         res.addAll(resultGenerator.getInstructions());
         // GC calls
-        res.addAll(resultGenerator.
-                getFreeingInstructions());
+        if(!loop_opt_performed) res.addAll(resultGenerator.getFreeingInstructions());
         return res;
     }
 
@@ -1009,11 +1018,12 @@ public class FunctionGenerator {
                 generator.getGeneratedExpression();
         locals.addAll(resultGenerator.getLocals());
         // Add the alloc instructions
-        res.addAll(resultGenerator.getAllocInstructions());
+        boolean loop_opt_performed = this.performLoopInvariantCallStmtOpt(resultGenerator);
+        if(!loop_opt_performed) res.addAll(resultGenerator.getAllocInstructions());
         res.addAll(resultGenerator.getInstructions());
         // GC calls
         if( gcInst.hasInBetweenStmtInstructions() && !generator.doesNotGenerateInstructions()){
-            res.addAll(produceInBetweenExpressionGCIntructions(gcInst,tirStmt.getTargets().size() !=0,
+            res.addAll(produceInBetweenExpressionInstructions(gcInst,tirStmt.getTargets().size() !=0,
                     tirStmt.getTargets().size()>1 ||
                     (tirStmt.getTargets().size() == 1 && !valueAnalysisUtil.isScalar(tirStmt.getTargets().getNameExpresion(0),
                             tirStmt, false))));
@@ -1022,7 +1032,7 @@ public class FunctionGenerator {
                 generator.getGeneratedSetToTarget();
         locals.addAll(targetGenerator.getLocals());
         res.addAll(targetGenerator.getInstructions());
-        res.addAll(resultGenerator.
+        if(!loop_opt_performed) res.addAll(resultGenerator.
                 getFreeingInstructions());
 
         return res;
@@ -1052,7 +1062,7 @@ public class FunctionGenerator {
                 instructions.add(new SetLocal( new Idx(valueAnalysisUtil.genTypedName(target, tirStmt,false))));
         }else{
             if(gcInst.hasInBetweenStmtInstructions())
-                instructions.addAll(produceInBetweenExpressionGCIntructions(gcInst,true,true));
+                instructions.addAll(produceInBetweenExpressionInstructions(gcInst,true,true));
             if(opts.omit_copy_insertion){
                 instructions.add(new Call(new Idx(new Opt<>(new Identifier("clone")), -1)));
                 instructions.add(new SetLocal( new Idx(valueAnalysisUtil.genTypedName(target, tirStmt,false))));
@@ -1077,7 +1087,7 @@ public class FunctionGenerator {
         inst.addAll(expressionGenerator.genExpr(tirStmt.getRHS(), tirStmt));
 
         if(gcInst.hasInBetweenStmtInstructions())
-            inst.addAll(produceInBetweenExpressionGCIntructions(gcInst,true,false));
+            inst.addAll(produceInBetweenExpressionInstructions(gcInst,true,false));
 
         // Set target
         String newName = valueAnalysisUtil.genTypedName(tirStmt.getLHS().getVarName(),tirStmt, false);

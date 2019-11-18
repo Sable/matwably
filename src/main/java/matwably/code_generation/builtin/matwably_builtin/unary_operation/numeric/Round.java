@@ -4,7 +4,7 @@ import ast.ASTNode;
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.F64;
 import matwably.ast.Nearest;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.unary_operation.UnaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 

@@ -3,7 +3,7 @@ package matwably.analysis.memory_management.hybrid;
 import ast.ASTNode;
 import ast.Name;
 import ast.Stmt;
-import matwably.analysis.intermediate_variable.UseDefDefUseChain;
+import matwably.analysis.reaching_definitions.UseDefDefUseChain;
 import matwably.ast.List;
 import matwably.ast.*;
 import matwably.code_generation.stmt.StmtHook;

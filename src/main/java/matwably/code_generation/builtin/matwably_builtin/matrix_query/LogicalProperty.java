@@ -6,7 +6,7 @@ import matwably.ast.ConstLiteral;
 import matwably.ast.Convert;
 import matwably.ast.F64;
 import matwably.ast.I32;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.valueanalysis.components.shape.Shape;
 import natlab.toolkits.analysis.core.Def;

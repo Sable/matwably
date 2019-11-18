@@ -10,6 +10,7 @@ import matwably.code_generation.wasm.MatMachJSError;
 import natlab.tame.tir.TIRArrayGetStmt;
 import natlab.tame.tir.TIRArraySetStmt;
 import natlab.tame.tir.TIRCommaSeparatedList;
+import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.Shape;
 
 import static matwably.code_generation.wasm.MatMachJSError.ARRAY_ACCESS_EXCEEDS_DIMENSION;
@@ -19,6 +20,7 @@ abstract public class MatrixIndexing  extends MatrixOp{
     final Name arrayName;
     private final Shape arrayShape;
     final TIRCommaSeparatedList indices;
+    private final boolean disallow_range_opt;
 
     /**
      * Constructor for class MatWablyBuiltinGenerator
@@ -39,6 +41,8 @@ abstract public class MatrixIndexing  extends MatrixOp{
             throw new MatWablyError.
                     UnsupportedBuiltinCallWithArguments(callName, node, arguments);
         }
+        this.disallow_range_opt = analyses.getProgramOptions()
+                .disallow_range_opt;
         this.indices = arguments;
         this.arrayShape = valueUtil.getShape(arrayName.getID(),node,
                 true);
@@ -104,35 +108,64 @@ abstract public class MatrixIndexing  extends MatrixOp{
                         IndexExceedsMatrixDimensions(callName, node);
             }
         }else if(shapeConstant){
-
-            // Check bounds
-            res.addAll(expressionGenerator.
-                    genNameExpr(indices.getNameExpresion(i),node));
-            res.addAll(new ConstLiteral(new F64(),
-                            1),
-                    new Lt(new F64(),false));
-            res.addAll(MatMachJSError.
-                    generateThrowError(ARRAY_ACCESS_ZERO_OR_NEGATIVE_INDEX));
-
-            if(indices.size() == 1){
+            BasicMatrixValue bmv = valueUtil.getBasicMatrixValue(
+                    indices.getNameExpresion(i).getVarName(),
+                    node, true);
+            // Check range of index if index not constant.
+            if(!this.disallow_range_opt && bmv != null && bmv.hasRangeValue() && bmv.getRangeValue().hasLowerBound() ){
+                int indexValue = bmv.getRangeValue().getLowerBound().getIntValue();
+                if(indexValue <= 0)
+                    throw new MatWablyError.
+                            DimensionArgumentMustBeAPositiveScalar(callName, node);
+            }else{
+                // Check bounds
                 res.addAll(expressionGenerator.
                         genNameExpr(indices.getNameExpresion(i),node));
                 res.addAll(new ConstLiteral(new F64(),
-                                arrayShape.getHowManyElements(i)),
-                        new Gt(new F64(),false));
-            }else{
-                res.addAll(expressionGenerator.
-                        genNameExpr(indices.getNameExpresion(i),node));
-                // Get dimension dynamically
-
-                res.addAll(expressionGenerator.
-                        genName(arrayName,node));
-                res.add(new ConstLiteral(new F64(),i));
-                res.add(new Call(new Idx("mxarray_size_MS_nocheck")));
-                res.addAll(new Gt(new F64(),false));
+                                1),
+                        new Lt(new F64(),false));
+                res.addAll(MatMachJSError.
+                        generateThrowError(ARRAY_ACCESS_ZERO_OR_NEGATIVE_INDEX));
             }
-            res.addAll(MatMachJSError.
-                    generateThrowError(ARRAY_ACCESS_EXCEEDS_DIMENSION));
+            if(indices.size() == 1){
+                int arrLength = arrayShape.getHowManyElements(i);
+                if(!this.disallow_range_opt && bmv != null && bmv.hasRangeValue() &&
+                        bmv.getRangeValue().hasUpperBound() ) {
+                    int indexValue = bmv.getRangeValue().getUpperBound()
+                            .getIntValue();
+                    if (indexValue > arrLength) {
+                        throw new MatWablyError.
+                                IndexExceedsMatrixDimensions(callName, node);
+                    }
+                }else{
+                    res.addAll(expressionGenerator.
+                            genNameExpr(indices.getNameExpresion(i),node));
+                    res.addAll(new ConstLiteral(new F64(),arrLength),
+                            new Gt(new F64(),false));
+                    res.addAll(MatMachJSError.
+                            generateThrowError(ARRAY_ACCESS_EXCEEDS_DIMENSION));
+                }
+            }else{
+                int dimLength = arrayShape.getDimensions().get(i)
+                        .getIntValue();
+                if(bmv != null && bmv.hasRangeValue() &&  bmv.getRangeValue().hasUpperBound()){
+                    int indexValue = bmv.getRangeValue().getUpperBound()
+                            .getIntValue();
+                    if (indexValue > dimLength) {
+                        throw new MatWablyError.
+                                IndexExceedsMatrixDimensions(callName, node);
+                    }
+                }else{
+                    res.addAll(expressionGenerator.
+                            genNameExpr(indices.getNameExpresion(i),node));
+                    // Get dimension dynamically
+                    res.add(new ConstLiteral(new F64(),dimLength));
+                    res.addAll(new Gt(new F64(),false));
+                    res.addAll(MatMachJSError.
+                            generateThrowError(ARRAY_ACCESS_EXCEEDS_DIMENSION));
+                }
+            }
+
         }else if(indexConstant){
             // Check bounds
             res.addAll(new ConstLiteral(new F64(), index.intValue()));

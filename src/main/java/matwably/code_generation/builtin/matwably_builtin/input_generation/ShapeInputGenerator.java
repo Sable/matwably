@@ -2,7 +2,7 @@ package matwably.code_generation.builtin.matwably_builtin.input_generation;
 
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public class ShapeInputGenerator extends AbstractInputGenerator {

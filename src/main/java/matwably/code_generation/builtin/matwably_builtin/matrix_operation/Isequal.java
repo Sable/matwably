@@ -4,7 +4,7 @@ import ast.ASTNode;
 import matwably.ast.*;
 import matwably.code_generation.MatWablyError;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.input_generation.VectorInputGenerator;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.toolkits.analysis.core.Def;

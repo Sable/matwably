@@ -5,7 +5,7 @@ import matwably.ast.Call;
 import matwably.ast.Idx;
 import matwably.code_generation.MatWablyError;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.input_generation.VectorInputGenerator;
 import matwably.code_generation.wasm.macharray.MachArrayIndexing;
 import natlab.tame.tir.TIRCommaSeparatedList;

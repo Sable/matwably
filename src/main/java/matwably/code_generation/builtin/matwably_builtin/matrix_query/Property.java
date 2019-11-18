@@ -3,7 +3,7 @@ package matwably.code_generation.builtin.matwably_builtin.matrix_query;
 import ast.ASTNode;
 import matwably.code_generation.MatWablyError;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 
 public abstract class Property extends MatrixQuery {

@@ -13,5 +13,23 @@ public class BenchmarksTest {
     @TestFactory public Collection<DynamicTest> testBenchmarks(){
         return createTestsFromDir("benchmarks/src","drv");
     }
+    @TestFactory public Collection<DynamicTest> testBenchmarksDisallowTreeExpressionOpt(){
+        return createTestsFromDir("benchmarks/src","drv", "--disallow-variable-elimination");
+    }
+    @TestFactory public Collection<DynamicTest> testBenchmarksDisallowLogicals(){
+        return createTestsFromDir("benchmarks/src","drv", "--disallow-logical");
+    }
+    @TestFactory public Collection<DynamicTest> testBenchmarksDisallowRangeOpt(){
+        return createTestsFromDir("benchmarks/src","drv", "--disallow-range-opt");
+    }
+    @TestFactory public Collection<DynamicTest> testBenchmarksGCDynamic(){
+        return createTestsFromDir("benchmarks/src","drv", "--gc-dynamic");
+    }
+    @TestFactory public Collection<DynamicTest> testBenchmarksDisallowFree(){
+        return createTestsFromDir("benchmarks/src","drv", "--disallow-free");
+    }
+    @TestFactory public Collection<DynamicTest> testBenchmarksOptimizeLoopAllocation(){
+        return createTestsFromDir("benchmarks/src","drv", "--loop-invariant-opt");
+    }
 }
 

@@ -4,7 +4,7 @@ import ast.Function;
 import matwably.MatWablyCommandLineOptions;
 import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
-import matwably.analysis.intermediate_variable.ReachingDefinitions;
+import matwably.analysis.reaching_definitions.ReachingDefinitions;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.analysis.memory_management.hybrid.HybridRCGarbageCollectionAnalysis;
 import matwably.util.InterproceduralFunctionQuery;

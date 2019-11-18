@@ -5,7 +5,6 @@ import ast.NameExpr;
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
 import matwably.code_generation.ExpressionGenerator;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.wasm.macharray.MachArrayIndexing;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.Util;
@@ -29,6 +28,8 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
     protected final InterproceduralFunctionQuery functionQuery;
     protected MatWablyBuiltinGeneratorResult resultExpression = null;
     protected MatWablyBuiltinGeneratorResult resultTarget = null;
+
+
     /**
      *  Returns whether the function is specialized for re-naming purposes.
      *  If we implement classes for all the generated built-in this function will get deprecated.
@@ -163,7 +164,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
             String targetName = targets.getNameExpresion(0).getVarName();
             if(targetIsScalar()){
                 //  Check if its a scalar
-                if(matwably_analysis_set.getLogicalVariableUtil().
+                if( !this.disallow_logicals && matwably_analysis_set.getLogicalVariableUtil().
                         isDefinitionLogical(targetName, (Def)node)){
                     result.addInstruction(new SetLocal(new Idx(Util.getTypedLocalI32(targetName))));
                 }else{

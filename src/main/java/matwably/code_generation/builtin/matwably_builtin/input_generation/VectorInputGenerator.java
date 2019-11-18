@@ -4,7 +4,7 @@ import ast.ColonExpr;
 import ast.NameExpr;
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.ast.*;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.wasm.macharray.MachArrayIndexing;
 import matwably.util.Util;
 import natlab.tame.tir.TIRArrayGetStmt;

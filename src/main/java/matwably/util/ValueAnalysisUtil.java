@@ -2,7 +2,7 @@ package matwably.util;
 
 import ast.*;
 import matjuice.transformer.MJCopyStmt;
-import matwably.analysis.intermediate_variable.UseDefDefUseChain;
+import matwably.analysis.reaching_definitions.UseDefDefUseChain;
 import natlab.tame.tir.TIRCommentStmt;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueFlowMap;

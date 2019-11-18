@@ -24,7 +24,7 @@ public class HybridRCGarbageCollectionAnalysis extends TIRAbstractSimpleStructur
     private final InterproceduralFunctionQuery functionQuery;
     private final MatWablyCommandLineOptions opts;
     private final TIRFunction function;
-    public static boolean Debug = true;
+    public static boolean Debug = false;
 
     /**
      * Base constructor for the analysis

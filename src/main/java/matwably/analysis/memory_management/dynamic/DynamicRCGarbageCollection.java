@@ -1,7 +1,7 @@
 package matwably.analysis.memory_management.dynamic;
 
 import ast.*;
-import matwably.analysis.intermediate_variable.ReachingDefinitions;
+import matwably.analysis.reaching_definitions.ReachingDefinitions;
 import matwably.util.InterproceduralFunctionQuery;
 import matwably.util.ValueAnalysisUtil;
 import natlab.tame.tir.*;

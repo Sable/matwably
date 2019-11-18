@@ -5,7 +5,7 @@ import matwably.ast.ConstLiteral;
 import matwably.ast.Eq;
 import matwably.ast.F64;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.binary_op.LogicalBinaryOp;
 import natlab.tame.tir.TIRCommaSeparatedList;
 

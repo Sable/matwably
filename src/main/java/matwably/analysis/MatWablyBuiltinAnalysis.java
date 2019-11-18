@@ -9,15 +9,13 @@ import matwably.ast.Instruction;
 import matwably.ast.List;
 import matwably.ast.TypeUse;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
 import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorFactory;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Stack;
+import java.util.*;
 
 /**
  * @author dherre3
@@ -71,7 +69,7 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
         this.functionInformation = functionInformation;
         this.matlabFunction = functionInformation.getFunction();
         this.expr_elim_analysis = functionInformation.getTreeExpressionBuilderAnalysis();
-        this.skip_variable_elim = functionInformation.getProgramOptions().skip_variable_elimination;
+        this.skip_variable_elim = functionInformation.getProgramOptions().disallow_variable_elimination;
 
 
     }
@@ -93,7 +91,6 @@ public class MatWablyBuiltinAnalysis extends TIRAbstractNodeCaseHandler {
         MatWablyBuiltinGenerator generator = MatWablyBuiltinGeneratorFactory.getGenerator(callStmt,
                         callStmt.getArguments(),callStmt.getTargets(),
                 callStmt.getFunctionName().getID(), functionInformation);
-
 //        MatWablyBuiltinGeneratorResult result;
 //        if(!this.skip_variable_elim && this.expr_elim_analysis.isStmtRedundant(callStmt)){
 ////            result = generator.generateExpression();

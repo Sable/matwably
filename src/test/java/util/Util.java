@@ -17,6 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class Util {
     public static Collection<DynamicTest> createTestsFromDir(String pathToDir, String glob){
+        return Util.createTestsFromDir(pathToDir,glob,null);
+    }
+    public static Collection<DynamicTest> createTestsFromDir(String pathToDir, String glob, String flag){
+
         try{
             List<String> files =
                     listFilesUsingDirectoryStream(Paths.get(pathToDir), glob);
@@ -24,9 +28,11 @@ public class Util {
             return files.stream().map((pathToFile) ->
                     DynamicTest.dynamicTest(pathToFile,
                             ()->{
-                                String[] args = {pathToFile, "--args", "\"[DOUBLE&1*1&REAL]\""};
+                                String[] args = (flag == null)? new String[]{pathToFile, "--args", "\"[DOUBLE&1*1&REAL]\""}
+                                    :new String[]{pathToFile, "--args", "\"[DOUBLE&1*1&REAL]\"", flag};
+                                System.out.println(String.join(" ", args));
                                 Main.main(args);
-                                assertTrue(true, pathToFile);
+                                assertTrue(true,  String.join(" ", args));
                             })).collect(Collectors.toSet());
         }catch (Exception e){
             throw new Error(e);
@@ -44,7 +50,6 @@ public class Util {
                                 .toString());
                     }
                 }else{
-                    System.out.println(path+glob);
                     fileList.addAll(listFilesUsingDirectoryStream(path, glob));
                 }
             }

@@ -3,7 +3,7 @@ package matwably.code_generation.builtin.matwably_builtin.binary_op.logical.bitw
 import ast.ASTNode;
 import matwably.ast.I32;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.binary_op.logical.Bitwise;
 import natlab.tame.tir.TIRCommaSeparatedList;
 

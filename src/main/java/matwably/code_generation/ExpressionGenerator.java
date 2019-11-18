@@ -7,7 +7,7 @@ import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
 import matwably.ast.*;
 import matwably.ast.List;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
 import matwably.util.LogicalVariableUtil;
 import matwably.util.Util;
@@ -30,7 +30,9 @@ public class ExpressionGenerator {
     private  TreeExpressionBuilderAnalysis expression_builder = null;
     private  MatWablyBuiltinAnalysis builtinAnalysis;
     private  HashMap<Name, List<Instruction>> cached_expression_rebuild = new HashMap<>();
+    private boolean disallow_logicals = false;
     public static boolean Debug = false;
+
     /**
      * Contains the map the NameExpr to expression map.
      */
@@ -39,21 +41,25 @@ public class ExpressionGenerator {
     public ExpressionGenerator(ValueAnalysisUtil valueAnalysisUtil,
                                AmbiguousVariableUtil ambVariableUtil,
                                LogicalVariableUtil logicalVariableUtil,
-                               TreeExpressionBuilderAnalysis expressionBuilderAnalysis){
+                               TreeExpressionBuilderAnalysis expressionBuilderAnalysis,
+                               boolean disallow_logicals){
         this.valueAnalysisUtil  = valueAnalysisUtil;
         this.ambVariableUtil = ambVariableUtil;
         this.logicalVariableUtil = logicalVariableUtil;
         this.expression_builder = expressionBuilderAnalysis;
         this.variable_expression_map = expressionBuilderAnalysis.getUsesToExpressionMap();
+        this.disallow_logicals = disallow_logicals;
         if(Debug) log();
     }
 
     public ExpressionGenerator(ValueAnalysisUtil valueAnalysisUtil,
                                AmbiguousVariableUtil amb_var_util,
-                               LogicalVariableUtil logicalVariableUtil) {
+                               LogicalVariableUtil logicalVariableUtil,
+                               boolean disallow_logicals) {
         this.valueAnalysisUtil  = valueAnalysisUtil;
         this.ambVariableUtil = amb_var_util;
         this.logicalVariableUtil = logicalVariableUtil;
+        this.disallow_logicals = disallow_logicals;
 
     }
 
@@ -132,7 +138,7 @@ public class ExpressionGenerator {
             return res;
         }
 
-        String typedName = (logicalVariableUtil.isUseLogical(name))? Util.getTypedLocalI32(name.getID()):
+        String typedName = (!this.disallow_logicals && logicalVariableUtil.isUseLogical(name))? Util.getTypedLocalI32(name.getID()):
                 valueAnalysisUtil.genTypedName(name.getID(), stmt,true);
         return new List<>( new GetLocal(new Idx(typedName)));
     }

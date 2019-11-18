@@ -4,7 +4,7 @@ import ast.ASTNode;
 import matwably.ast.*;
 import matwably.code_generation.MatWablyFunctionInformation;
 import matwably.code_generation.MatWablyError;
-import matwably.code_generation.builtin.legacy.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
 import matwably.util.Util;
 import natlab.tame.tir.TIRCommaSeparatedList;
@@ -30,7 +30,7 @@ import natlab.tame.valueanalysis.components.shape.Shape;
  * shape we may reuse a's allocation site for the result.
  *
  */
-public abstract class BinaryOp extends MatWablyBuiltinGenerator {
+public abstract class BinaryOp extends MatWablyBuiltinGenerator  {
     @Override
     public boolean isSpecialized() {
         return true;
@@ -97,6 +97,8 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator {
                     node, true);
             Shape targetLHS = valueUtil.getShape(targets.getName(0).getID(),
                     node, false);
+            // This optimization only works because the operation does not read the target array in positions where
+            // we already modified them. This opt is broken, does not consider aliases
             if( this.matwably_analysis_set.getProgramOptions().
                     opt_builtin_alloc_sites &&
                     targetRHS !=null &&

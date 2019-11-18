@@ -14,6 +14,11 @@ import java.util.ArrayList;
  */
 @Parameters(separators = "=")
 public final class MatWablyCommandLineOptions {
+
+    // Contains the list of input files to process
+    @Parameter(description = "Flag to activate range optimization on array " +
+            "lookups", names = {"--disallow-range-opt", "-ro"})
+    public boolean disallow_range_opt = false;
     // Contains the list of input files to process
     @Parameter(description = "The list of files to process")
     public ArrayList<String> input_files = new ArrayList<String>();
@@ -35,7 +40,7 @@ public final class MatWablyCommandLineOptions {
             description = "Option to use old built-in generation")
     public boolean legacy_builtins = false;
 
-    @Parameter(names = {"--inline-wasm"},
+    @Parameter(names = {"--inline-wasm", "-iw"},
             description = "Option to in-line wasm code in a JavaScript UInt8Array instead of using I/O")
     public boolean inline_wasm = false;
 
@@ -56,11 +61,12 @@ public final class MatWablyCommandLineOptions {
     public boolean inline_builtins = false;
 
     // TODO: Place flag in code to make it viable.
-    @Parameter(names = {"--opt-loop-alloc","-la"}, description = "Optimizes allocations " +
+    @Parameter(names = {"--loop-invariant-opt","-li"}, description = "Optimizes allocations " +
             "for intermediate parameters in built-in call " +
             "by pushing allocation outside loops")
     public boolean opt_loop_alloc = false;
 
+    @Deprecated
     @Parameter(names = {"--opt-builtin-alloc","-ba"}, description = "Optimizes allocations for built-in call " +
             "re-using particular sites")
     public boolean opt_builtin_alloc_sites = false;
@@ -68,9 +74,9 @@ public final class MatWablyCommandLineOptions {
     @Parameter(names = {"--disallow-free", "-nf"}, description = "Takes away free calls from code, results in memory leakage")
     public boolean disallow_free = false;
 
-    @Parameter(names = {"--skip-variable-elimination","-e"},
+    @Parameter(names = {"--disallow-variable-elimination","-e"},
             description = "Option to turn on intermediate variable elimination")
-    public boolean  skip_variable_elimination = false;
+    public boolean disallow_variable_elimination = false;
 
     @Parameter(names = {"-o","--output-file"},description = "Outfile to place code")
     public String output_file;

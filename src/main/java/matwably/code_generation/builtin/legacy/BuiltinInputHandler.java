@@ -1,5 +1,6 @@
 package matwably.code_generation.builtin.legacy;
 
+import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
 import natlab.tame.tir.TIRCommaSeparatedList;
 import natlab.tame.tir.TIRNode;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
