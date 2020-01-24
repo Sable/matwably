@@ -5,6 +5,7 @@ apply plugin: 'application'
 apply plugin: 'idea'
 mainClassName = "matwably.Main"
 sourceCompatibility = 1.8
+
 repositories {
     mavenCentral()
 }
@@ -66,7 +67,6 @@ task copyToLib(type: Copy) {
 tasks.withType(Jar) {
     destinationDir = file("$buildDir/lib")
 }
-
 
 task copyMatmachjsLib(type: Copy) {
     if(project.hasProperty("MATMACHJS_LIB")){

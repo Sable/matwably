@@ -41,7 +41,7 @@ public abstract class  McLabBuiltinGenerator<Res extends McLabBuiltinGenerationR
     public abstract boolean isSpecialized();
 
     public boolean returnsList() {
-        return targets.size() > 0;
+        return targets.size() > 1;
     }
     public boolean returnsSingleTarget() {
         return targets.size() == 1;

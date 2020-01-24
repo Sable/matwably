@@ -66,12 +66,12 @@ public class DynamicGCCallInsertion {
             this.function.analyze(this);
             // Check if there is a stmt, if there is adds the instructions
             // for inputs
-            if(this.function.hasStmt()){
+            if( this.function.hasStmt() ){
                 StmtHook stmtHookFunctionTop =
                         map_instructions.get(this.function.getStmt(0));
                 stmtHookFunctionTop.addLocals(this.locals_input_parameters);
                 stmtHookFunctionTop.insertBeforeInstructions(input_set_external);
-                map_instructions.put(this.function.getStmt(0),stmtHookFunctionTop);
+                map_instructions.put( this.function.getStmt(0),stmtHookFunctionTop );
             }
             return map_instructions;
         }
@@ -82,8 +82,8 @@ public class DynamicGCCallInsertion {
          */
         private void analyzeInputParameters() {
             this.function.getInputParamList().
-                    forEach((Name name)->{
-                        if(!this.valueAnalysis.isArgumentScalar(name)){
+                    forEach( (Name name) -> {
+                        if(!this.valueAnalysis.isArgumentScalar(name)) {
                             TypeUse typeUse = Util.genI32TypeUse();
                             input_set_external.addAll(setExternalFlag(name.getID(), typeUse.
                                     getIdentifier().getName()));
@@ -179,7 +179,6 @@ public class DynamicGCCallInsertion {
         @Override
         public void caseTIRReturnStmt(TIRReturnStmt tirReturnStmt) {
             super.caseTIRReturnStmt(tirReturnStmt);
-
             // Process all the set external flags
             this.map_instructions.get(tirReturnStmt).
                     addBeforeInstruction(this.input_reset_external);

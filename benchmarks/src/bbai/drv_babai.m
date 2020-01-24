@@ -5,5 +5,4 @@ function drv_babai(size)
     [vec] = babai(R, Y);
 	t = toc();
   disp(t);
-	
 end

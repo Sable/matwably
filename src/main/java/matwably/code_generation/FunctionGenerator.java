@@ -204,9 +204,8 @@ public class FunctionGenerator {
                 hookMap.addHookMap(HybridGCCallInsertionMap.
                         generateInstructions(matlabFunction, gcA, udChain));
             }else{
-                DynamicRCGarbageCollection dynGC = new
-                        DynamicRCGarbageCollection(matlabFunction,
-                        valueAnalysisUtil, interproceduralFunctionQuery, defs);
+                DynamicRCGarbageCollection dynGC = new DynamicRCGarbageCollection(matlabFunction,
+                        valueAnalysisUtil, defs);
                 dynGC.analyze();
                 hookMap.addHookMap(DynamicGCCallInsertion.
                         generateInstructions(matlabFunction, dynGC,

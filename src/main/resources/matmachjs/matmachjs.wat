@@ -7841,6 +7841,7 @@ return)
     i32.const 1
     i32.eq
     if 
+        (call $free_macharray (get_local $dim_ptr))
         (set_local $dim_ptr (call $size (call $get_array_index_i32 (get_local $indices_ptr)(i32.const 1))))
             get_local $arr_ptr
             call $iscolumn
@@ -12330,9 +12331,7 @@ return)
 (func $gcCheckExternalAndReturnFlagToFreeSite (param i32 i32)(result i32)
     (local $flags i32)(local $i i32)(local $top i32)
     ;; %gc-time-start
-    get_local 0
     get_local 1
-    i32.and
     if
         get_local 0
         i32.load offset=0 align=4
@@ -12417,7 +12416,7 @@ return)
         end
     end
     ;; %gc-time-end
- ) 
+) 
 (export "gcInitiateRC" (func $gcInitiateRC))
 (func $gcInitiateRC (param $arr i32)(param $rc i32)
     ;; %gc-time-start
@@ -12498,12 +12497,10 @@ return)
     ;; %gc-time-end
 )
 (export "gcCheckReturnFlagToFreeSite" (func $gcCheckReturnFlagToFreeSite))
-(func $gcCheckReturnFlagToFreeSite (param i32 i32)(result i32)
+(func $gcCheckReturnFlagToFreeSite (param i32 i32)
     (local $i i32)(local $top i32)
     ;; %gc-time-start
-    get_local 0
     get_local 1
-    i32.and
     if 
         get_local 0
         i32.load offset=0 align=4
@@ -12520,7 +12517,6 @@ return)
                 i32.eq
                 if
                     ;; If site found return!
-                    i32.const 0
                     ;; %gc-time-end
                     return
                 end
@@ -12553,12 +12549,10 @@ return)
             i32.add
             i32.store offset=0 align=4 
             (call $free_macharray (get_local 1))
-            i32.const 1 
             ;; %gc-time-end
             return 
         end
     end   
-    i32.const 0
     ;; %gc-time-end
 )
 (export "gcFreeSite" (func $gcFreeSite))

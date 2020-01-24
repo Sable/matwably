@@ -161,6 +161,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
             // Cases where we have a function call return a value. In MatWably, we may never have multiple return
             // values due to the _wasm_ restrictions, therefore, we have to just drop a single value.
         }else if(returnsSingleTarget()){
+
             String targetName = targets.getNameExpresion(0).getVarName();
             if(targetIsScalar()){
                 //  Check if its a scalar
@@ -180,6 +181,7 @@ public abstract class MatWablyBuiltinGenerator extends McLabBuiltinGenerator<Mat
             result.addInstruction(new TeeLocal(new Idx(targetCall)));
             int i = 0;
             if(targetIsScalarVector()) {
+
                 for(NameExpr nameExpr: targets.getNameExpressions()){
                     result.addInstructions(MachArrayIndexing.getArrayIndexF64(targetCall, i));
                     String arg_f64 = Util.getTypedLocalF64(nameExpr.getName().getID());

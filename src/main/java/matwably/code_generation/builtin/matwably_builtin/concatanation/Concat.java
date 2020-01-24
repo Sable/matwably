@@ -35,8 +35,6 @@ public abstract class Concat extends MatWablyBuiltinGenerator {
 
     @Override
     public void validateInput() {
-        // Could check for incompatible shapes,
-        // but since run-time function will already
-        // do that forge it!
+        // Could check for incompatible shapes
     }
 }

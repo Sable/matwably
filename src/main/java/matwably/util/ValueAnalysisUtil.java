@@ -233,10 +233,14 @@ public class ValueAnalysisUtil {
                         .getOutFlowSets()
                         .get(node)
                         .get(name);
-
             }
         }
-
+        if(val != null){
+            System.out.println("Name: "+name);
+            System.out.println(node.getPrettyPrinted());
+            System.out.println(val);
+            System.out.println("End");
+        }
         if (val != null && val.getSingleton() instanceof BasicMatrixValue) return (BasicMatrixValue) val.getSingleton();
         return null;
 

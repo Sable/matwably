@@ -7,7 +7,7 @@ aspect PrettyPrinter {
 
     }
     Declaration implements IASTNode;
-    Instruction implements IASTNode; // TODO: Change to instruction
+    Instruction implements IASTNode;
 
     public abstract void Instruction.accept(ASTConcreteNodeVisitor visitor);
 
