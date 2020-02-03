@@ -5848,7 +5848,7 @@ return)
 
     ;; Set  strides of array
     get_local $header_pointer
-    i32.const  24;; ((8*2) bytes for each dimension +  8 capacity)
+    i32.const  24 ;; ((8*2) bytes for each dimension +  8 capacity)
     call $malloc
     tee_local $strides_ptr
     i32.const 8
@@ -7244,8 +7244,8 @@ return)
 (export "set_f64" (func $set_f64))
 (func $set_f64 (param $array_ptr i32)(param $indices_ptr i32)(param $values_ptr i32)
     (local $shape_ptr i32)(local $dim_ptr i32)(local $dim_change i32)
-
-
+    
+    
     get_local $array_ptr
     call $is_null
     get_local $indices_ptr
@@ -7258,14 +7258,15 @@ return)
         i32.const 6
         call $throwError
     end
-
+    
     get_local $array_ptr 
     get_local $array_ptr
-
+    
     call $size
     tee_local $shape_ptr
     get_local $indices_ptr
     get_local $values_ptr
+    
     call $verify_set_dimensions_and_values ;; Verify values
     
 
@@ -7285,7 +7286,7 @@ return)
             (set_local $dim_change (i32.const -2))
         end
     end
-
+    
 ;;    get_local $array_ptr
     get_local $values_ptr
     get_local $array_ptr
@@ -7298,7 +7299,7 @@ return)
     i32.const 0 ;; offset_ind
     i32.const 1 ;; is_set_colon
     call $get_or_set_colon
-
+    
     get_local $dim_change
     i32.const -2
     i32.eq
@@ -7306,7 +7307,6 @@ return)
         (call $free_macharray (get_local $values_ptr))
     end
     (call $free_macharray (get_local $shape_ptr))
-  
 )
 (func $create_colon_obj_1d (param $arr_ptr i32)(param $dim i32)(param $num i32)(param $low f64)(param $high f64) (param $step f64)(result i32)
     (local $shape_data_ptr i32)
@@ -7753,7 +7753,7 @@ return)
     (local $multi_index_len i32)
     ;; Get total array length
     (set_local $len_arr (i32.load offset=4 align=4 (get_local $arr_ptr)))
-
+    
     ;; Get length of indices
     (tee_local $length_indices (i32.load offset=4 align=4 (get_local $indices_ptr)))
     i32.const 1
@@ -8025,7 +8025,7 @@ return)
 (export "reshape" (func $reshape))
 (func $reshape (param $arr_ptr i32)(param $dim_array i32) (result i32)
     (local $dim_number i32)(local $array_length f64)(local $input_dim_array_byte_size i32)
-    (local $loop_dim_number i32)(local $temp f64)(local $i i32)(local $dim_array_ptr i32)
+    (local $loop_dim_number i32)(local $temp f64)(local $i i32)(local $dim_array_ptr i32)(local $stride_array_ptr i32)
     (local $input_dim_array_ptr i32)
     get_local $arr_ptr
     call $is_null
@@ -8063,7 +8063,7 @@ return)
 
     ;; Set dimensions and calculate array length
     (set_local $array_length (f64.const 1))
-            
+
     loop
         block ;; array iteration
         (i32.eq (get_local $i)(get_local $loop_dim_number))
@@ -8091,6 +8091,7 @@ return)
     get_local $arr_ptr
     i32.load offset=4 align=4
     i32.eq
+    
     if
         get_local $arr_ptr
         get_local $dim_array_ptr
@@ -8099,12 +8100,13 @@ return)
         get_local $dim_number
         i32.store offset=12 align=4
     else
+        (call $free_macharray (get_local $dim_array_ptr))
         ;; Length of reshape not the same
         i32.const 8
+        call $printDouble
         call $throwError
     end
     get_local $arr_ptr
-
 )
 
 
@@ -12455,7 +12457,7 @@ return)
     ;; %gc-time-start
     get_local 0
     if
-        ;; %gc-macharray-allocation
+
         get_local 0
         get_local 0
         i32.load8_u offset=24 align=1
@@ -12667,15 +12669,10 @@ return)
 )
 ;; We know its a brand new macharray if the RC is 0 so far.
 (func $gcMachArrayAllocation (param i32)
-    get_local 0 
-    call $gcGetRC
-    i32.eqz
-    if
-        get_global $TOTAL_ALLOCATED_MACHARRAYS
-        i32.const 1
-        i32.add
-        set_global $TOTAL_ALLOCATED_MACHARRAYS
-    end
+    get_global $TOTAL_ALLOCATED_MACHARRAYS
+    i32.const 1
+    i32.add
+    set_global $TOTAL_ALLOCATED_MACHARRAYS
 )
 
 (func $gcRecordFreeing (param i32)

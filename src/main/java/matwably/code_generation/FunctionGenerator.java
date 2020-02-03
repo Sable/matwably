@@ -119,10 +119,10 @@ public class FunctionGenerator {
 
         // Builds the hooks to place before, inBetween, and afterStmt
         // Add copy of parameters
-        Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(matlabFunction);
-        ParameterCopyTransformer.apply(matlabFunction, writtenParams);
         // Perform copy insertion
         if(!opts.omit_copy_insertion) {
+            Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(matlabFunction);
+            ParameterCopyTransformer.apply(matlabFunction, writtenParams);
             performCopyInsertion();
         }
 

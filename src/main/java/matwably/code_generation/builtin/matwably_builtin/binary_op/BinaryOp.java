@@ -81,9 +81,9 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator  {
 
     public MatWablyBuiltinGeneratorResult generateExpression(){
         MatWablyBuiltinGeneratorResult result = new MatWablyBuiltinGeneratorResult();
-
         boolean arg1IsScalar = valueUtil.isScalar(arguments.getNameExpresion(0),node,true);
         boolean arg2IsScalar = valueUtil.isScalar(arguments.getNameExpresion(1),node,true);
+
         Shape arg1Shape = valueUtil.getShape(arguments.getNameExpresion(0),node,true);
         Shape arg2Shape = valueUtil.getShape(arguments.getNameExpresion(1),node,true);
 
@@ -110,12 +110,12 @@ public abstract class BinaryOp extends MatWablyBuiltinGenerator  {
             }else{
                 result.addInstruction(new ConstLiteral(new I32(),0));
             }
-            // Lets try to generateInstructions same size, broadcasting, SM, MS specializations when possible.
-            if(arg1IsScalar){
+            // Generate instructions same size, broadcasting, SM, MS specializations when possible.
+            if( arg1IsScalar ){
                 result.addInstruction(new Call(new Idx(generatedCallName+"_SM")));
-            }else if(arg2IsScalar){
+            }else if( arg2IsScalar ){
                 result.addInstruction(new Call(new Idx(generatedCallName+"_MS")));
-            }else if(arg1Shape != null && arg2Shape!=null){
+            }else if( arg1Shape != null && arg2Shape!=null ){
                 int inputsAreBroadcastable = arg1Shape.isCompatible(arg2Shape);
                 if(arg1Shape.equals(arg2Shape)){
                     // generateInstructions call for same shape
