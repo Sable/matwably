@@ -16,16 +16,8 @@ package matwably;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import matwably.ast.Module;
+import matwably.code_generation.MatWablyProgram;
 import matwably.code_generation.ProgramGenerator;
-import matwably.optimization.peephole.PeepholeOptimizer;
-import matwably.pretty.PrettyPrinter;
-import natlab.tame.BasicTamerTool;
-import natlab.tame.valueanalysis.ValueAnalysis;
-import natlab.tame.valueanalysis.aggrvalue.AggrValue;
-import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
-import natlab.toolkits.filehandling.GenericFile;
-import natlab.toolkits.path.FileEnvironment;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,6 +32,20 @@ public class Main {
 
     public static void main(String[] argv)
     {
+        MatWablyCommandLineOptions opts = getMatWablyProgramOptions(argv);
+        // Generate Matlab program
+        MatWablyProgram program = ProgramGenerator.generate(opts);
+        writeToFile(opts.basename_output_file +".wat", program.toString(),
+                "Error generating programs Wasm text file\n");
+        compileWastProgram(opts.basename_output_file +".wat", opts.basename_output_file +".wasm",
+                opts.generate_wat_file, opts.verbose);
+        writeToFile(opts.basename_output_file +".js",
+                packageMatWablyProgram(opts.basename_output_file +".wasm",
+                        program.getEntryFunctionName(),
+                        opts.inline_wasm), "Error generating final packaged .js file");
+    }
+
+    private static MatWablyCommandLineOptions getMatWablyProgramOptions(String[] argv) {
         // Parse command line options
         MatWablyCommandLineOptions opts = new MatWablyCommandLineOptions();
         JCommander optParse = null;
@@ -50,98 +56,93 @@ public class Main {
             throw new Error(e.getMessage());
         }
         optParse.setProgramName("MatWably");
-
         // Print usage if asked for help
         if( opts.help )
         {
             optParse.usage();
             System.exit(0);
         }
-        // get args to entry function
-        String[] args_entry_function = opts.getEntryFunctionArgs(optParse);
+        return opts;
+    }
 
-        // Generate McLab File and perform value analysis to optain call graph.
-        GenericFile gfile = opts.getGenericFile();
-        FileEnvironment fenv = new FileEnvironment(gfile);
-        ValueAnalysis<AggrValue<BasicMatrixValue>> analysis = BasicTamerTool.analyze(args_entry_function, fenv);
-
-        // Interface to query inter-procedurally.
-
-        // Generate program
-        ProgramGenerator pg = new ProgramGenerator(analysis, opts);
-        // Generate Matlab program
-        Module module = pg.genProgram();
-        // Pretty print program
-        PrettyPrinter prettyPrinter = new PrettyPrinter(module);
-        // Call Peephole optimizer works at the Wasm level.
-        if(opts.peephole){
-            PeepholeOptimizer peep = new PeepholeOptimizer(module);
-            peep.optimize();
-            if(opts.verbose){
-                log(peep.getFrequenciesAsCsvString());
-            }
-        }
-
-        FileWriter out;
+    private static void writeToFile(String outputFile, String outputFileContent, String errorMessage){
         try{
-            out = new FileWriter(opts.basename_output_file+".wat");
-            out.write(prettyPrinter.toString());
-            out.close();
-        }catch(Exception e){
-            throw new Error("Error writing to file: "+ opts.output_file+e);
-
-        }
-
-        try{
-            String wasmFile = opts.basename_output_file+".wasm";
-
-            // Compile wat file to wasm.
-            Process process = Runtime.getRuntime().exec(
-                    "wat2wasm " +opts.basename_output_file+".wat -o "+ wasmFile);
-            if(opts.verbose)
-                log("wat2wasm " +opts.basename_output_file+".wat -o "+ wasmFile);
-            int exitFlag = process.waitFor();
-            if(exitFlag == 1)
-                throw new Error("Error: compilation of wat file failed: \n"+
-                        readStreamIntoString(process.getErrorStream()));
-            // Do not generateInstructions wat file based on command line opt.
-            if(!opts.generate_wat_file)
-                    Runtime.getRuntime().exec("rm "+opts.basename_output_file+".wat");
-
-            // Decide which loader to use
-            String loader = readStreamIntoString((opts.inline_wasm)?
-                        Main.class.getResourceAsStream("/inline_wasm_module_loader.js"):
-                        Main.class.getResourceAsStream("/wasm_module_loader.js"));
-            StringBuilder outfileBuilder = new StringBuilder();
-            String js_support_lib = readStreamIntoString(Main.class.getResourceAsStream("/matmachjs/matmachjs-lib.js"));
-            if(opts.inline_wasm){
-                Runtime.getRuntime().exec("rm "+ opts.basename_output_file+".wasm");
-                // Create array with wasm module in hex bytes
-                outfileBuilder.append("let wasmModuleHexString = \"");
-                outfileBuilder.append(readStreamIntoHexString(new FileInputStream(new File(wasmFile))));
-                outfileBuilder.append("\";\n");
-            }
-            if(opts.inline_wasm){
-                loader = String.format(loader,
-                        pg.getMainNode().getGeneratedFunctionName());
-            }else{
-                loader = String.format(loader,  wasmFile,
-                        pg.getMainNode().getGeneratedFunctionName());
-
-            }
-            // Append library
-            outfileBuilder.append(js_support_lib);
-            // Append loader
-            outfileBuilder.append(loader);
             // Load file in
-            FileWriter wasmOut= new FileWriter(opts.basename_output_file+".js");
-            wasmOut.write(outfileBuilder.toString());
+            FileWriter wasmOut= new FileWriter(outputFile);
+            wasmOut.write(outputFileContent);
             wasmOut.close();
-        }catch ( IOException | InterruptedException ex){
+        }catch ( IOException ex){
+            throw new Error(errorMessage + ex.getMessage());
+        }
+    }
+    private static void generateOutputFile(String outputFile, String outputProgramContent) {
+        try{
+            // Load file in
+            FileWriter wasmOut= new FileWriter(outputFile);
+            wasmOut.write(outputProgramContent);
+            wasmOut.close();
+        }catch ( IOException ex){
             throw new Error("Error compiling to wasm: \n"+ ex.getMessage());
         }
     }
 
+    private static String packageMatWablyProgram(String generatedWasmFile, String entryFunctionName, boolean inline_wasm){
+        try{
+            StringBuilder outfileBuilder = new StringBuilder();
+            // Decide which loader to use
+            String loader = readStreamIntoString((inline_wasm)?
+                    Main.class.getResourceAsStream("/inline_wasm_module_loader.js"):
+                    Main.class.getResourceAsStream("/wasm_module_loader.js"));
+            if(inline_wasm){
+                loader = String.format(loader, entryFunctionName);
+            }else{
+                loader = String.format(loader,  generatedWasmFile, entryFunctionName);
+            }
+            if(inline_wasm){
+                // Create array with wasm module in hex bytes
+                String resultingWasmModule = String.format("let wasmModuleHexString = \"%s\"",
+                        readStreamIntoHexString(new FileInputStream(new File(generatedWasmFile))));
+                Runtime.getRuntime().exec("rm "+generatedWasmFile);
+                outfileBuilder.append(resultingWasmModule);
+            }
+            // Append library
+            String js_support_lib = readStreamIntoString(Main.class.getResourceAsStream("/matmachjs/matmachjs-lib.js"));
+            outfileBuilder.append(js_support_lib);
+            // Append loader
+            outfileBuilder.append(loader);
+            return outfileBuilder.toString();
+        }catch ( IOException ex){
+            throw new Error("Error creating packaged file: \n"+ ex.getMessage());
+        }}
+
+    private static void compileWastProgram(String inWastFile, String outWasmFile,
+                                             boolean rmWastFile, boolean verbose){
+        try{
+            // Compile wat file to wasm.
+            String command = "wat2wasm " +inWastFile+" -o "+ outWasmFile;
+            if(verbose) log(command);
+            Process process = Runtime.getRuntime().exec(command);
+            if(process.waitFor() == 1) throw new Error("Error: compilation of wat file failed: \n"+
+                        readStreamIntoString(process.getErrorStream()));
+            // Remove wat file
+            String deleteCommand = "rm "+inWastFile;
+            if(verbose) log(deleteCommand);
+            if(rmWastFile) Runtime.getRuntime().exec(deleteCommand);
+        }catch ( IOException | InterruptedException ex){
+            throw new Error("Error compiling to wast file to wasm: \n"+ ex.getMessage());
+        }
+    }
+
+    private static void writeProgramToWastFile(String outputFile, String program) {
+        FileWriter out;
+        try{
+            out = new FileWriter(outputFile);
+            out.write(program);
+            out.close();
+        }catch(Exception e){
+            throw new Error("Error writing to file wast file: "+ outputFile + e);
+        }
+    }
 
 
     /**

@@ -28,14 +28,15 @@ import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 import natlab.toolkits.analysis.core.Def;
 
+import java.util.Collection;
 import java.util.HashMap;
 
 public class Locals {
-    public  HashMap<String, TypeUse> apply(TIRFunction func, ValueAnalysisUtil valueAnalysisUtil,
-                                           LogicalVariableUtil logicalVariableUtil, boolean disallow_logicals){
+    public  static Collection<TypeUse> getLocals(TIRFunction func, ValueAnalysisUtil valueAnalysisUtil,
+                                                 LogicalVariableUtil logicalVariableUtil, boolean disallow_logicals){
         LocalsFinder finder = new LocalsFinder(valueAnalysisUtil, logicalVariableUtil,disallow_logicals);
         func.analyze(finder);
-        return finder.names_mapping;
+        return finder.names_mapping.values();
     }
 
 

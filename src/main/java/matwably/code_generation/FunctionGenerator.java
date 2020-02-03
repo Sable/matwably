@@ -14,13 +14,13 @@ import matwably.analysis.MatWablyBuiltinAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableAnalysis;
 import matwably.analysis.ambiguous_scalar_analysis.AmbiguousVariableUtil;
 import matwably.analysis.intermediate_variable.NodeDepthCollector;
-import matwably.analysis.reaching_definitions.ReachingDefinitions;
 import matwably.analysis.intermediate_variable.TreeExpressionBuilderAnalysis;
-import matwably.analysis.reaching_definitions.UseDefDefUseChain;
 import matwably.analysis.memory_management.dynamic.DynamicGCCallInsertion;
 import matwably.analysis.memory_management.dynamic.DynamicRCGarbageCollection;
 import matwably.analysis.memory_management.hybrid.HybridGCCallInsertionMap;
 import matwably.analysis.memory_management.hybrid.HybridRCGarbageCollectionAnalysis;
+import matwably.analysis.reaching_definitions.ReachingDefinitions;
+import matwably.analysis.reaching_definitions.UseDefDefUseChain;
 import matwably.ast.*;
 import matwably.code_generation.builtin.MatWablyBuiltinGenerator;
 import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
@@ -35,7 +35,6 @@ import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.value.Args;
 import natlab.toolkits.rewrite.TempFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -51,10 +50,9 @@ public class FunctionGenerator {
 
 
     private MatWablyCommandLineOptions opts;
-    private List<TypeUse> output_parameters;
-    private List<TypeUse> locals;
-    private List<TypeUse> parameters;
-    private HashMap<String, TypeUse> local_map;
+    private List<TypeUse> output_parameters = new List<>();
+    private List<TypeUse> locals = new List<>();
+    private List<TypeUse> parameters = new List<>();
     private Stack<LoopMetaInformation> loopStack = new Stack<>();
     private MatWablyBuiltinAnalysis builtin_analysis;
     private TreeExpressionBuilderAnalysis elim_var_analysis = null;
@@ -94,13 +92,10 @@ public class FunctionGenerator {
         this.analysisFunction = analysisFunction;
         this.matlabFunction = analysisFunction.getTree();
         this.interproceduralFunctionQuery = functionQuery;
-        this.output_parameters = new List<>();
-        this.parameters = new List<>();
-        this.locals = new List<>();
         this.functionAnalyses = new MatWablyFunctionInformation(analysisFunction.getTree(),
                 analysisFunction, functionQuery, opts);
     }
-    public String genFunctionName() {
+    public static String genFunctionName(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction) {
         TIRFunction func = analysisFunction.getTree();
         Args<AggrValue<BasicMatrixValue>> args =  analysisFunction.getArgs();
         StringBuilder suffix = new StringBuilder(func.getName().getID()+"_");
@@ -216,39 +211,48 @@ public class FunctionGenerator {
     /**
      * Node adds a return stmt as the last stmt, only if the
      * last statement is not already a return.
-     * @param tirFunction TameIR Function node to add return to.
      */
-    private boolean checkAndAddReturnStmt(TIRFunction tirFunction) {
-        TIRStatementList tirStmts = tirFunction.getStmtList();
+    private boolean checkAndAddReturnStmt() {
+        TIRStatementList tirStmts = matlabFunction.getStmtList();
         if (tirStmts.getChild(tirStmts.getNumChild()-1).getClass()
                 != TIRReturnStmt.class) {
-            TIRStatementList stmts = tirFunction.getStmtList();
+            TIRStatementList stmts = matlabFunction.getStmtList();
             TIRReturnStmt ret = new TIRReturnStmt();
             stmts.add((Stmt) ret);
-            tirFunction.setStmtList(stmts);
+            matlabFunction.setStmtList(stmts);
             return true;
         }
         return false;
+    }
+    public static Function generate(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysisFunction,
+                                    InterproceduralFunctionQuery functionQuery,
+                                    MatWablyCommandLineOptions opts){
+        FunctionGenerator funGenerator = new FunctionGenerator(analysisFunction, functionQuery, opts);
+        // Adds return statement as the last stmt of
+        boolean returnAdded = funGenerator.checkAndAddReturnStmt();
+        funGenerator.runAnalyses(returnAdded);
+        return funGenerator.genFunction();
     }
     /**
      * Function generator method, takes a tamer function as input
      * and generates a WebAssembly function
      */
-    public Function genFunction(){
-        // Adds return statement as the last stmt of
-        boolean returnAdded = checkAndAddReturnStmt(matlabFunction);
-        runAnalyses(returnAdded);
+    private Function genFunction(){
 
-        // Setting function name and signature setting output_parameters
-        Type funcType = genSignature();
-        String function_name = genFunctionName();
         // Setting locals
-        Locals localsAnalysis = new Locals();
-        local_map = localsAnalysis.apply(matlabFunction,
+        locals.addAll(Locals.getLocals(matlabFunction,
                 functionAnalyses.getValueAnalysisUtil(),
                 functionAnalyses.getLogicalVariableUtil(),
-                opts.disallow_logicals);
-        locals.addAll(local_map.values());
+                opts.disallow_logicals));
+        // Set the locals
+        setScrapFunctionLocals();
+
+        // Setting return function, automatically adds return statements for variables
+        return new Function(new Opt<>(new Identifier(genFunctionName(this.analysisFunction))),
+                genSignature(), locals, new Expression(genStmtList(matlabFunction.getStmtList())));
+    }
+
+    private void setScrapFunctionLocals() {
         // Set scrip register
         TypeUse scrapLocal = Util.genI32TypeUse();
         locals.add(scrapLocal);
@@ -259,12 +263,6 @@ public class FunctionGenerator {
         this.f64_scrap_local = scrapLocalF64.getIdentifier().getName();
         functionAnalyses.setScrapLocals(this.i32_scrap_local,
                 this.f64_scrap_local);
-        // Setting instructions
-        List<Instruction> instructions = genStmtList(matlabFunction.getStmtList());
-
-        Expression exp = new Expression(instructions);
-        // Setting return function, automatically adds return statements for variables
-        return new Function(new Opt<>(new Identifier(function_name)),funcType, locals, exp );
     }
 
     /**
@@ -482,7 +480,7 @@ public class FunctionGenerator {
         return false;
     }
     /**
-     * Helper method to generate instructions in between gc instructions
+     * Helper method to genFunction instructions in between gc instructions
      * @param gcInst StmtHook
      * @param returnsATarget Whether the function returns a target
      * @param arrayTarget Whether the return value is an array target

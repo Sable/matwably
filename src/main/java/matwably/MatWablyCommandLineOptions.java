@@ -104,13 +104,12 @@ public final class MatWablyCommandLineOptions {
      * @param commander {@link JCommander} object
      * @return An array of formatted string arguments.
      */
-    public String[] getEntryFunctionArgs( JCommander commander)
+    public String[] getEntryFunctionArgs()
     {
 //      "[DOUBLE&1*1&REAL]";
         if(!this.args.isEmpty() && (!this.args.contains("[")|| !this.args.contains("]")))
         {
             System.err.println("Error: Invalid format for arguments to entry function, check usage\n");
-            commander.usage();
             System.exit(1);
         }
         return  this.args.replaceAll("\\[|\\]","")
