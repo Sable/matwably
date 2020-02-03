@@ -21,6 +21,7 @@ abstract public class MatrixIndexing  extends MatrixOp{
     private final Shape arrayShape;
     final TIRCommaSeparatedList indices;
     private final boolean disallow_range_opt;
+    private final boolean ignore_bound_checks;
 
     /**
      * Constructor for class MatWablyBuiltinGenerator
@@ -41,6 +42,7 @@ abstract public class MatrixIndexing  extends MatrixOp{
             throw new MatWablyError.
                     UnsupportedBuiltinCallWithArguments(callName, node, arguments);
         }
+        this.ignore_bound_checks = analyses.getProgramOptions().ignore_bounds_check;
         this.disallow_range_opt = analyses.getProgramOptions()
                 .disallow_range_opt;
         this.indices = arguments;
@@ -54,13 +56,15 @@ abstract public class MatrixIndexing  extends MatrixOp{
         // Compute index
         result.addAll(expressionGenerator.
                 genNameExpr(indices.getNameExpresion(0),node));
-        result.addAll(computeIndexChecks(0));
+        if(!this.ignore_bound_checks)
+            result.addAll(computeIndexChecks(0));
         result.addAll(new List<>(
                 new ConstLiteral(new F64(),1),
                 new Sub(new F64())));
         for (int i = 1; i < indices.size(); ++i) {
 
-            result.addAll(computeIndexChecks(i));
+            if(!this.ignore_bound_checks)
+                result.addAll(computeIndexChecks(i));
 
             if (stride != null && stride[i] != null) {
                 result.add(new ConstLiteral(new F64(), stride[i]));

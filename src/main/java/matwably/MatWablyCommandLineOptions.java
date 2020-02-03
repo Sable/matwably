@@ -35,11 +35,6 @@ public final class MatWablyCommandLineOptions {
             description = "Option to turn on the peephole optimizer, default is on")
     public boolean peephole = false;
 
-    // TODO: Add this capability to the main file.
-    @Parameter(names = {"--legacy-builtins"},
-            description = "Option to use old built-in generation")
-    public boolean legacy_builtins = false;
-
     @Parameter(names = {"--inline-wasm", "-iw"},
             description = "Option to in-line wasm code in a JavaScript UInt8Array instead of using I/O")
     public boolean inline_wasm = false;
@@ -52,6 +47,9 @@ public final class MatWablyCommandLineOptions {
             description = "Verbose information for program")
     public boolean verbose = false;
 
+    @Parameter(names = {"--ignore-bounds-check","-ib"},
+            description = "Compiler option to ignore bound checks")
+    public boolean ignore_bounds_check = false;
     @Parameter(names = {"--gen-wast","-w"},
             description = "Option to also generateInstructions a wat file for the resulting wasm, default is true")
     public boolean generate_wat_file = false;

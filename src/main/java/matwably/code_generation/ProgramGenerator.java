@@ -103,8 +103,7 @@ public class ProgramGenerator {
         }
         this.mainNode = this.generateFunction(analysis.getMainNode());
         // Generate all functions
-        this.analysis.getNodeList().forEach(node->
-                this.generateFunction( node));
+        this.analysis.getNodeList().forEach(this::generateFunction);
         return wasmModule;
     }
 

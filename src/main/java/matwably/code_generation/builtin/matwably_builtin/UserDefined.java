@@ -34,8 +34,6 @@ public class UserDefined extends MatWablyBuiltinGenerator {
     /**
      * Function used to query whether the builtin function returns void
      * This is to be replaced by ValueAnalysis ShapePropagation, once we have a good way to determine when
-     * a
-     *
      * @return boolean signifying whether the builtin call returns a value.
      */
     @Override

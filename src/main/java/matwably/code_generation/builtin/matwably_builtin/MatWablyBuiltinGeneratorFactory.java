@@ -141,8 +141,7 @@ public class MatWablyBuiltinGeneratorFactory {
                                                         MatWablyFunctionInformation.class);
                 return (MatWablyBuiltinGenerator) generatorConstructor.newInstance(node, arguments,targs, callName, analyses);
             }catch(Exception e){
-                throw new Error(e);
-//                throw new MatWablyError.UnsupportedBuiltinCall(callName, node);
+                throw new MatWablyError.UnsupportedBuiltinCall(callName, node);
             }
         }
         throw new MatWablyError.UnsupportedBuiltinCall(callName, node);
