@@ -100,7 +100,6 @@ public class UseDefDefUse extends TIRAbstractSimpleStructuralForwardAnalysis<Use
                                 }
                             });
                     if(defName != null) currentOutSet.mapDefUse(defName, use);
-                    else System.err.println("Array: "+array+" used without definition at: \n"+node.getPrettyPrinted());
                 }else if(def instanceof TIRAbstractAssignToVarStmt){
                     TIRAbstractAssignToVarStmt varStmt = (TIRAbstractAssignToVarStmt) def;
                     currentOutSet.mapDefUse(varStmt.getTargetName(), use);

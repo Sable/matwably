@@ -164,7 +164,6 @@ final public class MemorySite {
 
     /**
      * This method copies memory sites, the only difference is that it passes the defining definingNodes by reference
-     * and the AliasingSite set creates a shallow copy
      * @return returns a copy of the memory site
      */
     public MemorySite copy(){

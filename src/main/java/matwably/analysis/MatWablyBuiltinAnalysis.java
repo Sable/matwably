@@ -9,9 +9,9 @@ import matwably.ast.Instruction;
 import matwably.ast.List;
 import matwably.ast.TypeUse;
 import matwably.code_generation.MatWablyFunctionInformation;
-import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorResult;
-import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGenerator;
-import matwably.code_generation.builtin.matwably_builtin.MatWablyBuiltinGeneratorFactory;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorResult;
+import matwably.code_generation.builtin.MatWablyBuiltinGenerator;
+import matwably.code_generation.builtin.MatWablyBuiltinGeneratorFactory;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 
