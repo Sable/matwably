@@ -4,26 +4,23 @@ const file = fs.readFileSync("./%s"); // compiled wasm
 // Start of compilation and program
 
 // Copy here all the Module definition.
-if(typeof Module === "undefined") Module = {};
-Module.initiated = false;
-
+if(typeof exports === "undefined") var exports = {};
+if(typeof exports.MatMachNativeLib === "undefined") exports.MatMachNativeLib = {};
+exports.MatMachNativeLib.initiated = false;
+exports.MatMachNativeLib.matlabModule = loader;
 async function loader() {
     let wi;
     try {
-        wi = await WebAssembly.instantiate(file, Module);
+        wi = await WebAssembly.instantiate(file, exports.MatMachNativeLib );
     } catch (err) {
         throw err;
     }
-    Module.initiated = true;
-    Module.exports =  wi.instance.exports;
-    Module.memory = wi.mem;
+    exports.MatMachNativeLib.initiated = true;
+    exports.MatMachNativeLib.exports =  wi.instance.exports;
+    exports.MatMachNativeLib.memory = wi.mem;
     wi = wi.instance.exports;
-    return Module;
+    return exports.MatMachNativeLib;
 }
 
-Module.matlabModule = loader;
-(async ()=>{
-    let mod = await loader();
-    // console.log(mod.exports);
-    mod.exports.%s(100);
-})();
+
+

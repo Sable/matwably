@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// import { TextDecoder } from 'util';
 if (typeof module == "undefined") {
     module = {};
 }
@@ -413,13 +412,15 @@ function printMachArrayHeader(arr_ptr, flag_print_data = false) {
  * @param {number} time_gc Total time spent by the GC
  * @param {number} total_calls_gc Total number of gc calls
  */
-function gcPrintMemoryUsage(alloc_number = 0, dealloc_number = 0, total_memory_budget = 0, avg_object_size = 0, total_calls_gc = 0, time_gc = 0) {
+function gcPrintMemoryUsage(alloc_number = 0, dealloc_number = 0, macharray_alloc = 0, total_memory_budget = 0, avg_object_size = 0, max_memory_allocated = 0, total_calls_gc = 0, time_gc = 0) {
     console.warn(JSON.stringify({
         "total_objects_allocated": alloc_number,
+        "total_macharray_allocation": macharray_alloc,
         "total_objects_deallocated": dealloc_number,
         "total_objects_not_freed": alloc_number - dealloc_number,
         "total_memory_budget": `${total_memory_budget}(+-${alloc_number}) bytes`,
         "avg_size_per_object": `${avg_object_size} bytes`,
+        "max_memory_allocated": `${max_memory_allocated} bytes`,
         "gc_total_number_calls": `${total_calls_gc}`,
         "gc_total_time": `${time_gc}s`
     }).replace("{", "[").replace("}", "]"));

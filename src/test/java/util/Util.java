@@ -24,7 +24,6 @@ public class Util {
         try{
             List<String> files =
                     listFilesUsingDirectoryStream(Paths.get(pathToDir), glob);
-            files.forEach(System.out::println);
             return files.stream().map((pathToFile) ->
                     DynamicTest.dynamicTest(pathToFile,
                             ()->{

@@ -245,14 +245,14 @@ public class FunctionGenerator {
                 functionAnalyses.getLogicalVariableUtil(),
                 opts.disallow_logicals));
         // Set the locals
-        setScrapFunctionLocals();
+        setScrapLocals();
 
         // Setting return function, automatically adds return statements for variables
         return new Function(new Opt<>(new Identifier(genFunctionName(this.analysisFunction))),
                 genSignature(), locals, new Expression(genStmtList(matlabFunction.getStmtList())));
     }
 
-    private void setScrapFunctionLocals() {
+    private void setScrapLocals() {
         // Set scrip register
         TypeUse scrapLocal = Util.genI32TypeUse();
         locals.add(scrapLocal);

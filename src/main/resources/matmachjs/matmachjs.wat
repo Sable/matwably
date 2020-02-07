@@ -3,7 +3,7 @@
 (type $2 (func (result i32)))
 (type $3 (func (param i32)))
 (type $4 (func (param i32 i32) (result i32)))
-(type $5 (func (param i32 i32 i32 i32 i32 i32 f64)))
+(type $5 (func (param i32 i32 i32 i32 i32 i32 i32 f64)))
 
 (import "env" "DYNAMICTOP_PTR" (global $2 i32))
 (import "env" "STACKTOP" (global $5 i32))
@@ -45,7 +45,6 @@
 (export "_sbrk" (func $sbrk))
 (export "_free" (func $free))
 (export "_malloc" (func $malloc))
-
 (export "sin_S" (func $sin_S))
 (export "cos_S" (func $cos_S))
 (export "tan_S" (func $tan_S))
@@ -289,7 +288,7 @@ return)
     get_local 1)
 (func $malloc (type $1) (param i32) (result i32)
     (local i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 i32)
-    ;; %gc_malloc 
+    ;; %gc_malloc
     get_global  $STACKTOP
     set_local 10
     get_global  $STACKTOP
@@ -12603,6 +12602,8 @@ return)
  )
 
 (global $TOTAL_ALLOCATION (mut i64) (i64.const 0))
+(global $CURRENT_MEMORY_ALLOCATED (mut i64) (i64.const 0))
+(global $MAX_MEMORY_ALLOCATED (mut i64) (i64.const 0))
 (global $TOTAL_ALLOCATED_MACHARRAYS (mut i32) (i32.const 0))
 (global $TOTAL_FREEING (mut i64) (i64.const 0))
 (global $TOTAL_DEALLOCATED_OBJECTS (mut i32) (i32.const 0))
@@ -12651,12 +12652,15 @@ return)
     else
         i32.const 0
     end
+    get_global $MAX_MEMORY_ALLOCATED
+    i32.wrap/i64
     get_global $GC_NUMBER_OF_CALLS
     get_global $GC_TOTAL_TIME
     call $gcPrintMemoryUsage
 )
 
 (func $gcRecordAllocation (param i32)
+    (local $temp i64)
     get_global $TOTAL_ALLOCATED_OBJECTS
     i32.const 1
     i32.add
@@ -12664,8 +12668,22 @@ return)
     get_global $TOTAL_ALLOCATION
     get_local 0
     i64.extend_u/i32
+    tee_local $temp
     i64.add
     set_global $TOTAL_ALLOCATION
+
+    get_local $temp
+    get_global $CURRENT_MEMORY_ALLOCATED
+    i64.add
+    set_global $CURRENT_MEMORY_ALLOCATED
+    get_global $CURRENT_MEMORY_ALLOCATED
+    get_global $MAX_MEMORY_ALLOCATED
+    i64.gt_s
+    if
+        get_global $CURRENT_MEMORY_ALLOCATED
+        set_global $MAX_MEMORY_ALLOCATED
+    end
+    
 )
 ;; We know its a brand new macharray if the RC is 0 so far.
 (func $gcMachArrayAllocation (param i32)
@@ -12694,7 +12712,11 @@ return)
     i64.const 8
     i64.rem_u
     i64.sub
+    tee_local $temp
     i64.add
     set_global $TOTAL_FREEING
-    
+    get_global $CURRENT_MEMORY_ALLOCATED
+    get_local $temp
+    i64.sub
+    set_global $CURRENT_MEMORY_ALLOCATED
 )

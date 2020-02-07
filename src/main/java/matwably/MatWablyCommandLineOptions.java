@@ -15,17 +15,8 @@ import java.util.ArrayList;
 @Parameters(separators = "=")
 public final class MatWablyCommandLineOptions {
 
-    // Contains the list of input files to process
-    @Parameter(description = "Flag to activate range optimization on array " +
-            "lookups", names = {"--disallow-range-opt", "-ro"})
-    public boolean disallow_range_opt = false;
-    // Contains the list of input files to process
-    @Parameter(description = "The list of files to process")
-    public ArrayList<String> input_files = new ArrayList<String>();
 
-    // Help parameter
-    @Parameter(names = {"-h","--help"}, hidden = true)
-    public boolean help = false;
+
 
     @Parameter(names = {"--disallow-logical"},
             description = "Flag to disallow logical variable in the program")
@@ -35,9 +26,7 @@ public final class MatWablyCommandLineOptions {
             description = "Option to turn on the peephole optimizer, default is on")
     public boolean peephole = false;
 
-    @Parameter(names = {"--inline-wasm", "-iw"},
-            description = "Option to in-line wasm code in a JavaScript UInt8Array instead of using I/O")
-    public boolean inline_wasm = false;
+
 
     @Parameter(names = {"--omit-copy-insertion","-ci"},
             description = "Option to omit copy insertion")
@@ -76,8 +65,6 @@ public final class MatWablyCommandLineOptions {
             description = "Option to turn on intermediate variable elimination")
     public boolean disallow_variable_elimination = false;
 
-    @Parameter(names = {"-o","--output-file"},description = "Outfile to place code")
-    public String output_file;
 
 
     // TODO Check args for entry function are empty
@@ -95,16 +82,42 @@ public final class MatWablyCommandLineOptions {
 
     @Parameter(names={ "--print-memory-info" ,"-m"}, description="Print memory information")
     public boolean print_memory_information = false;
+
+    @Parameter(names={"--run-program", "-r"}, description = "Adds function to run the entry function " +
+            "with arguments provided")
+    boolean run_program = false;
+    /**
+     * Runner arguments, format -ra "121,1231,2131", only accepts numbers
+     */
+    @Parameter(names = {"--runner-arguments","-ra"}, description = "Arguments to pass to the runner")
+    String runner_arguments = "";
     /**
      * Basename for input file
      */
-    public String basename_output_file;
+    String basename_output_file;
+    @Parameter(names = {"-o","--output-file"},description = "Outfile to place code")
+    String output_file;
+    // Contains the list of input files to process
+    @Parameter(description = "Flag to activate range optimization on array " +
+            "lookups", names = {"--disallow-range-opt", "-ro"})
+    public boolean disallow_range_opt = false;
+    // Contains the list of input files to process
+    @Parameter(description = "The list of files to process")
+    private ArrayList<String> input_files = new ArrayList<String>();
+
+    // Help parameter
+    @Parameter(names = {"-h","--help"}, hidden = true)
+    boolean help = false;
+
+    @Parameter(names = {"--inline-wasm", "-iw"},
+            description = "Option to in-line wasm code in a JavaScript UInt8Array instead of using I/O")
+    boolean inline_wasm = false;
     /**
      * Parses the entry function parameters and prints usage if it gails.
      * @param commander {@link JCommander} object
      * @return An array of formatted string arguments.
      */
-    public String[] getEntryFunctionArgs()
+    String[] getEntryFunctionArgs()
     {
 //      "[DOUBLE&1*1&REAL]";
         if(!this.args.isEmpty() && (!this.args.contains("[")|| !this.args.contains("]")))
@@ -120,7 +133,7 @@ public final class MatWablyCommandLineOptions {
      * Processes the matlab input files and creates {@link GenericFile}
      * @return Returns a Generic MatLab file {@link GenericFile}
      */
-    public GenericFile getGenericFile()
+    GenericFile getGenericFile()
     {
         if(this.input_files.size() == 0)
         {

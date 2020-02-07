@@ -15,10 +15,13 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.value.Args;
 import natlab.tame.valueanalysis.value.Res;
+import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static matwably.util.FileUtility.readStreamIntoString;
 
@@ -58,16 +61,30 @@ public class ProgramGenerator {
         return wasmModule;
     }
 
-    public static MatWablyProgram generate(MatWablyCommandLineOptions opts){
-        ValueAnalysis<AggrValue<BasicMatrixValue>> analysis = BasicTamerTool.analyze(opts.
-                        getEntryFunctionArgs(),
-                new FileEnvironment(opts.getGenericFile()));
+    /**
+     * Generate program function
+     * @param matlabFileToGenerate GenericFile object pointing to input file
+     * @param entryFunctionArgs Entry arguments for the program
+     * @param opts Compiler options, passed along the chain and instantiated.
+     * @return MatWablyProgram instance representing the result of the compiler
+     */
+    public static MatWablyProgram generate(GenericFile matlabFileToGenerate,
+                                           String[] entryFunctionArgs,
+                                           MatWablyCommandLineOptions opts){
+        ValueAnalysis<AggrValue<BasicMatrixValue>> analysis = BasicTamerTool.analyze(entryFunctionArgs,
+                                                            new FileEnvironment(matlabFileToGenerate));
         ProgramGenerator progGenerator = new ProgramGenerator(analysis, opts);
         String entryFunctionName = FunctionGenerator.genFunctionName(analysis.getMainNode().getAnalysis());
         Module module = progGenerator.generateWasmModule();
         return new MatWablyProgram(module, entryFunctionName);
     }
 
+    /**
+     * Generates all the MatWably functions for the program, adds them to the module.
+     * Relies on ValueAnalysis {@link ValueAnalysis} results to get call graph, tameIR, etc.
+     * @param module Wasm module to upload the functions to
+     * @param analysisNodeList Analysis list of function nodes for the analysis
+     */
     private void generateProgramFunctions(Module module,
                                           List<InterproceduralAnalysisNode<
                                                   IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>>,
