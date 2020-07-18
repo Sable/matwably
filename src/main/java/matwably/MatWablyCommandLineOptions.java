@@ -69,9 +69,9 @@ public final class MatWablyCommandLineOptions {
 
     // TODO Check args for entry function are empty
     @Parameter(names = {"-a","--args"},
-            description = "Arguments for entry function, e.g."+"'[\"DOUBLE&1*1&REAL\",\"DOUBLE&1*1&REAL\"]'\n"+
-            "\t\t\t\t\t   Representing two parameters, both, double, 1-by-1, real Matlab matrices", required = true)
-    public String args = "";
+            description = "Arguments for entry function, e.g."+"[DOUBLE&1*1&REAL,DOUBLE&1*1&REAL]\n"+
+            "\t\t\t\t\t Representing two parameters, both, double, 1-by-1, real Matlab matrices")
+    public String args = "[]";
 
     // TODO: Measure compilation time and time for each optimization
     @Parameter(names={ "--time" }, arity=1, description="time compilation time")
