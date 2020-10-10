@@ -8,11 +8,12 @@ aspect PrettyPrinter {
     }
     Declaration implements IASTNode;
     Instruction implements IASTNode;
+    TypeUse implements IASTNode;
 
     public abstract void Instruction.accept(ASTConcreteNodeVisitor visitor);
 
     public interface ASTConcreteNodeVisitor {
-        public void visit(Module mod);
+        public void visit(WasmModule mod);
         public void visit(Function func);
         public void visit(Table tab);
         public void visit(Global global);
@@ -113,7 +114,6 @@ aspect PrettyPrinter {
             public void visit(TestOp inst);
             public void visit(RelOp inst);
     }
-    TypeUse implements IASTNode;
     public void ConstantExpression.accept(ASTConcreteNodeVisitor visitor){
         visitor.visit(this);
     }
@@ -124,7 +124,7 @@ aspect PrettyPrinter {
     public void Global.accept(ASTConcreteNodeVisitor visitor){
         visitor.visit(this);
     }
-    public void Module.accept(ASTConcreteNodeVisitor visitor) {
+    public void WasmModule.accept(ASTConcreteNodeVisitor visitor) {
         visitor.visit(this);
     }
     public void Function.accept(ASTConcreteNodeVisitor visitor) {

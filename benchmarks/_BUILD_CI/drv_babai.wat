@@ -1,4 +1,4 @@
-(module 
+(wasmModule
     (import "js" "mem" (memory $mem 1))
     (import "js" "printError" (func $printError (param i32 i32)(result i32)))
     (import "js" "print_array_f64" (func $print_array_f64 (param i32 i32)))

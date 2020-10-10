@@ -1,6 +1,6 @@
 package util;
 
-import matwably.Main;
+import matwably.*;
 import org.junit.jupiter.api.DynamicTest;
 
 import java.io.IOException;

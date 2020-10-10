@@ -15,9 +15,6 @@ import java.util.ArrayList;
 @Parameters(separators = "=")
 public final class MatWablyCommandLineOptions {
 
-
-
-
     @Parameter(names = {"--disallow-logical"},
             description = "Flag to disallow logical variable in the program")
     public boolean disallow_logicals = false;
@@ -25,8 +22,6 @@ public final class MatWablyCommandLineOptions {
     @Parameter(names = {"--opt-peephole"},
             description = "Option to turn on the peephole optimizer, default is on")
     public boolean peephole = false;
-
-
 
     @Parameter(names = {"--omit-copy-insertion","-ci"},
             description = "Option to omit copy insertion")

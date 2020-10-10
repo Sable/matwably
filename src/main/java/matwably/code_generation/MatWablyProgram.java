@@ -1,7 +1,7 @@
 package matwably.code_generation;
 
 import matwably.ast.Function;
-import matwably.ast.Module;
+import matwably.ast.WasmModule;
 import matwably.pretty.PrettyPrinter;
 
 /**
@@ -10,7 +10,7 @@ import matwably.pretty.PrettyPrinter;
  */
 public class MatWablyProgram {
     private final String entryFunctionName;
-    private final Module wasmModule;
+    private final WasmModule wasmModule;
     /**
      * Wasm Function generated for the corresponding analysis node
      */
@@ -21,12 +21,12 @@ public class MatWablyProgram {
       * @param wasmModule Module generated for program
      * @param entryFunctionName Name of entry function
      */
-    public MatWablyProgram(Module wasmModule, String entryFunctionName) {
+    public MatWablyProgram(WasmModule wasmModule, String entryFunctionName) {
         this.wasmModule = wasmModule;
         this.entryFunctionName = entryFunctionName;
     }
 
-    public Module getWasmModule() {
+    public WasmModule getWasmModule() {
         return wasmModule;
     }
 

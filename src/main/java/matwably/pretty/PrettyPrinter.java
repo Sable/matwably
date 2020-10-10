@@ -14,14 +14,14 @@ import matwably.ast.*;
 public class PrettyPrinter implements ASTConcreteNodeVisitor {
 
     private StringBuffer sb;
-    private Module module;
+    private WasmModule wasmModule;
     private int indentation_level = 0;
     private boolean new_line = true;
-    public PrettyPrinter(Module mod) {
-        this.module = mod;
+    public PrettyPrinter(WasmModule mod) {
+        this.wasmModule = mod;
     }
 
-    public void visit(Module mod) {
+    public void visit(WasmModule mod) {
         if( mod.hasIdentifier() ) {
             sb.append("(module ");
             prettyIdentifier(mod.getIdentifier());
@@ -80,7 +80,7 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
     }
     public String display() {
         this.sb = new StringBuffer();
-        this.visit(this.module);
+        this.visit(this.wasmModule);
         return sb.toString();
     }
     private void indent() {
@@ -708,7 +708,7 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
     public void visit(Import imp) {
         indent();
         sb.append("(import \"");
-        sb.append(imp.getModuleName());
+        sb.append(imp.getWasmModuleName());
         sb.append("\" \"");
         sb.append(imp.getName());
         sb.append("\" ");
@@ -830,7 +830,7 @@ public class PrettyPrinter implements ASTConcreteNodeVisitor {
     @Override
     public String toString() {
         this.sb = new StringBuffer();
-        this.visit(module);
+        this.visit(wasmModule);
         return sb.toString();
     }
 

@@ -1,5 +1,5 @@
-// Module
-Module ::= [Identifier] Functions: Function* [Start] ImportedWat* Type:Type* Global*  Table* ElementSegment* Memory* DataSegment* Export* Import*;
+// WasmModule
+WasmModule ::= [Identifier] Functions: Function* [Start] ImportedWat* Type:Type* Global*  Table* ElementSegment* Memory* DataSegment* Export* Import*;
 abstract Declaration;
 //  Declarations
 Global: Declaration ::= [Identifier] GlobalType Init:ConstantExpression;
@@ -9,7 +9,7 @@ DataSegment: Declaration ::= MemoryIndex:Idx Offset:ConstantExpression <Init:Str
 ElementSegment: Declaration ::= TableIndex:Idx Offset:ConstantExpression <Init:java.util.List<Integer>>;
 Start: Declaration ::= FunctionIndex: Idx;
 Export: Declaration ::= <Name> <Desc:ExportDesc>;
-Import: Declaration ::= <ModuleName> <Name> Desc;
+Import: Declaration ::= <WasmModuleName> <Name> Desc;
 Function: Declaration ::= [Identifier] Type Locals:TypeUse* Body:Expression;
 Type: Declaration ::= [Identifier] <Parameters: List<TypeUse>> [ReturnType];
 ImportedWat: Declaration::= <Decl: String>;

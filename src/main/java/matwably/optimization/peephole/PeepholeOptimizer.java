@@ -3,7 +3,7 @@ package matwably.optimization.peephole;
 import matwably.ast.Function;
 import matwably.ast.Instruction;
 import matwably.ast.List;
-import matwably.ast.Module;
+import matwably.ast.WasmModule;
 import matwably.optimization.peephole.patterns.GetSetLocal;
 
 import java.util.ArrayList;
@@ -13,14 +13,14 @@ public class PeepholeOptimizer {
     java.util.HashSet<Class<? extends PeepholePattern>> patterns_set = new HashSet<>();
     java.util.ArrayList<PeepholePattern> patterns = new ArrayList<>();
     public int frequencies[] = {};
-    Module wasm_module;
+    WasmModule wasm_Wasm_module;
     public final int MAX_PATTERNS = 100;
-    public PeepholeOptimizer(Module wasm_mod){
+    public PeepholeOptimizer(WasmModule wasm_mod){
         this(wasm_mod,GetSetLocal.class);
     }
-    public PeepholeOptimizer(Module wasm_mod, Class<? extends PeepholePattern>... patternList){
+    public PeepholeOptimizer(WasmModule wasm_mod, Class<? extends PeepholePattern>... patternList){
         if(wasm_mod == null) throw new Error("Wasm module must be defined");
-        wasm_module = wasm_mod;
+        wasm_Wasm_module = wasm_mod;
         int i = 0;
         for (Class<? extends PeepholePattern> pattern : patternList) {
             if(!patterns_set.contains(pattern)) {
@@ -33,10 +33,10 @@ public class PeepholeOptimizer {
         frequencies = new int[patterns.size()];
     }
     public void optimize(){
-        if(wasm_module.hasFunctions()){
+        if(wasm_Wasm_module.hasFunctions()){
         boolean changed = true;
             while(changed){
-                for(Function func:  wasm_module.getFunctionsList()){
+                for(Function func:  wasm_Wasm_module.getFunctionsList()){
                     changed = optimizeInstructions(
                             func.getBody().getInstructionsList());
                 }

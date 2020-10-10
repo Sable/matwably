@@ -4,7 +4,7 @@ import matwably.Main;
 import matwably.MatWablyCommandLineOptions;
 import matwably.ast.Function;
 import matwably.ast.ImportedWat;
-import matwably.ast.Module;
+import matwably.ast.WasmModule;
 import matwably.code_generation.wasm.FunctionExport;
 import matwably.util.InterproceduralFunctionQuery;
 import natlab.tame.BasicTamerTool;
@@ -54,8 +54,8 @@ public class ProgramGenerator {
      * Method to generateInstructions the WebAssembly module given the results for the InterproceduralValueAnalysis.
      * @return Returns the resulting wasm program module.
      */
-    private Module generateWasmModule(){
-        Module wasmModule = new Module();
+    private WasmModule generateWasmModule(){
+        WasmModule wasmModule = new WasmModule();
         loadMatMachJSLibraryToModule(wasmModule, this.print_memory_info);
         generateProgramFunctions(wasmModule, analysis.getNodeList());
         return wasmModule;
@@ -75,17 +75,17 @@ public class ProgramGenerator {
                                                             new FileEnvironment(matlabFileToGenerate));
         ProgramGenerator progGenerator = new ProgramGenerator(analysis, opts);
         String entryFunctionName = FunctionGenerator.genFunctionName(analysis.getMainNode().getAnalysis());
-        Module module = progGenerator.generateWasmModule();
-        return new MatWablyProgram(module, entryFunctionName);
+        WasmModule wasmModule = progGenerator.generateWasmModule();
+        return new MatWablyProgram(wasmModule, entryFunctionName);
     }
 
     /**
      * Generates all the MatWably functions for the program, adds them to the module.
      * Relies on ValueAnalysis {@link ValueAnalysis} results to get call graph, tameIR, etc.
-     * @param module Wasm module to upload the functions to
+     * @param wasmModule Wasm module to upload the functions to
      * @param analysisNodeList Analysis list of function nodes for the analysis
      */
-    private void generateProgramFunctions(Module module,
+    private void generateProgramFunctions(WasmModule wasmModule,
                                           List<InterproceduralAnalysisNode<
                                                   IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>>,
                                                   Args<AggrValue<BasicMatrixValue>>, Res<AggrValue<BasicMatrixValue>>>>
@@ -98,8 +98,8 @@ public class ProgramGenerator {
             if( !functionSoFar.contains(generatedFunctionName)){
                 Function functionGenerated = FunctionGenerator.generate(analysisNode.getAnalysis(),
                                             interproceduralFunctionQuery, opts);
-                module.addFunctions(functionGenerated);
-                module.addExport(FunctionExport.generate(functionGenerated));
+                wasmModule.addFunctions(functionGenerated);
+                wasmModule.addExport(FunctionExport.generate(functionGenerated));
                 functionSoFar.add(generatedFunctionName);
             }
         }
@@ -111,7 +111,7 @@ public class ProgramGenerator {
      * @return returns string with library call
      * TODO Finish with the beaver front-end to construct the built-ins in WasmIR. Hack loads it as a string, in a more through version, this will load as wasmIR
      */
-    private static void loadMatMachJSLibraryToModule(Module wasmModule,
+    private static void loadMatMachJSLibraryToModule(WasmModule wasmModule,
                                                      boolean generateMemoryStats){
         try{
             String builtInDeclations =
